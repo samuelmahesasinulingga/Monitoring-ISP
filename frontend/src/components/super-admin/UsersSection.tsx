@@ -5,22 +5,23 @@ type User = {
   fullName: string;
   email: string;
   whatsapp: string;
-  role: "Super Admin" | "Admin Workspace";
+  role: string;
   workspaceId: number | null;
 };
 
 type UsersSectionProps = {
   workspaces: { id: number; name: string; address: string }[];
+  roles: { id: number; name: string; description: string }[];
 };
 
-const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
+const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
   const [users, setUsers] = useState<User[]>(() => [
     {
       id: 1,
       fullName: "Super Admin Default",
       email: "admin@isp.co.id",
       whatsapp: "0812-0000-0000",
-      role: "Super Admin",
+      role: roles[0]?.name ?? "Super Admin",
       workspaceId: workspaces[0]?.id ?? null,
     },
   ]);
@@ -31,12 +32,13 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"Super Admin" | "Admin Workspace">(
-    "Admin Workspace"
+  const [role, setRole] = useState<string>(
+    roles[1]?.name || roles[0]?.name || "Admin Workspace"
   );
   const [workspaceId, setWorkspaceId] = useState<string>(
     workspaces[0] ? String(workspaces[0].id) : ""
   );
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
 
   const resetForm = () => {
     setFullName("");
@@ -95,6 +97,12 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
     setShowModal(false);
   };
 
+  const handleChangeRoleInline = (id: number, newRole: string) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, role: newRole } : u))
+    );
+  };
+
   const openAddModal = () => {
     setEditingId(null);
     resetForm();
@@ -122,6 +130,17 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
     return ws ? ws.name : "-";
   };
 
+  const totalUsers = users.length;
+  const userCountByRole = roles.map((r) => ({
+    roleName: r.name,
+    count: users.filter((u) => u.role === r.name).length,
+  }));
+
+  const filteredUsers =
+    roleFilter === "ALL"
+      ? users
+      : users.filter((u) => u.role === roleFilter);
+
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: 8 }}>
       <header
@@ -146,6 +165,26 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
           <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>
             Kelola akun pengguna yang memiliki akses ke sistem ISP Anda.
           </p>
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              alignItems: "center",
+              fontSize: 11,
+              color: "#6b7280",
+            }}
+          >
+            <span>
+              Total: <strong>{totalUsers}</strong>
+            </span>
+            {userCountByRole.map((item) => (
+              <span key={item.roleName}>
+                | {item.roleName}: <strong>{item.count}</strong>
+              </span>
+            ))}
+          </div>
         </div>
         <button
           type="button"
@@ -192,7 +231,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <tr key={user.id}>
                 <td
                   style={{
@@ -234,11 +273,63 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
                   style={{
                     padding: "10px 10px",
                     borderTop: "1px solid #e5e7eb",
-                    color: user.role === "Super Admin" ? "#1d4ed8" : "#047857",
-                    fontWeight: 600,
+                    color: "#374151",
                   }}
                 >
-                  {user.role}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        backgroundColor:
+                          user.role === "Super Admin"
+                            ? "#dbeafe"
+                            : "#d1fae5",
+                        color:
+                          user.role === "Super Admin"
+                            ? "#1d4ed8"
+                            : "#047857",
+                        border:
+                          user.role === "Super Admin"
+                            ? "1px solid #bfdbfe"
+                            : "1px solid #bbf7d0",
+                      }}
+                    >
+                      {user.role}
+                    </span>
+                    <select
+                      value={user.role}
+                      onChange={(e) =>
+                        handleChangeRoleInline(user.id, e.target.value)
+                      }
+                      style={{
+                        width: "100%",
+                        height: 28,
+                        padding: "0 8px",
+                        borderRadius: 999,
+                        border: "1px solid #e5e7eb",
+                        fontSize: 11,
+                        boxSizing: "border-box",
+                        background: "#ffffff",
+                      }}
+                    >
+                      {roles.map((r) => (
+                        <option key={r.id} value={r.name}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </td>
                 <td
                   style={{
@@ -279,7 +370,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
                 </td>
               </tr>
             ))}
-            {users.length === 0 && (
+            {filteredUsers.length === 0 && (
               <tr>
                 <td
                   colSpan={6}
@@ -289,7 +380,9 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
                     color: "#9ca3af",
                   }}
                 >
-                  Belum ada pengguna terdaftar.
+                  {roleFilter === "ALL"
+                    ? "Belum ada pengguna terdaftar."
+                    : "Belum ada pengguna dengan role ini."}
                 </td>
               </tr>
             )}
@@ -470,9 +563,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
                 </label>
                 <select
                   value={role}
-                  onChange={(e) =>
-                    setRole(e.target.value as "Super Admin" | "Admin Workspace")
-                  }
+                  onChange={(e) => setRole(e.target.value)}
                   style={{
                     width: "100%",
                     height: 36,
@@ -484,8 +575,11 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces }) => {
                     background: "#ffffff",
                   }}
                 >
-                  <option value="Admin Workspace">Admin Workspace</option>
-                  <option value="Super Admin">Super Admin</option>
+                  {roles.map((r) => (
+                    <option key={r.id} value={r.name}>
+                      {r.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

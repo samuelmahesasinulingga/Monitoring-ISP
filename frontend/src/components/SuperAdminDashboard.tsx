@@ -4,14 +4,27 @@ import AdminWorkspaceSection from "./super-admin/AdminWorkspaceSection";
 import UsersSection from "./super-admin/UsersSection";
 import SettingsSection from "./super-admin/SettingsSection";
 import ProfileSection from "./super-admin/ProfileSection";
+import RolesSection from "./super-admin/RolesSection";
 
-type SectionKey = "overview" | "adminWorkspace" | "users" | "settings" | "profile";
+type SectionKey =
+  | "overview"
+  | "adminWorkspace"
+  | "users"
+  | "roles"
+  | "settings"
+  | "profile";
 
 type Workspace = {
   id: number;
   name: string;
   address: string;
   iconUrl?: string;
+};
+
+type RoleDefinition = {
+  id: number;
+  name: string;
+  description: string;
 };
 
 type SuperAdminProfile = {
@@ -21,10 +34,14 @@ type SuperAdminProfile = {
   avatarUrl?: string;
 };
 
-function SuperAdminDashboard() {
+type SuperAdminDashboardProps = {
+  onOpenWorkspace?: (workspace: Workspace) => void;
+  onLogout?: () => void;
+};
+
+function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardProps) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionKey>("overview");
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([
     {
       id: 1,
@@ -39,81 +56,24 @@ function SuperAdminDashboard() {
       iconUrl: "",
     },
   ]);
-  const [superAdminProfile, setSuperAdminProfile] = useState<SuperAdminProfile>(
+  const [superAdminProfile, setSuperAdminProfile] = useState<SuperAdminProfile>({
+    name: "Super Admin",
+    email: "admin@isp.co.id",
+    whatsapp: "0812-0000-0000",
+    avatarUrl: "",
+  });
+  const [roles, setRoles] = useState<RoleDefinition[]>([
     {
+      id: 1,
       name: "Super Admin",
-      email: "admin@isp.co.id",
-      whatsapp: "0812-0000-0000",
-      avatarUrl: "",
-    }
-  );
-
-  if (!isLoggedIn) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background:
-            "linear-gradient(135deg, #e0f2fe 0, #f9fafb 40%, #eef2ff 100%)",
-          color: "#111827",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 420,
-            width: "100%",
-            background: "rgba(255,255,255,0.98)",
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 24px 80px rgba(15,23,42,0.18)",
-            border: "1px solid #e5e7eb",
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontSize: 36, marginBottom: 8 }}>👋</div>
-          <h1
-            style={{
-              margin: 0,
-              marginBottom: 8,
-              fontSize: 20,
-              fontWeight: 700,
-            }}
-          >
-            Anda sudah logout
-          </h1>
-          <p
-            style={{
-              margin: 0,
-              marginBottom: 16,
-              fontSize: 13,
-              color: "#6b7280",
-            }}
-          >
-            Untuk masuk kembali sebagai Super Admin, klik tombol di bawah ini.
-          </p>
-          <button
-            type="button"
-            onClick={() => setIsLoggedIn(true)}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 999,
-              border: "none",
-              background: "#2563eb",
-              color: "#ffffff",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Login kembali (dummy)
-          </button>
-        </div>
-      </div>
-    );
-  }
+      description: "Akses penuh ke seluruh sistem dan semua workspace.",
+    },
+    {
+      id: 2,
+      name: "Admin Workspace",
+      description: "Mengelola 1 workspace, pelanggan, dan monitoring di dalamnya.",
+    },
+  ]);
 
   return (
     <div
@@ -205,7 +165,11 @@ function SuperAdminDashboard() {
                   key={ws.id}
                   type="button"
                   onClick={() => {
-                    setActiveSection("adminWorkspace");
+                    if (onOpenWorkspace) {
+                      onOpenWorkspace(ws);
+                    } else {
+                      setActiveSection("adminWorkspace");
+                    }
                     setShowAccountMenu(false);
                   }}
                   style={{
@@ -260,6 +224,13 @@ function SuperAdminDashboard() {
                 </button>
               ))}
               <button
+                type="button"
+                onClick={() => {
+                  if (onLogout) {
+                    onLogout();
+                  }
+                  setShowAccountMenu(false);
+                }}
                 style={{
                   width: "100%",
                   textAlign: "left",
@@ -310,6 +281,22 @@ function SuperAdminDashboard() {
             }}
           >
             👥 Workspace
+          </button>
+          <button
+            onClick={() => setActiveSection("roles")}
+            style={{
+              textAlign: "left",
+              padding: "10px 12px",
+              borderRadius: 999,
+              border: "none",
+              background:
+                activeSection === "roles" ? "#e5e7eb" : "transparent",
+              color: activeSection === "roles" ? "#111827" : "#4b5563",
+              cursor: "pointer",
+              fontSize: 13,
+            }}
+          >
+            🔑 Role & Akses
           </button>
           <button
             onClick={() => setActiveSection("users")}
@@ -430,7 +417,11 @@ function SuperAdminDashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setIsLoggedIn(false)}
+              onClick={() => {
+                if (onLogout) {
+                  onLogout();
+                }
+              }}
               style={{
                 padding: "6px 10px",
                 borderRadius: 999,
@@ -457,7 +448,12 @@ function SuperAdminDashboard() {
             setWorkspaces={setWorkspaces}
           />
         )}
-        {activeSection === "users" && <UsersSection workspaces={workspaces} />}
+        {activeSection === "users" && (
+          <UsersSection workspaces={workspaces} roles={roles} />
+        )}
+        {activeSection === "roles" && (
+          <RolesSection roles={roles} setRoles={setRoles} />
+        )}
         {activeSection === "profile" && (
           <ProfileSection
             profile={superAdminProfile}
