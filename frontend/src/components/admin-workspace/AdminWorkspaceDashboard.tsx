@@ -121,7 +121,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               padding: "10px 12px",
               borderRadius: 12,
               border: "1px solid #1f2937",
-              background: "#111827",
+              background: "#3d4b88",
               cursor: "pointer",
               color: "#e5e7eb",
             }}
