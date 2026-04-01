@@ -90,10 +90,11 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
         style={{
           width: 260,
           padding: "24px 16px",
-          background: "rgba(255,255,255,0.9)",
-          boxShadow: "4px 0 20px rgba(15,23,42,0.06)",
+          background: "#020617",
+          boxShadow: "4px 0 20px rgba(15,23,42,0.4)",
           display: "flex",
           flexDirection: "column",
+          color: "#e5e7eb",
         }}
       >
         <div style={{ marginBottom: 32, position: "relative" }}>
@@ -104,13 +105,29 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               textAlign: "left",
               padding: "10px 12px",
               borderRadius: 12,
-              border: "1px solid #e5e7eb",
-              background: "#ffffff",
+              border: "1px solid #1f2937",
+              background: "#3d4b88",
               cursor: "pointer",
+              color: "#e5e7eb",
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>ISP Admin</div>
-            <div style={{ fontSize: 11, color: "#6b7280" }}>Super Admin Dashboard</div>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#e5e7eb",
+              }}
+            >
+              ISP Admin
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "#9ca3af",
+              }}
+            >
+              Super Admin Dashboard
+            </div>
           </button>
           {showAccountMenu && (
             <div
@@ -120,11 +137,12 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                 left: 0,
                 marginTop: 8,
                 width: "100%",
-                background: "#ffffff",
+                background: "#111827",
                 borderRadius: 12,
                 boxShadow: "0 12px 30px rgba(15,23,42,0.15)",
                 padding: 8,
                 fontSize: 12,
+                color: "#e5e7eb",
               }}
             >
               <button
@@ -139,10 +157,13 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                   padding: "6px 8px",
                   borderRadius: 8,
                   border: "none",
-                  background: "#f9fafb",
+                  background:
+                    activeSection === "overview" ? "#1f2937" : "transparent",
                   cursor: "pointer",
                   fontSize: 12,
                   marginBottom: 4,
+                  color:
+                    activeSection === "overview" ? "#f9fafb" : "#e5e7eb",
                 }}
               >
                 Platform Central
@@ -178,12 +199,19 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                     padding: "6px 8px",
                     borderRadius: 8,
                     border: "none",
-                    background: "transparent",
+                    background:
+                      activeSection === "adminWorkspace"
+                        ? "#1f2937"
+                        : "transparent",
                     cursor: "pointer",
                     fontSize: 12,
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
+                    color:
+                      activeSection === "adminWorkspace"
+                        ? "#f9fafb"
+                        : "#e5e7eb",
                   }}
                 >
                   <span
@@ -238,7 +266,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                   borderRadius: 8,
                   border: "none",
                   background: "transparent",
-                  color: "#b91c1c",
+                  color: "#fecaca",
                   cursor: "pointer",
                 }}
               >
@@ -256,10 +284,8 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               borderRadius: 999,
               border: "none",
               background:
-                activeSection === "overview"
-                  ? "linear-gradient(135deg, #dbeafe, #bfdbfe)"
-                  : "transparent",
-              color: activeSection === "overview" ? "#1d4ed8" : "#4b5563",
+                activeSection === "overview" ? "#020617" : "transparent",
+              color: activeSection === "overview" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -274,8 +300,8 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               borderRadius: 999,
               border: "none",
               background:
-                activeSection === "adminWorkspace" ? "#e5e7eb" : "transparent",
-              color: activeSection === "adminWorkspace" ? "#111827" : "#4b5563",
+                activeSection === "adminWorkspace" ? "#020617" : "transparent",
+              color: activeSection === "adminWorkspace" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -290,8 +316,8 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               borderRadius: 999,
               border: "none",
               background:
-                activeSection === "roles" ? "#e5e7eb" : "transparent",
-              color: activeSection === "roles" ? "#111827" : "#4b5563",
+                activeSection === "roles" ? "#020617" : "transparent",
+              color: activeSection === "roles" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -306,8 +332,8 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               borderRadius: 999,
               border: "none",
               background:
-                activeSection === "users" ? "#e5e7eb" : "transparent",
-              color: activeSection === "users" ? "#111827" : "#4b5563",
+                activeSection === "users" ? "#020617" : "transparent",
+              color: activeSection === "users" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -322,8 +348,8 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               borderRadius: 999,
               border: "none",
               background:
-                activeSection === "settings" ? "#e5e7eb" : "transparent",
-              color: activeSection === "settings" ? "#111827" : "#4b5563",
+                activeSection === "settings" ? "#020617" : "transparent",
+              color: activeSection === "settings" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -337,8 +363,8 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               marginTop: 16,
               padding: 10,
               borderRadius: 10,
-              background: "rgba(255,255,255,0.95)",
-              border: "1px solid #e5e7eb",
+              background: "#020617",
+              border: "1px solid #1f2937",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -400,7 +426,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                   style={{
                     fontSize: 12,
                     fontWeight: 600,
-                    color: "#111827",
+                    color: "#e5e7eb",
                   }}
                 >
                   {superAdminProfile.name}
@@ -408,7 +434,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                 <div
                   style={{
                     fontSize: 11,
-                    color: "#6b7280",
+                    color: "#9ca3af",
                   }}
                 >
                   Logged in

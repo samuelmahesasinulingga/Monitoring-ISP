@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import WorkspaceDashboardSection from "./WorkspaceDashboardSection";
 import MonitoringSection from "./MonitoringSection";
 import SLAReportSection from "./SLAReportSection";
+import BillingSection from "./BillingSection";
+import WorkspaceSettingsSection from "./WorkspaceSettingsSection";
 
 type MenuKey = "dashboard" | "monitoring" | "slaReport" | "customers" | "billing" | "settings";
 type MonitoringTabKey = "ping" | "alerts" | "interface" | "queue";
@@ -64,44 +66,15 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
 
     if (activeMenu === "billing") {
       return (
-        <section style={{ maxWidth: 960, margin: "0 auto" }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 20,
-              fontWeight: 700,
-              color: "#0f172a",
-              marginBottom: 8,
-            }}
-          >
-            Tagihan & Pembayaran
-          </h1>
-          <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
-            Di sini nantinya admin workspace bisa memantau dan mengelola
-            tagihan.
-          </p>
-        </section>
+        <BillingSection workspaceName={workspaceName} />
       );
     }
 
-    return (
-      <section style={{ maxWidth: 960, margin: "0 auto" }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 20,
-            fontWeight: 700,
-            color: "#0f172a",
-            marginBottom: 8,
-          }}
-        >
-          Pengaturan Workspace
-        </h1>
-        <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
-          Pengaturan akses dan konfigurasi lain untuk workspace ini.
-        </p>
-      </section>
-    );
+    if (activeMenu === "settings") {
+      return <WorkspaceSettingsSection workspaceName={workspaceName} />;
+    }
+
+    return null;
   };
 
   const baseWorkspaceOptions = [
@@ -131,10 +104,11 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
         style={{
           width: 250,
           padding: "20px 16px",
-          background: "rgba(255,255,255,0.96)",
-          boxShadow: "4px 0 20px rgba(15,23,42,0.06)",
+          background: "#020617",
+          boxShadow: "4px 0 20px rgba(15,23,42,0.4)",
           display: "flex",
           flexDirection: "column",
+          color: "#e5e7eb",
         }}
       >
         <div style={{ marginBottom: 20, position: "relative" }}>
@@ -146,21 +120,22 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               textAlign: "left",
               padding: "10px 12px",
               borderRadius: 12,
-              border: "1px solid #e5e7eb",
-              background: "#ffffff",
+              border: "1px solid #1f2937",
+              background: "#111827",
               cursor: "pointer",
+              color: "#e5e7eb",
             }}
           >
             <div
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#111827",
+                color: "#e5e7eb",
               }}
             >
               {workspaceName ?? "Pilih Workspace"}
             </div>
-            <div style={{ fontSize: 11, color: "#6b7280" }}>
+            <div style={{ fontSize: 11, color: "#9ca3af" }}>
               Admin Workspace
             </div>
           </button>
@@ -173,12 +148,13 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                 left: 0,
                 marginTop: 8,
                 width: "100%",
-                background: "#ffffff",
+                background: "#111827",
                 borderRadius: 12,
                 boxShadow: "0 12px 30px rgba(15,23,42,0.15)",
                 padding: 8,
                 fontSize: 12,
                 zIndex: 20,
+                color: "#e5e7eb",
               }}
             >
               {onBackToSuperAdmin && (
@@ -194,10 +170,11 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     padding: "6px 8px",
                     borderRadius: 8,
                     border: "none",
-                    background: "#f9fafb",
+                    background: "#1f2937",
                     cursor: "pointer",
                     fontSize: 12,
                     marginBottom: 4,
+                    color: "#f9fafb",
                   }}
                 >
                   Platform Central (Super Admin)
@@ -234,9 +211,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                       padding: "6px 8px",
                       borderRadius: 8,
                       border: "none",
-                      background: isActive
-                        ? "rgba(59,130,246,0.08)"
-                        : "transparent",
+                      background: isActive ? "#1f2937" : "transparent",
                       cursor: "pointer",
                       fontSize: 12,
                       display: "flex",
@@ -245,6 +220,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                       transition:
                         "background 0.18s ease, transform 0.18s ease",
                       transform: isActive ? "translateX(2px)" : "none",
+                      color: isActive ? "#f9fafb" : "#e5e7eb",
                     }}
                   >
                     <span
@@ -283,7 +259,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                   borderRadius: 8,
                   border: "none",
                   background: "transparent",
-                  color: "#b91c1c",
+                  color: "#fecaca",
                   cursor: "pointer",
                   marginTop: 4,
                 }}
@@ -302,11 +278,12 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               marginBottom: 12,
               padding: "6px 10px",
               borderRadius: 999,
-              border: "1px solid #e5e7eb",
-              background: "#f9fafb",
+              border: "1px solid #1f2937",
+              background: "#020617",
               fontSize: 11,
               cursor: "pointer",
               textAlign: "left",
+              color: "#e5e7eb",
             }}
           >
             ← Kembali ke Super Admin
@@ -323,11 +300,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               borderRadius: 999,
               border: "none",
               background:
-                activeMenu === "dashboard"
-                  ? "linear-gradient(135deg, #dbeafe, #bfdbfe)"
-                  : "transparent",
+                activeMenu === "dashboard" ? "#020617" : "transparent",
               color:
-                activeMenu === "dashboard" ? "#1d4ed8" : "#4b5563",
+                activeMenu === "dashboard" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -348,9 +323,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                 borderRadius: 999,
                 border: "none",
                 background:
-                  activeMenu === "monitoring" ? "#e5e7eb" : "transparent",
+                  activeMenu === "monitoring" ? "#020617" : "transparent",
                 color:
-                  activeMenu === "monitoring" ? "#111827" : "#4b5563",
+                  activeMenu === "monitoring" ? "#f9fafb" : "#9ca3af",
                 cursor: "pointer",
                 fontSize: 13,
                 display: "flex",
@@ -387,11 +362,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     borderRadius: 999,
                     border: "none",
                     background:
-                      monitoringTab === "ping"
-                        ? "rgba(59,130,246,0.08)"
-                        : "transparent",
+                      monitoringTab === "ping" ? "#1f2937" : "transparent",
                     color:
-                      monitoringTab === "ping" ? "#1d4ed8" : "#4b5563",
+                      monitoringTab === "ping" ? "#f9fafb" : "#e5e7eb",
                     cursor: "pointer",
                     fontSize: 12,
                   }}
@@ -410,11 +383,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     borderRadius: 999,
                     border: "none",
                     background:
-                      monitoringTab === "alerts"
-                        ? "rgba(59,130,246,0.08)"
-                        : "transparent",
+                      monitoringTab === "alerts" ? "#1f2937" : "transparent",
                     color:
-                      monitoringTab === "alerts" ? "#1d4ed8" : "#4b5563",
+                      monitoringTab === "alerts" ? "#f9fafb" : "#e5e7eb",
                     cursor: "pointer",
                     fontSize: 12,
                   }}
@@ -434,10 +405,12 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     border: "none",
                     background:
                       monitoringTab === "interface"
-                        ? "rgba(59,130,246,0.08)"
+                        ? "#1f2937"
                         : "transparent",
                     color:
-                      monitoringTab === "interface" ? "#1d4ed8" : "#4b5563",
+                      monitoringTab === "interface"
+                        ? "#f9fafb"
+                        : "#e5e7eb",
                     cursor: "pointer",
                     fontSize: 12,
                   }}
@@ -456,11 +429,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     borderRadius: 999,
                     border: "none",
                     background:
-                      monitoringTab === "queue"
-                        ? "rgba(59,130,246,0.08)"
-                        : "transparent",
+                      monitoringTab === "queue" ? "#1f2937" : "transparent",
                     color:
-                      monitoringTab === "queue" ? "#1d4ed8" : "#4b5563",
+                      monitoringTab === "queue" ? "#f9fafb" : "#e5e7eb",
                     cursor: "pointer",
                     fontSize: 12,
                   }}
@@ -479,9 +450,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               borderRadius: 999,
               border: "none",
               background:
-                activeMenu === "slaReport" ? "#e5e7eb" : "transparent",
+                activeMenu === "slaReport" ? "#020617" : "transparent",
               color:
-                activeMenu === "slaReport" ? "#111827" : "#4b5563",
+                activeMenu === "slaReport" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -497,9 +468,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               borderRadius: 999,
               border: "none",
               background:
-                activeMenu === "customers" ? "#e5e7eb" : "transparent",
+                activeMenu === "customers" ? "#020617" : "transparent",
               color:
-                activeMenu === "customers" ? "#111827" : "#4b5563",
+                activeMenu === "customers" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -515,9 +486,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               borderRadius: 999,
               border: "none",
               background:
-                activeMenu === "billing" ? "#e5e7eb" : "transparent",
+                activeMenu === "billing" ? "#020617" : "transparent",
               color:
-                activeMenu === "billing" ? "#111827" : "#4b5563",
+                activeMenu === "billing" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
@@ -533,9 +504,9 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               borderRadius: 999,
               border: "none",
               background:
-                activeMenu === "settings" ? "#e5e7eb" : "transparent",
+                activeMenu === "settings" ? "#020617" : "transparent",
               color:
-                activeMenu === "settings" ? "#111827" : "#4b5563",
+                activeMenu === "settings" ? "#f9fafb" : "#9ca3af",
               cursor: "pointer",
               fontSize: 13,
             }}
