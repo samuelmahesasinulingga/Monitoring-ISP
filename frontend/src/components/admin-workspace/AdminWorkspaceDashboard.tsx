@@ -4,8 +4,10 @@ import MonitoringSection from "./MonitoringSection";
 import SLAReportSection from "./SLAReportSection";
 import BillingSection from "./BillingSection";
 import WorkspaceSettingsSection from "./WorkspaceSettingsSection";
+import DevicesSection from "./DeviceSection";
+import TopologySection from "./TopologySection";
 
-type MenuKey = "dashboard" | "monitoring" | "slaReport" | "customers" | "billing" | "settings";
+type MenuKey = "dashboard" | "monitoring" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings";
 type MonitoringTabKey = "ping" | "alerts" | "interface" | "queue";
 
 type AdminWorkspaceDashboardProps = {
@@ -37,6 +39,14 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           key={monitoringTab}
         />
       );
+    }
+
+    if (activeMenu === "devices") {
+      return <DevicesSection workspaceName={workspaceName} />;
+    }
+
+    if (activeMenu === "topology") {
+      return <TopologySection workspaceName={workspaceName} />;
     }
 
     if (activeMenu === "slaReport") {
@@ -91,71 +101,23 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
     : baseWorkspaceOptions;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        background:
-          "linear-gradient(135deg, #eff6ff 0, #f9fafb 50%, #e0f2fe 100%)",
-        color: "#111827",
-      }}
-    >
-      <aside
-        style={{
-          width: 250,
-          padding: "20px 16px",
-          background: "#020617",
-          boxShadow: "4px 0 20px rgba(15,23,42,0.4)",
-          display: "flex",
-          flexDirection: "column",
-          color: "#e5e7eb",
-        }}
-      >
-        <div style={{ marginBottom: 20, position: "relative" }}>
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-100 via-slate-50 to-sky-100 text-slate-900">
+      <aside className="w-64 px-4 py-5 bg-slate-950 text-slate-100 shadow-[4px_0_20px_rgba(15,23,42,0.4)] flex flex-col">
+        <div className="mb-5 relative">
           <button
             type="button"
             onClick={() => setShowWorkspaceMenu((v) => !v)}
-            style={{
-              width: "100%",
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: "1px solid #1f2937",
-              background: "#3d4b88",
-              cursor: "pointer",
-              color: "#e5e7eb",
-            }}
+            className="w-full text-left px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-700/80 cursor-pointer text-slate-100 hover:bg-slate-600/80 transition-colors"
           >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#e5e7eb",
-              }}
-            >
+            <div className="text-[13px] font-semibold text-slate-100">
               {workspaceName ?? "Pilih Workspace"}
             </div>
-            <div style={{ fontSize: 11, color: "#9ca3af" }}>
-              Admin Workspace
-            </div>
+            <div className="text-[11px] text-slate-400">Admin Workspace</div>
           </button>
 
           {showWorkspaceMenu && (
             <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                marginTop: 8,
-                width: "100%",
-                background: "#111827",
-                borderRadius: 12,
-                boxShadow: "0 12px 30px rgba(15,23,42,0.15)",
-                padding: 8,
-                fontSize: 12,
-                zIndex: 20,
-                color: "#e5e7eb",
-              }}
+              className="absolute top-full left-0 mt-2 w-full bg-slate-900 rounded-xl shadow-xl shadow-slate-900/40 p-2 text-[12px] z-20 text-slate-100"
             >
               {onBackToSuperAdmin && (
                 <button
@@ -164,31 +126,14 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     onBackToSuperAdmin();
                     setShowWorkspaceMenu(false);
                   }}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "6px 8px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "#1f2937",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    marginBottom: 4,
-                    color: "#f9fafb",
-                  }}
+                  className="w-full text-left px-2 py-1.5 rounded-lg border-0 bg-slate-800 cursor-pointer text-[12px] mb-1.5 text-slate-50 hover:bg-slate-700"
                 >
                   Platform Central (Super Admin)
                 </button>
               )}
 
               <div
-                style={{
-                  padding: "4px 8px",
-                  fontSize: 11,
-                  color: "#9ca3af",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                }}
+                className="px-2 py-1 text-[11px] text-slate-400 uppercase tracking-[0.04em]"
               >
                 Workspace
               </div>
@@ -205,40 +150,14 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                       }
                       setShowWorkspaceMenu(false);
                     }}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "6px 8px",
-                      borderRadius: 8,
-                      border: "none",
-                      background: isActive ? "#1f2937" : "transparent",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      transition:
-                        "background 0.18s ease, transform 0.18s ease",
-                      transform: isActive ? "translateX(2px)" : "none",
-                      color: isActive ? "#f9fafb" : "#e5e7eb",
-                    }}
+                    className={`w-full text-left px-2 py-1.5 rounded-lg border-0 cursor-pointer text-[12px] flex items-center gap-1.5 transition-all ${
+                      isActive
+                        ? "bg-slate-800 text-slate-50 translate-x-[2px]"
+                        : "bg-transparent text-slate-200 hover:bg-slate-800/70"
+                    }`}
                   >
                     <span
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 6,
-                        overflow: "hidden",
-                        background:
-                          "linear-gradient(135deg, #2563eb, #4f46e5)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        flexShrink: 0,
-                      }}
+                      className="w-5 h-5 rounded-md overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 inline-flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0"
                     >
                       {name
                         .trim()
@@ -252,17 +171,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
 
               <button
                 type="button"
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "6px 8px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "transparent",
-                  color: "#fecaca",
-                  cursor: "pointer",
-                  marginTop: 4,
-                }}
+                className="w-full text-left px-2 py-1.5 rounded-lg border-0 bg-transparent text-[12px] text-rose-200 cursor-pointer mt-1.5 hover:bg-rose-900/40"
               >
                 Logout (dummy)
               </button>
@@ -274,38 +183,21 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           <button
             type="button"
             onClick={onBackToSuperAdmin}
-            style={{
-              marginBottom: 12,
-              padding: "6px 10px",
-              borderRadius: 999,
-              border: "1px solid #1f2937",
-              background: "#020617",
-              fontSize: 11,
-              cursor: "pointer",
-              textAlign: "left",
-              color: "#e5e7eb",
-            }}
+            className="mb-3 px-2.5 py-1.5 rounded-full border border-slate-800 bg-slate-950 text-[11px] text-slate-100 text-left cursor-pointer hover:bg-slate-900"
           >
             ← Kembali ke Super Admin
           </button>
         )}
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <nav className="flex flex-col gap-2">
           <button
             type="button"
             onClick={() => setActiveMenu("dashboard")}
-            style={{
-              textAlign: "left",
-              padding: "9px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeMenu === "dashboard" ? "#020617" : "transparent",
-              color:
-                activeMenu === "dashboard" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "dashboard"
+                ? "bg-slate-950 text-slate-50"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
           >
             📊 Dashboard
           </button>
@@ -316,39 +208,21 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                 setActiveMenu("monitoring");
                 setShowMonitoringMenu((v) => !v);
               }}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                padding: "9px 12px",
-                borderRadius: 999,
-                border: "none",
-                background:
-                  activeMenu === "monitoring" ? "#020617" : "transparent",
-                color:
-                  activeMenu === "monitoring" ? "#f9fafb" : "#9ca3af",
-                cursor: "pointer",
-                fontSize: 13,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 8,
-              }}
+              className={`w-full text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] flex items-center justify-between gap-2 ${
+                activeMenu === "monitoring"
+                  ? "bg-slate-950 text-slate-50"
+                  : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+              }`}
             >
               <span>📡 Monitoring</span>
-              <span style={{ fontSize: 11, color: "#9ca3af" }}>
+              <span className="text-[11px] text-slate-400">
                 {showMonitoringMenu ? "▴" : "▾"}
               </span>
             </button>
 
             {showMonitoringMenu && activeMenu === "monitoring" && (
               <div
-                style={{
-                  marginTop: 4,
-                  marginLeft: 8,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                }}
+                className="mt-1 ml-2 flex flex-col gap-1"
               >
                 <button
                   type="button"
@@ -356,18 +230,11 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     setActiveMenu("monitoring");
                     setMonitoringTab("ping");
                   }}
-                  style={{
-                    textAlign: "left",
-                    padding: "6px 10px",
-                    borderRadius: 999,
-                    border: "none",
-                    background:
-                      monitoringTab === "ping" ? "#1f2937" : "transparent",
-                    color:
-                      monitoringTab === "ping" ? "#f9fafb" : "#e5e7eb",
-                    cursor: "pointer",
-                    fontSize: 12,
-                  }}
+                  className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
+                    monitoringTab === "ping"
+                      ? "bg-slate-800 text-slate-50"
+                      : "bg-transparent text-slate-200 hover:bg-slate-800/60"
+                  }`}
                 >
                   • Monitoring ping
                 </button>
@@ -377,18 +244,11 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     setActiveMenu("monitoring");
                     setMonitoringTab("alerts");
                   }}
-                  style={{
-                    textAlign: "left",
-                    padding: "6px 10px",
-                    borderRadius: 999,
-                    border: "none",
-                    background:
-                      monitoringTab === "alerts" ? "#1f2937" : "transparent",
-                    color:
-                      monitoringTab === "alerts" ? "#f9fafb" : "#e5e7eb",
-                    cursor: "pointer",
-                    fontSize: 12,
-                  }}
+                  className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
+                    monitoringTab === "alerts"
+                      ? "bg-slate-800 text-slate-50"
+                      : "bg-transparent text-slate-200 hover:bg-slate-800/60"
+                  }`}
                 >
                   • Alert monitoring
                 </button>
@@ -398,22 +258,11 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     setActiveMenu("monitoring");
                     setMonitoringTab("interface");
                   }}
-                  style={{
-                    textAlign: "left",
-                    padding: "6px 10px",
-                    borderRadius: 999,
-                    border: "none",
-                    background:
-                      monitoringTab === "interface"
-                        ? "#1f2937"
-                        : "transparent",
-                    color:
-                      monitoringTab === "interface"
-                        ? "#f9fafb"
-                        : "#e5e7eb",
-                    cursor: "pointer",
-                    fontSize: 12,
-                  }}
+                  className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
+                    monitoringTab === "interface"
+                      ? "bg-slate-800 text-slate-50"
+                      : "bg-transparent text-slate-200 hover:bg-slate-800/60"
+                  }`}
                 >
                   • Monitoring BW per interface
                 </button>
@@ -423,18 +272,11 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     setActiveMenu("monitoring");
                     setMonitoringTab("queue");
                   }}
-                  style={{
-                    textAlign: "left",
-                    padding: "6px 10px",
-                    borderRadius: 999,
-                    border: "none",
-                    background:
-                      monitoringTab === "queue" ? "#1f2937" : "transparent",
-                    color:
-                      monitoringTab === "queue" ? "#f9fafb" : "#e5e7eb",
-                    cursor: "pointer",
-                    fontSize: 12,
-                  }}
+                  className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
+                    monitoringTab === "queue"
+                      ? "bg-slate-800 text-slate-50"
+                      : "bg-transparent text-slate-200 hover:bg-slate-800/60"
+                  }`}
                 >
                   • Monitoring BW per queue
                 </button>
@@ -443,80 +285,74 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </div>
           <button
             type="button"
+            onClick={() => setActiveMenu("devices")}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "devices"
+                ? "bg-slate-950 text-slate-50"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
+          >
+            🖧 Devices
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMenu("topology")}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "topology"
+                ? "bg-slate-950 text-slate-50"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
+          >
+            🗺️ Topology
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveMenu("slaReport")}
-            style={{
-              textAlign: "left",
-              padding: "9px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeMenu === "slaReport" ? "#020617" : "transparent",
-              color:
-                activeMenu === "slaReport" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "slaReport"
+                ? "bg-slate-950 text-slate-50"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
           >
             📈 SLA & Report
           </button>
           <button
             type="button"
             onClick={() => setActiveMenu("customers")}
-            style={{
-              textAlign: "left",
-              padding: "9px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeMenu === "customers" ? "#020617" : "transparent",
-              color:
-                activeMenu === "customers" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "customers"
+                ? "bg-slate-950 text-slate-50"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
           >
             👥 Pelanggan
           </button>
           <button
             type="button"
             onClick={() => setActiveMenu("billing")}
-            style={{
-              textAlign: "left",
-              padding: "9px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeMenu === "billing" ? "#020617" : "transparent",
-              color:
-                activeMenu === "billing" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "billing"
+                ? "bg-slate-950 text-slate-50"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
           >
             💳 Tagihan
           </button>
           <button
             type="button"
             onClick={() => setActiveMenu("settings")}
-            style={{
-              textAlign: "left",
-              padding: "9px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeMenu === "settings" ? "#020617" : "transparent",
-              color:
-                activeMenu === "settings" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "settings"
+                ? "bg-slate-950 text-slate-50"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
           >
             ⚙️ Pengaturan
           </button>
         </nav>
       </aside>
 
-      <main style={{ flex: 1, padding: 24 }}>{renderContent()}</main>
+      <main className="flex-1 p-6">{renderContent()}</main>
     </div>
   );
 };

@@ -24,46 +24,23 @@ const SLAReportSection: React.FC = () => {
   const averageMbps = 45;
 
   return (
-    <section style={{ maxWidth: 960, margin: "0 auto" }}>
-      <header
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
+    <section className="max-w-5xl mx-auto">
+      <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 20,
-              fontWeight: 700,
-              color: "#0f172a",
-              marginBottom: 4,
-            }}
-          >
+          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-900">
             📈 SLA & Report
           </h1>
-          <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
+          <p className="m-0 text-[12px] text-slate-500">
             Analisa SLA dan laporan penggunaan bandwidth. Data ini nanti dapat
             dijadikan lampiran invoice ke pelanggan.
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="flex gap-2 flex-wrap">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 999,
-              border: "1px solid #e5e7eb",
-              fontSize: 12,
-              background: "#ffffff",
-            }}
+            className="px-2.5 py-1.5 rounded-full border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
           >
             <option value="daily">Periode harian</option>
             <option value="weekly">Periode mingguan</option>
@@ -73,14 +50,7 @@ const SLAReportSection: React.FC = () => {
           <select
             value={selectedCustomer}
             onChange={(e) => setSelectedCustomer(e.target.value)}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 999,
-              border: "1px solid #e5e7eb",
-              fontSize: 12,
-              background: "#ffffff",
-              minWidth: 200,
-            }}
+            className="px-2.5 py-1.5 rounded-full border border-slate-200 text-[12px] bg-white min-w-[200px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
           >
             <option value="all">Semua pelanggan / link</option>
             <option value="cust-1">PT Contoh Pelanggan</option>
@@ -89,132 +59,63 @@ const SLAReportSection: React.FC = () => {
         </div>
       </header>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)",
-          gap: 16,
-          marginBottom: 16,
-        }}
-      >
+      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)" }}>
         {/* Analisa SLA */}
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 16,
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 16,
-              fontWeight: 600,
-              color: "#0f172a",
-              marginBottom: 6,
-            }}
-          >
+        <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-900">
             Analisa Perhitungan SLA ({periodLabel(period)})
           </h2>
-          <p style={{ margin: 0, fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
+          <p className="m-0 text-[12px] text-slate-500 mb-3">
             Ringkasan SLA berdasarkan total downtime pada periode terpilih.
             Perhitungan detil akan diambil dari data monitoring backend.
           </p>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              marginBottom: 12,
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
             <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "#6b7280",
-                  marginBottom: 4,
-                }}
-              >
+              <div className="text-[12px] text-slate-500 mb-1">
                 SLA periode ini
               </div>
               <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: slaValue > 99.9 ? "#16a34a" : slaValue > 99 ? "#22c55e" : "#eab308",
-                }}
+                className={`text-[28px] font-bold ${
+                  slaValue > 99.9
+                    ? "text-emerald-600"
+                    : slaValue > 99
+                    ? "text-emerald-500"
+                    : "text-amber-500"
+                }`}
               >
                 {slaValue.toFixed(3)}%
               </div>
             </div>
 
-            <div
-              style={{
-                padding: 10,
-                borderRadius: 12,
-                background: "#eff6ff",
-                fontSize: 12,
-                color: "#1d4ed8",
-                flex: 1,
-              }}
-            >
+            <div className="px-3 py-2 rounded-xl bg-blue-50 text-[12px] text-blue-700 flex-1">
               Estimasi downtime: {Math.floor(totalDowntimeMinutes / 60)} jam {totalDowntimeMinutes % 60} menit
               <br />
               Target SLA umum ISP: &gt; 99.5% (bisa disesuaikan per kontrak).
             </div>
           </div>
 
-          <div
-            style={{
-              borderRadius: 12,
-              background: "#f9fafb",
-              padding: 12,
-              fontSize: 12,
-              color: "#4b5563",
-              maxHeight: 190,
-              overflow: "auto",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                textTransform: "uppercase",
-                letterSpacing: 0.4,
-                color: "#9ca3af",
-                marginBottom: 6,
-              }}
-            >
+          <div className="rounded-xl bg-slate-50 px-3 py-3 text-[12px] text-slate-600 max-h-[190px] overflow-auto">
+            <div className="text-[11px] uppercase tracking-[0.04em] text-slate-400 mb-1.5">
               Detail downtime
             </div>
             {downtimeEvents.map((d) => (
               <div
                 key={d.date + d.cause}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "6px 0",
-                  borderBottom: "1px solid #e5e7eb",
-                }}
+                className="flex items-center justify-between py-1.5 border-b border-slate-200"
               >
                 <div>
-                  <div style={{ fontWeight: 500 }}>{d.date}</div>
-                  <div style={{ fontSize: 11, color: "#6b7280" }}>{d.cause}</div>
+                  <div className="font-medium text-slate-900">{d.date}</div>
+                  <div className="text-[11px] text-slate-500">{d.cause}</div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>
+                <div className="text-[12px] font-semibold text-slate-900">
                   {d.durationMin} menit
                 </div>
               </div>
             ))}
 
             {downtimeEvents.length === 0 && (
-              <div style={{ fontSize: 12, color: "#9ca3af" }}>
+              <div className="text-[12px] text-slate-400">
                 Belum ada catatan downtime pada periode ini.
               </div>
             )}
@@ -222,91 +123,41 @@ const SLAReportSection: React.FC = () => {
         </div>
 
         {/* Report BW usage */}
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 16,
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 16,
-              fontWeight: 600,
-              color: "#0f172a",
-              marginBottom: 6,
-            }}
-          >
+        <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-900">
             Report BW Usage
           </h2>
-          <p style={{ margin: 0, fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+          <p className="m-0 text-[12px] text-slate-500 mb-2.5">
             Ringkasan penggunaan bandwidth untuk pelanggan / link terpilih.
             Grafik dan angka di bawah masih dummy dan akan diambil dari
             timeseries backend.
           </p>
 
-          <div
-            style={{
-              borderRadius: 12,
-              padding: 12,
-              background: "#f9fafb",
-              fontSize: 12,
-              color: "#9ca3af",
-              textAlign: "center",
-              marginBottom: 10,
-            }}
-          >
+          <div className="rounded-xl px-3 py-3 bg-slate-50 text-[12px] text-slate-400 text-center mb-2.5">
             Placeholder grafik time-series penggunaan bandwidth.
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              fontSize: 12,
-              color: "#4b5563",
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                borderRadius: 10,
-                padding: 10,
-                background: "#ecfdf3",
-                border: "1px solid #bbf7d0",
-              }}
-            >
-              <div style={{ fontSize: 11, color: "#166534", marginBottom: 4 }}>
+          <div className="flex justify-between gap-3 text-[12px] text-slate-600">
+            <div className="flex-1 rounded-xl px-2.5 py-2.5 bg-emerald-50 border border-emerald-200">
+              <div className="text-[11px] text-emerald-700 mb-1">
                 Peak usage
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#15803d" }}>
+              <div className="text-[18px] font-bold text-emerald-700">
                 {peakMbps} Mbps
               </div>
             </div>
 
-            <div
-              style={{
-                flex: 1,
-                borderRadius: 10,
-                padding: 10,
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
-              }}
-            >
-              <div style={{ fontSize: 11, color: "#1d4ed8", marginBottom: 4 }}>
+            <div className="flex-1 rounded-xl px-2.5 py-2.5 bg-blue-50 border border-blue-200">
+              <div className="text-[11px] text-blue-700 mb-1">
                 Rata-rata usage
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8" }}>
+              <div className="text-[18px] font-bold text-blue-700">
                 {averageMbps} Mbps
               </div>
             </div>
           </div>
 
-          <p style={{ margin: "10px 0 0", fontSize: 11, color: "#6b7280" }}>
+          <p className="mt-2.5 mb-0 text-[11px] text-slate-500">
             Catatan: angka peak & rata-rata ini bisa langsung disisipkan
             ke lampiran invoice sebagai bukti penggunaan layanan.
           </p>

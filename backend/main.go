@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -52,6 +53,9 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+	// Auth: login super admin / admin workspace
+	r.Post("/api/login", state.handleLogin)
+
 	// Monitoring summary (contoh sederhana)
 	r.Get("/api/monitoring/summary", state.handleMonitoringSummary)
 
@@ -94,6 +98,24 @@ type customer struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type admin struct {
+	ID        int       `json:"id"`
+	Email     string    `json:"email"`
+	Password  string    `json:"-"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type loginResponse struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
 func (a *appState) handleMonitoringSummary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var totalCustomers int
@@ -132,5 +154,47 @@ func (a *appState) handleListCustomers(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(customers)
+}
+
+func (a *appState) handleLogin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req loginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("login decode error: %v", err)
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" || req.Password == "" {
+		http.Error(w, "email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	var adm admin
+	err := a.db.QueryRow(
+		ctx,
+		`SELECT id, email, password, role, created_at FROM admins WHERE email = $1`,
+		req.Email,
+	).Scan(&adm.ID, &adm.Email, &adm.Password, &adm.Role, &adm.CreatedAt)
+	if err != nil {
+		log.Printf("login query error for %s: %v", req.Email, err)
+		http.Error(w, "email atau password salah", http.StatusUnauthorized)
+		return
+	}
+
+	// NOTE: Untuk demo awal kita bandingkan plain text.
+	// Di produksi sebaiknya password di-hash (bcrypt/argon2) dan dibandingkan pakai fungsi khusus.
+	if req.Password != adm.Password {
+		http.Error(w, "email atau password salah", http.StatusUnauthorized)
+		return
+	}
+
+	resp := loginResponse{
+		Email: adm.Email,
+		Role:  adm.Role,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 

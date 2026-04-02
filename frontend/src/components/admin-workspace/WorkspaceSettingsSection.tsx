@@ -7,17 +7,6 @@ interface WorkspaceSettingsSectionProps {
 const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   workspaceName,
 }) => {
-  // Monitoring endpoint (single primary endpoint for now)
-  const [routerName, setRouterName] = useState("Router Utama");
-  const [routerIp, setRouterIp] = useState("192.168.1.1");
-  const [snmpCommunity, setSnmpCommunity] = useState("public");
-  const [apiUser, setApiUser] = useState("api-user");
-  const [apiPort, setApiPort] = useState(8728);
-  const [monitoringEnabled, setMonitoringEnabled] = useState(true);
-  const [monitoringMessage, setMonitoringMessage] = useState<string | null>(
-    null
-  );
-
   // Email template + SMTP
   const [smtpProvider, setSmtpProvider] = useState("smtp");
   const [smtpHost, setSmtpHost] = useState("smtp.contoso-isp.id");
@@ -40,13 +29,6 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   const [latencyAlertMs, setLatencyAlertMs] = useState(120);
   const [packetLossThreshold, setPacketLossThreshold] = useState(1);
   const [slaSaveMessage, setSlaSaveMessage] = useState<string | null>(null);
-
-  const handleSaveMonitoring = () => {
-    // Nanti diintegrasikan ke backend, misalnya: PUT /api/workspaces/{id}/monitoring-config
-    setMonitoringMessage(
-      `Pengaturan endpoint monitoring disimpan (dummy): ${routerName} @ ${routerIp}.`
-    );
-  };
 
   const handleSaveEmail = () => {
     // Nanti diintegrasikan ke backend untuk menyimpan SMTP & template email
@@ -75,295 +57,38 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
     .replace("{{isp_name}}", "Contoso ISP");
 
   return (
-    <section
-      style={{
-        maxWidth: 960,
-        margin: "0 auto",
-        padding: "8px 0 24px",
-      }}
-    >
-      <header
-        style={{
-          marginBottom: 20,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
+    <section className="max-w-5xl mx-auto py-2 pb-6">
+      <header className="mb-5 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 20,
-              fontWeight: 700,
-              color: "#0f172a",
-              marginBottom: 4,
-            }}
-          >
+          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-900">
             ⚙️ Pengaturan Workspace
           </h1>
-          <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
-            Konfigurasi endpoint monitoring, email invoice, dan target SLA untuk
-            workspace
+          <p className="m-0 text-[12px] text-slate-500">
+            Konfigurasi email invoice dan target SLA untuk workspace
             {workspaceName ? ` "${workspaceName}"` : " ini"}.
           </p>
         </div>
       </header>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
-      >
-        {/* Pengaturan endpoint monitoring */}
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 16,
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 16,
-              fontWeight: 600,
-              color: "#0f172a",
-              marginBottom: 6,
-            }}
-          >
-            Endpoint monitoring
-          </h2>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 12,
-              color: "#6b7280",
-              marginBottom: 12,
-            }}
-          >
-            IP router utama, SNMP community, dan user API Mikrotik yang akan
-            dipakai untuk menarik data monitoring.
-          </p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 12,
-              marginBottom: 12,
-            }}
-          >
-            <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
-                Nama endpoint
-              </div>
-              <input
-                type="text"
-                value={routerName}
-                onChange={(e) => setRouterName(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
-              />
-            </div>
-            <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
-                IP router
-              </div>
-              <input
-                type="text"
-                value={routerIp}
-                onChange={(e) => setRouterIp(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
-              />
-            </div>
-            <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
-                SNMP community
-              </div>
-              <input
-                type="text"
-                value={snmpCommunity}
-                onChange={(e) => setSnmpCommunity(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
-              />
-            </div>
-            <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
-                API user
-              </div>
-              <input
-                type="text"
-                value={apiUser}
-                onChange={(e) => setApiUser(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
-              />
-            </div>
-            <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
-                API port
-              </div>
-              <input
-                type="number"
-                min={1}
-                value={apiPort}
-                onChange={(e) => setApiPort(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
-              />
-            </div>
-          </div>
-
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 12,
-              color: "#4b5563",
-              marginBottom: 10,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={monitoringEnabled}
-              onChange={(e) => setMonitoringEnabled(e.target.checked)}
-            />
-            <span>Aktifkan monitoring endpoint ini</span>
-          </label>
-
-          <button
-            type="button"
-            onClick={handleSaveMonitoring}
-            style={{
-              padding: "7px 12px",
-              borderRadius: 999,
-              border: "none",
-              background: "#0ea5e9",
-              color: "#ffffff",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Simpan pengaturan endpoint
-          </button>
-
-          {monitoringMessage && (
-            <div
-              style={{
-                marginTop: 8,
-                fontSize: 11,
-                color: "#6b7280",
-              }}
-            >
-              {monitoringMessage}
-            </div>
-          )}
-        </div>
-
+      <div className="flex flex-col gap-4">
         {/* Template email invoice + SMTP */}
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 16,
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 16,
-              fontWeight: 600,
-              color: "#0f172a",
-              marginBottom: 6,
-            }}
-          >
+        <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-900">
             Template email invoice & SMTP
           </h2>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 12,
-              color: "#6b7280",
-              marginBottom: 12,
-            }}
-          >
+          <p className="m-0 mb-3 text-[12px] text-slate-500">
             Atur provider email, konfigurasi SMTP, dan template email invoice
             yang dikirim ke pelanggan.
           </p>
 
-          <div style={{ display: "grid", gap: 10, marginBottom: 10 }}>
-            <div
-              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-            >
+          <div className="grid gap-2.5 mb-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div>
-                <div
-                  style={{
-                    marginBottom: 4,
-                    color: "#4b5563",
-                    fontSize: 12,
-                  }}
-                >
-                  Provider
-                </div>
+                <div className="mb-1 text-[12px] text-slate-600">Provider</div>
                 <select
                   value={smtpProvider}
                   onChange={(e) => setSmtpProvider(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "7px 9px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                    background: "#ffffff",
-                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 >
                   <option value="smtp">Generic SMTP</option>
                   <option value="sendgrid">SendGrid</option>
@@ -371,67 +96,28 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 </select>
               </div>
               <div>
-                <div
-                  style={{
-                    marginBottom: 4,
-                    color: "#4b5563",
-                    fontSize: 12,
-                  }}
-                >
-                  Host SMTP
-                </div>
+                <div className="mb-1 text-[12px] text-slate-600">Host SMTP</div>
                 <input
                   type="text"
                   value={smtpHost}
                   onChange={(e) => setSmtpHost(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "7px 9px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
             </div>
 
-            <div
-              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div>
-                <div
-                  style={{
-                    marginBottom: 4,
-                    color: "#4b5563",
-                    fontSize: 12,
-                  }}
-                >
-                  Port
-                </div>
+                <div className="mb-1 text-[12px] text-slate-600">Port</div>
                 <input
                   type="number"
                   min={1}
                   value={smtpPort}
                   onChange={(e) => setSmtpPort(Number(e.target.value))}
-                  style={{
-                    width: "100%",
-                    padding: "7px 9px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginTop: 22,
-                  fontSize: 12,
-                  color: "#4b5563",
-                }}
-              >
+              <label className="flex items-center gap-2 mt-5 text-[12px] text-slate-600">
                 <input
                   type="checkbox"
                   checked={smtpUseTLS}
@@ -441,120 +127,67 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
               </label>
             </div>
 
-            <div
-              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div>
-                <div
-                  style={{
-                    marginBottom: 4,
-                    color: "#4b5563",
-                    fontSize: 12,
-                  }}
-                >
+                <div className="mb-1 text-[12px] text-slate-600">
                   User / credential
                 </div>
                 <input
                   type="text"
                   value={smtpUser}
                   onChange={(e) => setSmtpUser(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "7px 9px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
               <div>
-                <div
-                  style={{
-                    marginBottom: 4,
-                    color: "#4b5563",
-                    fontSize: 12,
-                  }}
-                >
+                <div className="mb-1 text-[12px] text-slate-600">
                   From name & email
                 </div>
-                <div
-                  style={{ display: "flex", gap: 6, alignItems: "center" }}
-                >
+                <div className="flex items-center gap-1.5">
                   <input
                     type="text"
                     value={smtpFromName}
                     onChange={(e) => setSmtpFromName(e.target.value)}
                     placeholder="Nama pengirim"
-                    style={{
-                      flex: 1,
-                      padding: "7px 9px",
-                      borderRadius: 8,
-                      border: "1px solid #e5e7eb",
-                      fontSize: 12,
-                    }}
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                   />
                   <input
                     type="email"
                     value={smtpFromEmail}
                     onChange={(e) => setSmtpFromEmail(e.target.value)}
                     placeholder="email@isp.id"
-                    style={{
-                      flex: 1,
-                      padding: "7px 9px",
-                      borderRadius: 8,
-                      border: "1px solid #e5e7eb",
-                      fontSize: 12,
-                    }}
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
+              <div className="mb-1 text-[12px] text-slate-600">
                 Subject email invoice
               </div>
               <input
                 type="text"
                 value={invoiceSubjectTemplate}
                 onChange={(e) => setInvoiceSubjectTemplate(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               />
             </div>
 
             <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
+              <div className="mb-1 text-[12px] text-slate-600">
                 Body email (boleh pakai placeholder)
               </div>
               <textarea
                 value={invoiceBodyTemplate}
                 onChange={(e) => setInvoiceBodyTemplate(e.target.value)}
                 rows={5}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                  fontFamily: "inherit",
-                  resize: "vertical",
-                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none resize-y focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               />
-              <div
-                style={{ marginTop: 4, fontSize: 11, color: "#9ca3af" }}
-              >
-                Placeholder yang tersedia: {"{{customer_name}}"}, {"{{period_label}}"},{" "}
-                {"{{invoice_amount}}"}, {"{{isp_name}}"}.
+              <div className="mt-1 text-[11px] text-slate-400">
+                Placeholder yang tersedia: {"{{customer_name}}"},{" "}
+                {"{{period_label}}"}, {"{{invoice_amount}}"},{" "}
+                {"{{isp_name}}"}.
               </div>
             </div>
           </div>
@@ -562,106 +195,39 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
           <button
             type="button"
             onClick={handleSaveEmail}
-            style={{
-              padding: "7px 12px",
-              borderRadius: 999,
-              border: "none",
-              background: "#22c55e",
-              color: "#ffffff",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              marginBottom: 8,
-            }}
+            className="px-3 py-1.5 rounded-full border border-emerald-500 bg-emerald-500 text-[12px] font-semibold text-white hover:bg-emerald-600 hover:border-emerald-600 transition-colors mb-2"
           >
             Simpan pengaturan email
           </button>
 
           {emailSaveMessage && (
-            <div
-              style={{
-                marginBottom: 8,
-                fontSize: 11,
-                color: "#6b7280",
-              }}
-            >
+            <div className="mb-2 text-[11px] text-slate-500">
               {emailSaveMessage}
             </div>
           )}
 
-          <div
-            style={{
-              borderRadius: 10,
-              padding: 10,
-              background: "#f9fafb",
-              border: "1px solid #e5e7eb",
-              fontSize: 11,
-              color: "#4b5563",
-            }}
-          >
-            <div
-              style={{ marginBottom: 4, color: "#6b7280", fontSize: 11 }}
-            >
+          <div className="rounded-xl px-3 py-3 bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+            <div className="mb-1 text-[11px] text-slate-500">
               Contoh email yang akan diterima pelanggan (preview sederhana):
             </div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>{exampleSubject}</div>
-            <pre
-              style={{
-                margin: 0,
-                whiteSpace: "pre-wrap",
-                fontFamily: "inherit",
-              }}
-            >
-              {exampleBody}
-            </pre>
+            <div className="font-semibold mb-1">{exampleSubject}</div>
+            <pre className="m-0 whitespace-pre-wrap font-sans">{exampleBody}</pre>
           </div>
         </div>
 
         {/* Default SLA target & threshold alert */}
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 16,
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 16,
-              fontWeight: 600,
-              color: "#0f172a",
-              marginBottom: 6,
-            }}
-          >
+        <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-900">
             Target SLA & threshold alert
           </h2>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 12,
-              color: "#6b7280",
-              marginBottom: 12,
-            }}
-          >
+          <p className="m-0 mb-3 text-[12px] text-slate-500">
             Tentukan target SLA default dan ambang batas (threshold) untuk
             alert bandwidth, latency, dan packet loss.
           </p>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: 12,
-              marginBottom: 12,
-            }}
-          >
+          <div className="grid gap-3 mb-3 md:grid-cols-3">
             <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
+              <div className="mb-1 text-[12px] text-slate-600">
                 Target SLA default (%)
               </div>
               <input
@@ -671,19 +237,11 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 step={0.001}
                 value={defaultSlaTarget}
                 onChange={(e) => setDefaultSlaTarget(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
               />
             </div>
             <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
+              <div className="mb-1 text-[12px] text-slate-600">
                 Threshold BW usage (% kapasitas)
               </div>
               <input
@@ -692,19 +250,11 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 max={100}
                 value={bwAlertThreshold}
                 onChange={(e) => setBwAlertThreshold(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
               />
             </div>
             <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
+              <div className="mb-1 text-[12px] text-slate-600">
                 Threshold latency (ms)
               </div>
               <input
@@ -712,19 +262,11 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 min={0}
                 value={latencyAlertMs}
                 onChange={(e) => setLatencyAlertMs(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
               />
             </div>
             <div>
-              <div
-                style={{ marginBottom: 4, color: "#4b5563", fontSize: 12 }}
-              >
+              <div className="mb-1 text-[12px] text-slate-600">
                 Threshold packet loss (%)
               </div>
               <input
@@ -734,13 +276,7 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 step={0.1}
                 value={packetLossThreshold}
                 onChange={(e) => setPacketLossThreshold(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "7px 9px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
               />
             </div>
           </div>
@@ -748,30 +284,13 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
           <button
             type="button"
             onClick={handleSaveSla}
-            style={{
-              padding: "7px 12px",
-              borderRadius: 999,
-              border: "none",
-              background: "#6366f1",
-              color: "#ffffff",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-[12px] font-semibold text-white hover:bg-indigo-600 hover:border-indigo-600 transition-colors"
           >
             Simpan pengaturan SLA & alert
           </button>
 
           {slaSaveMessage && (
-            <div
-              style={{
-                marginTop: 8,
-                fontSize: 11,
-                color: "#6b7280",
-              }}
-            >
-              {slaSaveMessage}
-            </div>
+            <div className="mt-2 text-[11px] text-slate-500">{slaSaveMessage}</div>
           )}
         </div>
       </div>

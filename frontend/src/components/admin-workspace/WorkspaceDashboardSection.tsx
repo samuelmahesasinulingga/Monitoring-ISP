@@ -10,293 +10,142 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
   const activeCustomer = 320; // dummy
   const activeTicket = 18; // dummy
   const unpaidInvoice = 12; // dummy
+
   const pingStatus = {
-    overall: "UP", // dummy
+    overall: "UP" as "UP" | "DOWN",
     avgLatencyMs: 18,
     packetLoss: 0.4,
   };
+
   const activeAlertCount = 3; // dummy
+
   const topInterfaces = [
     { name: "ether1-UPLINK", usageMbps: 120 },
     { name: "ether2-POP", usageMbps: 95 },
     { name: "vlan10-Client", usageMbps: 80 },
   ];
+
   const topQueues = [
     { name: "Queue-Office", usageMbps: 45 },
     { name: "Queue-Home", usageMbps: 32 },
     { name: "Queue-Business", usageMbps: 28 },
   ];
+
   const slaThisMonth = 99.2; // dummy
   const invoiceSentThisMonth = false; // dummy
 
   return (
-    <section
-      style={{
-        maxWidth: 960,
-        margin: "0 auto",
-      }}
-    >
-      <header style={{ marginBottom: 24 }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 22,
-            fontWeight: 700,
-            color: "#0f172a",
-            marginBottom: 4,
-          }}
-        >
+    <section className="max-w-5xl mx-auto">
+      <header className="mb-6">
+        <h1 className="m-0 mb-1 text-[22px] font-bold text-slate-900">
           {workspaceName ?? "Ringkasan Workspace"}
         </h1>
-        <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
-          Dashboard singkat aktivitas pelanggan, tiket, dan tagihan di workspace
-          ini.
+        <p className="m-0 text-[13px] text-slate-500">
+          Dashboard singkat aktivitas pelanggan, tiket, dan tagihan di
+          workspace ini.
         </p>
       </header>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 16,
-        }}
-      >
-        <div
-          style={{
-            padding: 20,
-            borderRadius: 16,
-            background:
-              "linear-gradient(135deg, rgba(59,130,246,0.12), rgba(129,140,248,0.18))",
-            border: "1px solid rgba(59,130,246,0.18)",
-            boxShadow: "0 14px 35px rgba(15,23,42,0.08)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <span
-              style={{ fontSize: 13, color: "#1d4ed8", fontWeight: 600 }}
-            >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/15 to-indigo-500/20 border border-blue-500/20 shadow-lg shadow-slate-900/10">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[13px] font-semibold text-blue-700">
               Pelanggan Aktif
             </span>
-            <span style={{ fontSize: 20 }}>👥</span>
+            <span className="text-[20px]">👥</span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 700, color: "#0f172a" }}>
+          <div className="text-[30px] font-bold text-slate-900">
             {activeCustomer}
           </div>
-          <p
-            style={{
-              margin: 0,
-              marginTop: 4,
-              fontSize: 11,
-              color: "#6b7280",
-            }}
-          >
+          <p className="mt-1 text-[11px] text-slate-600">
             Total pelanggan aktif di workspace.
           </p>
         </div>
 
-        <div
-          style={{
-            padding: 20,
-            borderRadius: 16,
-            background:
-              "linear-gradient(135deg, rgba(249,115,22,0.12), rgba(251,191,36,0.18))",
-            border: "1px solid rgba(249,115,22,0.18)",
-            boxShadow: "0 14px 35px rgba(15,23,42,0.08)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <span
-              style={{ fontSize: 13, color: "#c2410c", fontWeight: 600 }}
-            >
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-500/10 via-amber-400/15 to-amber-400/20 border border-orange-500/20 shadow-lg shadow-slate-900/10">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[13px] font-semibold text-amber-700">
               Tiket Aktif
             </span>
-            <span style={{ fontSize: 20 }}>🎫</span>
+            <span className="text-[20px]">🎫</span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 700, color: "#0f172a" }}>
+          <div className="text-[30px] font-bold text-slate-900">
             {activeTicket}
           </div>
-          <p
-            style={{
-              margin: 0,
-              marginTop: 4,
-              fontSize: 11,
-              color: "#6b7280",
-            }}
-          >
+          <p className="mt-1 text-[11px] text-slate-600">
             Tiket gangguan yang masih terbuka.
           </p>
         </div>
 
-        <div
-          style={{
-            padding: 20,
-            borderRadius: 16,
-            background:
-              "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(45,212,191,0.18))",
-            border: "1px solid rgba(16,185,129,0.18)",
-            boxShadow: "0 14px 35px rgba(15,23,42,0.08)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <span
-              style={{ fontSize: 13, color: "#047857", fontWeight: 600 }}
-            >
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-400/15 to-teal-400/20 border border-emerald-500/20 shadow-lg shadow-slate-900/10">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[13px] font-semibold text-emerald-700">
               Tagihan Belum Lunas
             </span>
-            <span style={{ fontSize: 20 }}>💳</span>
+            <span className="text-[20px]">💳</span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 700, color: "#0f172a" }}>
+          <div className="text-[30px] font-bold text-slate-900">
             {unpaidInvoice}
           </div>
-          <p
-            style={{
-              margin: 0,
-              marginTop: 4,
-              fontSize: 11,
-              color: "#6b7280",
-            }}
-          >
+          <p className="mt-1 text-[11px] text-slate-600">
             Jumlah invoice yang masih belum dibayar.
           </p>
         </div>
       </div>
 
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
-          gap: 20,
-          marginTop: 32,
-        }}
+        className="grid gap-5 mt-8"
+        style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
       >
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 18,
-            background: "rgba(255,255,255,0.9)",
-            boxShadow: "0 14px 35px rgba(15,23,42,0.06)",
-            border: "1px solid #e5e7eb",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
+        <div className="rounded-2xl px-4 py-4 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "#0f172a",
-                }}
-              >
+              <div className="text-[13px] font-semibold text-slate-900">
                 Status Ping & SLA
               </div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>
+              <div className="text-[11px] text-slate-500">
                 Gambaran cepat kesehatan jaringan dan kualitas layanan.
               </div>
             </div>
             <div
-              style={{
-                padding: "4px 10px",
-                borderRadius: 999,
-                background:
-                  pingStatus.overall === "UP"
-                    ? "rgba(22,163,74,0.09)"
-                    : "rgba(220,38,38,0.09)",
-                color:
-                  pingStatus.overall === "UP" ? "#15803d" : "#b91c1c",
-                fontSize: 11,
-                fontWeight: 600,
-              }}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                pingStatus.overall === "UP"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-rose-50 text-rose-700 border-rose-200"
+              }`}
             >
               {pingStatus.overall === "UP" ? "ONLINE" : "DOWN"}
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-              gap: 12,
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>
-                Rata-rata latency
-              </div>
-              <div
-                style={{ fontSize: 18, fontWeight: 700, color: "#0f172a" }}
-              >
+              <div className="text-[11px] text-slate-500">Rata-rata latency</div>
+              <div className="text-[18px] font-bold text-slate-900">
                 {pingStatus.avgLatencyMs} ms
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>
-                Packet loss
-              </div>
-              <div
-                style={{ fontSize: 18, fontWeight: 700, color: "#0f172a" }}
-              >
+              <div className="text-[11px] text-slate-500">Packet loss</div>
+              <div className="text-[18px] font-bold text-slate-900">
                 {pingStatus.packetLoss}%
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>
-                SLA bulan ini
-              </div>
-              <div
-                style={{ fontSize: 18, fontWeight: 700, color: "#0f172a" }}
-              >
+              <div className="text-[11px] text-slate-500">SLA bulan ini</div>
+              <div className="text-[18px] font-bold text-slate-900">
                 {slaThisMonth}%
               </div>
             </div>
           </div>
 
-          <div
-            style={{
-              marginTop: 14,
-              paddingTop: 10,
-              borderTop: "1px dashed #e5e7eb",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <div style={{ fontSize: 11, color: "#6b7280" }}>
+          <div className="mt-3 pt-2.5 border-t border-dashed border-slate-200 flex items-center justify-between gap-2.5">
+            <div className="text-[11px] text-slate-500">
               Status invoice bulan ini:
               <span
-                style={{
-                  marginLeft: 6,
-                  fontWeight: 600,
-                  color: invoiceSentThisMonth ? "#15803d" : "#b91c1c",
-                }}
+                className={`ml-1.5 font-semibold ${
+                  invoiceSentThisMonth ? "text-emerald-600" : "text-rose-600"
+                }`}
               >
                 {invoiceSentThisMonth ? "Sudah dikirim" : "Belum dikirim"}
               </span>
@@ -304,88 +153,40 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
           </div>
         </div>
 
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 18,
-            background: "rgba(255,255,255,0.9)",
-            boxShadow: "0 14px 35px rgba(15,23,42,0.06)",
-            border: "1px solid #e5e7eb",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
+        <div className="rounded-2xl px-4 py-4 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5">
+          <div className="flex items-center justify-between mb-2.5">
             <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "#0f172a",
-                }}
-              >
+              <div className="text-[13px] font-semibold text-slate-900">
                 Alert & BW Tertinggi
               </div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>
+              <div className="text-[11px] text-slate-500">
                 Ringkasan alert aktif dan penggunaan bandwidth tertinggi.
               </div>
             </div>
             <div
-              style={{
-                fontSize: 11,
-                padding: "4px 8px",
-                borderRadius: 999,
-                background:
-                  activeAlertCount > 0
-                    ? "rgba(239,68,68,0.08)"
-                    : "rgba(22,163,74,0.08)",
-                color:
-                  activeAlertCount > 0 ? "#b91c1c" : "#15803d",
-                fontWeight: 600,
-              }}
+              className={`text-[11px] px-2 py-1 rounded-full font-semibold border ${
+                activeAlertCount > 0
+                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
+              }`}
             >
               {activeAlertCount} alert aktif
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-              gap: 12,
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <div
-                style={{ fontSize: 11, fontWeight: 600, color: "#4b5563" }}
-              >
+              <div className="text-[11px] font-semibold text-slate-600">
                 Interface teratas
               </div>
-              <ul
-                style={{
-                  listStyle: "none",
-                  padding: 0,
-                  margin: "6px 0 0 0",
-                  fontSize: 11,
-                  color: "#6b7280",
-                }}
-              >
+              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-500">
                 {topInterfaces.map((iface) => (
                   <li
                     key={iface.name}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 4,
-                    }}
+                    className="flex justify-between mb-1"
                   >
                     <span>{iface.name}</span>
-                    <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                    <span className="font-semibold text-slate-900">
                       {iface.usageMbps} Mbps
                     </span>
                   </li>
@@ -394,31 +195,17 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
             </div>
 
             <div>
-              <div
-                style={{ fontSize: 11, fontWeight: 600, color: "#4b5563" }}
-              >
+              <div className="text-[11px] font-semibold text-slate-600">
                 Queue Mikrotik teratas
               </div>
-              <ul
-                style={{
-                  listStyle: "none",
-                  padding: 0,
-                  margin: "6px 0 0 0",
-                  fontSize: 11,
-                  color: "#6b7280",
-                }}
-              >
+              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-500">
                 {topQueues.map((queue) => (
                   <li
                     key={queue.name}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 4,
-                    }}
+                    className="flex justify-between mb-1"
                   >
                     <span>{queue.name}</span>
-                    <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                    <span className="font-semibold text-slate-900">
                       {queue.usageMbps} Mbps
                     </span>
                   </li>

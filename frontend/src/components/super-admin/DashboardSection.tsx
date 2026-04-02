@@ -5,95 +5,43 @@ const DashboardSection: React.FC = () => {
   const totalUsers = 1280; // ganti dengan data nyata nanti
 
   return (
-    <section
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: 8,
-      }}
-    >
-      <header style={{ marginBottom: 24 }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 24,
-            fontWeight: 700,
-            color: "#0f172a",
-            marginBottom: 4,
-          }}
-        >
+    <section className="max-w-3xl mx-auto p-2">
+      <header className="mb-6">
+        <h1 className="m-0 mb-1 text-2xl font-bold text-slate-900">
           Ringkasan Dashboard
         </h1>
-        <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
+        <p className="m-0 text-[13px] text-slate-500">
           Gambaran singkat jumlah workspace dan total pengguna ISP.
         </p>
       </header>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 16,
-        }}
-      >
-        <div
-          style={{
-            padding: 20,
-            borderRadius: 16,
-            background:
-              "linear-gradient(135deg, rgba(59,130,246,0.12), rgba(129,140,248,0.18))",
-            border: "1px solid rgba(59,130,246,0.18)",
-            boxShadow: "0 14px 35px rgba(15,23,42,0.08)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <span style={{ fontSize: 13, color: "#1d4ed8", fontWeight: 600 }}>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-400/10 to-indigo-500/20 border border-blue-500/30 shadow-xl shadow-slate-900/10">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-semibold text-blue-700">
               Total Workspace
             </span>
-            <span style={{ fontSize: 20 }}>🏢</span>
+            <span className="text-xl">🏢</span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: "#0f172a" }}>
+          <div className="text-3xl font-bold text-slate-900">
             {totalWorkspace}
           </div>
-          <p style={{ margin: 0, marginTop: 6, fontSize: 11, color: "#6b7280" }}>
+          <p className="m-0 mt-1.5 text-[11px] text-slate-500">
             Jumlah workspace.
           </p>
         </div>
 
-        <div
-          style={{
-            padding: 20,
-            borderRadius: 16,
-            background:
-              "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(45,212,191,0.18))",
-            border: "1px solid rgba(16,185,129,0.18)",
-            boxShadow: "0 14px 35px rgba(15,23,42,0.08)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <span style={{ fontSize: 13, color: "#047857", fontWeight: 600 }}>
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-400/10 via-teal-400/10 to-teal-500/20 border border-emerald-400/30 shadow-xl shadow-slate-900/10">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-semibold text-emerald-700">
               Total Pengguna
             </span>
-            <span style={{ fontSize: 20 }}>👤</span>
+            <span className="text-xl">👤</span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: "#0f172a" }}>
+          <div className="text-3xl font-bold text-slate-900">
             {totalUsers}
           </div>
-          <p style={{ margin: 0, marginTop: 6, fontSize: 11, color: "#6b7280" }}>
+          <p className="m-0 mt-1.5 text-[11px] text-slate-500">
             Jumlah pengguna.
           </p>
         </div>

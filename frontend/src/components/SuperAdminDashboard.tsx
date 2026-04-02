@@ -4,7 +4,7 @@ import AdminWorkspaceSection from "./super-admin/AdminWorkspaceSection";
 import UsersSection from "./super-admin/UsersSection";
 import SettingsSection from "./super-admin/SettingsSection";
 import ProfileSection from "./super-admin/ProfileSection";
-import RolesSection from "./super-admin/RolesSection";
+import RolesSection, { RoleDefinition } from "./super-admin/RolesSection";
 
 type SectionKey =
   | "overview"
@@ -19,12 +19,6 @@ type Workspace = {
   name: string;
   address: string;
   iconUrl?: string;
-};
-
-type RoleDefinition = {
-  id: number;
-  name: string;
-  description: string;
 };
 
 type SuperAdminProfile = {
@@ -76,74 +70,20 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
   ]);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        background:
-          "linear-gradient(135deg, #edf2ff 0, #f9fafb 40%, #e0f2fe 100%)",
-        color: "#111827",
-      }}
-    >
+    <div className="min-h-screen flex bg-gradient-to-br from-indigo-100 via-slate-50 to-sky-100 text-slate-900">
       {/* Sidebar */}
-      <aside
-        style={{
-          width: 260,
-          padding: "24px 16px",
-          background: "#020617",
-          boxShadow: "4px 0 20px rgba(15,23,42,0.4)",
-          display: "flex",
-          flexDirection: "column",
-          color: "#e5e7eb",
-        }}
-      >
-        <div style={{ marginBottom: 32, position: "relative" }}>
+      <aside className="w-64 px-4 py-6 bg-slate-950 text-slate-200 shadow-2xl shadow-slate-900/70 flex flex-col">
+        <div className="mb-8 relative">
           <button
             onClick={() => setShowAccountMenu((v) => !v)}
-            style={{
-              width: "100%",
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: "1px solid #1f2937",
-              background: "#3d4b88",
-              cursor: "pointer",
-              color: "#e5e7eb",
-            }}
+            className="w-full text-left px-3 py-2.5 rounded-2xl border border-slate-800 bg-slate-800/70 hover:bg-slate-700/80 cursor-pointer text-slate-100 transition-colors"
           >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#e5e7eb",
-              }}
-            >
-              ISP Admin
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: "#9ca3af",
-              }}
-            >
-              Super Admin Dashboard
-            </div>
+            <div className="text-[13px] font-semibold text-slate-100">ISP Admin</div>
+            <div className="text-[11px] text-slate-400">Super Admin Dashboard</div>
           </button>
           {showAccountMenu && (
             <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                marginTop: 8,
-                width: "100%",
-                background: "#111827",
-                borderRadius: 12,
-                boxShadow: "0 12px 30px rgba(15,23,42,0.15)",
-                padding: 8,
-                fontSize: 12,
-                color: "#e5e7eb",
-              }}
+              className="absolute top-full left-0 mt-2 w-full bg-slate-900 rounded-2xl shadow-xl shadow-slate-900/60 px-2 py-2 text-[12px] text-slate-100 z-20"
             >
               <button
                 type="button"
@@ -151,33 +91,16 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                   setActiveSection("overview");
                   setShowAccountMenu(false);
                 }}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "6px 8px",
-                  borderRadius: 8,
-                  border: "none",
-                  background:
-                    activeSection === "overview" ? "#1f2937" : "transparent",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  marginBottom: 4,
-                  color:
-                    activeSection === "overview" ? "#f9fafb" : "#e5e7eb",
-                }}
+                className={`w-full text-left px-2.5 py-1.5 rounded-lg border-0 cursor-pointer text-[12px] mb-1 transition-colors ${
+                  activeSection === "overview"
+                    ? "bg-slate-800 text-slate-50"
+                    : "text-slate-100 hover:bg-slate-800/70"
+                }`}
               >
                 Platform Central
               </button>
               {workspaces.length > 0 && (
-                <div
-                  style={{
-                    padding: "4px 8px",
-                    fontSize: 11,
-                    color: "#9ca3af",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.4,
-                  }}
-                >
+                <div className="px-2.5 py-1 text-[11px] text-slate-500 uppercase tracking-wide">
                   Workspace
                 </div>
               )}
@@ -193,53 +116,20 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                     }
                     setShowAccountMenu(false);
                   }}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "6px 8px",
-                    borderRadius: 8,
-                    border: "none",
-                    background:
-                      activeSection === "adminWorkspace"
-                        ? "#1f2937"
-                        : "transparent",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    color:
-                      activeSection === "adminWorkspace"
-                        ? "#f9fafb"
-                        : "#e5e7eb",
-                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg border-0 cursor-pointer text-[12px] flex items-center gap-2 transition-colors ${
+                    activeSection === "adminWorkspace"
+                      ? "bg-slate-800 text-slate-50"
+                      : "text-slate-100 hover:bg-slate-800/70"
+                  }`}
                 >
                   <span
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 6,
-                      overflow: "hidden",
-                      background:
-                        "linear-gradient(135deg, #2563eb, #4f46e5)",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#ffffff",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
+                    className="w-5 h-5 rounded-md overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 inline-flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
                   >
                     {ws.iconUrl ? (
                       <img
                         src={ws.iconUrl}
                         alt="Icon workspace"
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       ws.name
@@ -259,186 +149,90 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                   }
                   setShowAccountMenu(false);
                 }}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "6px 8px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "transparent",
-                  color: "#fecaca",
-                  cursor: "pointer",
-                }}
+                className="w-full text-left px-2.5 py-1.5 rounded-lg border-0 bg-transparent text-red-200 hover:bg-red-900/40 cursor-pointer text-[12px] mt-1"
               >
                 Logout
               </button>
             </div>
           )}
         </div>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <nav className="flex flex-col gap-2 text-[13px]">
           <button
             onClick={() => setActiveSection("overview")}
-            style={{
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeSection === "overview" ? "#020617" : "transparent",
-              color: activeSection === "overview" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
+              activeSection === "overview"
+                ? "bg-slate-900 text-slate-50"
+                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
+            }`}
           >
             📊 Dashboard
           </button>
           <button
             onClick={() => setActiveSection("adminWorkspace")}
-            style={{
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeSection === "adminWorkspace" ? "#020617" : "transparent",
-              color: activeSection === "adminWorkspace" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
+              activeSection === "adminWorkspace"
+                ? "bg-slate-900 text-slate-50"
+                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
+            }`}
           >
             👥 Workspace
           </button>
           <button
             onClick={() => setActiveSection("roles")}
-            style={{
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeSection === "roles" ? "#020617" : "transparent",
-              color: activeSection === "roles" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
+              activeSection === "roles"
+                ? "bg-slate-900 text-slate-50"
+                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
+            }`}
           >
             🔑 Role & Akses
           </button>
           <button
             onClick={() => setActiveSection("users")}
-            style={{
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeSection === "users" ? "#020617" : "transparent",
-              color: activeSection === "users" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
+              activeSection === "users"
+                ? "bg-slate-900 text-slate-50"
+                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
+            }`}
           >
             👤 Pengguna
           </button>
           <button
             onClick={() => setActiveSection("settings")}
-            style={{
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 999,
-              border: "none",
-              background:
-                activeSection === "settings" ? "#020617" : "transparent",
-              color: activeSection === "settings" ? "#f9fafb" : "#9ca3af",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
+              activeSection === "settings"
+                ? "bg-slate-900 text-slate-50"
+                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
+            }`}
           >
             ⚙️ Pengaturan Sistem
           </button>
         </nav>
-        <div style={{ marginTop: "auto" }}>
-          <div
-            style={{
-              marginTop: 16,
-              padding: 10,
-              borderRadius: 10,
-              background: "#020617",
-              border: "1px solid #1f2937",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-            }}
-          >
+        <div className="mt-auto">
+          <div className="mt-4 px-2.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setActiveSection("profile")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: 0,
-                background: "transparent",
-                border: "none",
-                flex: 1,
-                textAlign: "left",
-                cursor: "pointer",
-              }}
+              className="flex items-center gap-2 bg-transparent border-0 flex-1 text-left cursor-pointer"
             >
               <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                  background:
-                    "linear-gradient(135deg, #2563eb, #4f46e5)",
-                }}
+                className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600"
               >
                 {superAdminProfile.avatarUrl ? (
                   <img
                     src={superAdminProfile.avatarUrl}
                     alt="Foto profil"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span
-                    style={{
-                      color: "#ffffff",
-                      fontSize: 16,
-                      fontWeight: 600,
-                    }}
-                  >
-                    SA
-                  </span>
+                  <span className="text-white text-sm font-semibold">SA</span>
                 )}
               </div>
               <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#e5e7eb",
-                  }}
-                >
+                <div className="text-[12px] font-semibold text-slate-100">
                   {superAdminProfile.name}
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Logged in
-                </div>
+                <div className="text-[11px] text-slate-400">Logged in</div>
               </div>
             </button>
             <button
@@ -448,16 +242,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
                   onLogout();
                 }
               }}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 999,
-                border: "none",
-                background: "#ef4444",
-                color: "#ffffff",
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="px-3 py-1.5 rounded-full border-0 bg-red-500 hover:bg-red-600 text-white text-[11px] font-semibold cursor-pointer transition-colors"
             >
               Logout
             </button>
@@ -466,7 +251,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
       </aside>
 
       {/* Main content */}
-      <main style={{ flex: 1, padding: 24 }}>
+      <main className="flex-1 p-6">
         {activeSection === "overview" && <DashboardSection />}
         {activeSection === "adminWorkspace" && (
           <AdminWorkspaceSection

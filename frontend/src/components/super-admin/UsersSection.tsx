@@ -62,7 +62,6 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
     }
 
     if (editingId == null) {
-      // tambah user baru
       setUsers((prev) => [
         ...prev,
         {
@@ -75,7 +74,6 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
         },
       ]);
     } else {
-      // update user yang sedang di-edit
       setUsers((prev) =>
         prev.map((u) =>
           u.id === editingId
@@ -95,12 +93,6 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
     resetForm();
     setEditingId(null);
     setShowModal(false);
-  };
-
-  const handleChangeRoleInline = (id: number, newRole: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, role: newRole } : u))
-    );
   };
 
   const openAddModal = () => {
@@ -137,51 +129,25 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
   }));
 
   const filteredUsers =
-    roleFilter === "ALL"
-      ? users
-      : users.filter((u) => u.role === roleFilter);
+    roleFilter === "ALL" ? users : users.filter((u) => u.role === roleFilter);
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: 8 }}>
-      <header
-        style={{
-          marginBottom: 20,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+    <div className="max-w-5xl mx-auto p-2">
+      <header className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h1
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              color: "#0f172a",
-              marginBottom: 4,
-            }}
-          >
+          <h1 className="mb-1 text-[24px] font-bold text-slate-900">
             Pengguna
           </h1>
-          <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>
+          <p className="m-0 text-[13px] text-slate-500">
             Kelola akun pengguna yang memiliki akses ke sistem ISP Anda.
           </p>
-          <div
-            style={{
-              marginTop: 8,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 8,
-              alignItems: "center",
-              fontSize: 11,
-              color: "#6b7280",
-            }}
-          >
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
             <span>
-              Total: <strong>{totalUsers}</strong>
+              Total: <span className="font-semibold text-slate-900">{totalUsers}</span>
             </span>
             {userCountByRole.map((item) => (
               <span key={item.roleName}>
-                | {item.roleName}: <strong>{item.count}</strong>
+                | {item.roleName}: <span className="font-semibold text-slate-900">{item.count}</span>
               </span>
             ))}
           </div>
@@ -189,181 +155,62 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
         <button
           type="button"
           onClick={openAddModal}
-          style={{
-            padding: "8px 14px",
-            borderRadius: 999,
-            border: "none",
-            background: "#2563eb",
-            color: "#ffffff",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
+          className="px-3.5 py-2 rounded-full border-0 bg-blue-600 text-white text-[12px] font-semibold shadow-sm hover:bg-blue-700 transition-colors"
         >
           + Tambah Pengguna
         </button>
       </header>
 
-      <div
-        style={{
-          borderRadius: 16,
-          background: "rgba(255,255,255,0.95)",
-          border: "1px solid #e5e7eb",
-          boxShadow: "0 18px 45px rgba(15,23,42,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: 12,
-          }}
-        >
-          <thead style={{ background: "#f3f4f6" }}>
-            <tr style={{ color: "#6b7280", textAlign: "left" }}>
-              <th style={{ padding: "10px 10px" }}>Nama Lengkap</th>
-              <th style={{ padding: "10px 10px" }}>Email</th>
-              <th style={{ padding: "10px 10px" }}>No. WhatsApp</th>
-              <th style={{ padding: "10px 10px" }}>Workspace</th>
-              <th style={{ padding: "10px 10px" }}>Role</th>
-              <th style={{ padding: "10px 10px", width: 130 }}>Action</th>
+      <div className="mt-4 rounded-2xl bg-white/95 border border-slate-200 shadow-xl shadow-slate-900/5 overflow-hidden">
+        <table className="w-full border-collapse text-[12px]">
+          <thead className="bg-slate-100">
+            <tr className="text-left text-slate-500">
+              <th className="px-3 py-2.5 font-medium">Nama Lengkap</th>
+              <th className="px-3 py-2.5 font-medium">Email</th>
+              <th className="px-3 py-2.5 font-medium">No. WhatsApp</th>
+              <th className="px-3 py-2.5 font-medium">Workspace</th>
+              <th className="px-3 py-2.5 font-medium">Role</th>
+              <th className="px-3 py-2.5 font-medium w-[130px]">Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map((user) => (
-              <tr key={user.id}>
-                <td
-                  style={{
-                    padding: "10px 10px",
-                    borderTop: "1px solid #e5e7eb",
-                    fontWeight: 500,
-                  }}
-                >
+              <tr key={user.id} className="hover:bg-slate-50">
+                <td className="px-3 py-2.5 border-t border-slate-200 font-medium text-slate-900">
                   {user.fullName}
                 </td>
-                <td
-                  style={{
-                    padding: "10px 10px",
-                    borderTop: "1px solid #e5e7eb",
-                    color: "#4b5563",
-                  }}
-                >
+                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-600">
                   {user.email}
                 </td>
-                <td
-                  style={{
-                    padding: "10px 10px",
-                    borderTop: "1px solid #e5e7eb",
-                    color: "#4b5563",
-                  }}
-                >
+                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-600">
                   {user.whatsapp}
                 </td>
-                <td
-                  style={{
-                    padding: "10px 10px",
-                    borderTop: "1px solid #e5e7eb",
-                    color: "#4b5563",
-                  }}
-                >
+                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-600">
                   {getWorkspaceName(user.workspaceId)}
                 </td>
-                <td
-                  style={{
-                    padding: "10px 10px",
-                    borderTop: "1px solid #e5e7eb",
-                    color: "#374151",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                    }}
+                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-700">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                      user.role === "Super Admin"
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    }`}
                   >
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        backgroundColor:
-                          user.role === "Super Admin"
-                            ? "#dbeafe"
-                            : "#d1fae5",
-                        color:
-                          user.role === "Super Admin"
-                            ? "#1d4ed8"
-                            : "#047857",
-                        border:
-                          user.role === "Super Admin"
-                            ? "1px solid #bfdbfe"
-                            : "1px solid #bbf7d0",
-                      }}
-                    >
-                      {user.role}
-                    </span>
-                    <select
-                      value={user.role}
-                      onChange={(e) =>
-                        handleChangeRoleInline(user.id, e.target.value)
-                      }
-                      style={{
-                        width: "100%",
-                        height: 28,
-                        padding: "0 8px",
-                        borderRadius: 999,
-                        border: "1px solid #e5e7eb",
-                        fontSize: 11,
-                        boxSizing: "border-box",
-                        background: "#ffffff",
-                      }}
-                    >
-                      {roles.map((r) => (
-                        <option key={r.id} value={r.name}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    {user.role}
+                  </span>
                 </td>
-                <td
-                  style={{
-                    padding: "10px 10px",
-                    borderTop: "1px solid #e5e7eb",
-                  }}
-                >
+                <td className="px-3 py-2.5 border-t border-slate-200">
                   <button
                     type="button"
                     onClick={() => openEditModal(user)}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 999,
-                      border: "1px solid #e5e7eb",
-                      background: "#ffffff",
-                      fontSize: 11,
-                      cursor: "pointer",
-                      marginRight: 6,
-                    }}
+                    className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-[11px] text-slate-700 hover:bg-slate-50 mr-1.5"
                   >
                     Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteUser(user.id)}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 999,
-                      border: "none",
-                      background: "#ef4444",
-                      color: "#ffffff",
-                      fontSize: 11,
-                      cursor: "pointer",
-                    }}
+                    className="px-2.5 py-1 rounded-full border-0 bg-red-500 text-white text-[11px] hover:bg-red-600"
                   >
                     Hapus
                   </button>
@@ -372,14 +219,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
             ))}
             {filteredUsers.length === 0 && (
               <tr>
-                <td
-                  colSpan={6}
-                  style={{
-                    padding: 24,
-                    textAlign: "center",
-                    color: "#9ca3af",
-                  }}
-                >
+                <td colSpan={6} className="px-6 py-6 text-center text-[12px] text-slate-400">
                   {roleFilter === "ALL"
                     ? "Belum ada pengguna terdaftar."
                     : "Belum ada pengguna dengan role ini."}
@@ -391,91 +231,35 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
       </div>
 
       {showModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 520,
-              background: "#ffffff",
-              borderRadius: 16,
-              padding: 20,
-              boxShadow: "0 24px 70px rgba(15,23,42,0.35)",
-              border: "1px solid #e5e7eb",
-            }}
-          >
-            <div
-              style={{
-                marginBottom: 16,
-                borderBottom: "1px solid #e5e7eb",
-                paddingBottom: 10,
-              }}
-            >
-              <h2
-                style={{
-                  margin: 0,
-                  marginBottom: 4,
-                  fontSize: 18,
-                  fontWeight: 600,
-                  color: "#111827",
-                }}
-              >
+        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50">
+          <div className="w-full max-w-lg bg-white rounded-2xl p-5 shadow-2xl shadow-slate-900/50 border border-slate-200">
+            <div className="mb-4 border-b border-slate-200 pb-3">
+              <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
                 {editingId == null ? "Tambah Pengguna" : "Edit Pengguna"}
               </h2>
-              <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
+              <p className="m-0 text-[12px] text-slate-500">
                 Isi data lengkap pengguna, lalu simpan.
               </p>
             </div>
 
             <form
               onSubmit={handleSubmit}
-              style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}
+              className="grid gap-3 md:grid-cols-2"
             >
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11,
-                    color: "#6b7280",
-                    marginBottom: 4,
-                  }}
-                >
+              <div className="md:col-span-2">
+                <label className="block text-[11px] text-slate-600 mb-1">
                   Nama Lengkap
                 </label>
                 <input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Misal: Budi Santoso"
-                  style={{
-                    width: "100%",
-                    height: 36,
-                    padding: "0 14px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                    boxSizing: "border-box",
-                  }}
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11,
-                    color: "#6b7280",
-                    marginBottom: 4,
-                  }}
-                >
+                <label className="block text-[11px] text-slate-600 mb-1">
                   Email
                 </label>
                 <input
@@ -483,54 +267,24 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="user@isp.co.id"
-                  style={{
-                    width: "100%",
-                    height: 36,
-                    padding: "0 14px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                    boxSizing: "border-box",
-                  }}
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11,
-                    color: "#6b7280",
-                    marginBottom: 4,
-                  }}
-                >
+                <label className="block text-[11px] text-slate-600 mb-1">
                   Nomor WhatsApp
                 </label>
                 <input
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="0812-xxxx-xxxx"
-                  style={{
-                    width: "100%",
-                    height: 36,
-                    padding: "0 14px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                    boxSizing: "border-box",
-                  }}
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11,
-                    color: "#6b7280",
-                    marginBottom: 4,
-                  }}
-                >
+                <label className="block text-[11px] text-slate-600 mb-1">
                   Password
                 </label>
                 <input
@@ -538,42 +292,18 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimal 6 karakter"
-                  style={{
-                    width: "100%",
-                    height: 36,
-                    padding: "0 14px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                    boxSizing: "border-box",
-                  }}
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11,
-                    color: "#6b7280",
-                    marginBottom: 4,
-                  }}
-                >
+                <label className="block text-[11px] text-slate-600 mb-1">
                   Role
                 </label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: 36,
-                    padding: "0 10px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                    boxSizing: "border-box",
-                    background: "#ffffff",
-                  }}
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 >
                   {roles.map((r) => (
                     <option key={r.id} value={r.name}>
@@ -584,29 +314,13 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11,
-                    color: "#6b7280",
-                    marginBottom: 4,
-                  }}
-                >
+                <label className="block text-[11px] text-slate-600 mb-1">
                   Workspace
                 </label>
                 <select
                   value={workspaceId}
                   onChange={(e) => setWorkspaceId(e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: 36,
-                    padding: "0 10px",
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                    boxSizing: "border-box",
-                    background: "#ffffff",
-                  }}
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 >
                   <option value="">Pilih Workspace</option>
                   {workspaces.map((ws) => (
@@ -617,44 +331,20 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                 </select>
               </div>
 
-              <div
-                style={{
-                  gridColumn: "1 / -1",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: 8,
-                  marginTop: 4,
-                }}
-              >
+              <div className="md:col-span-2 flex justify-end gap-2 mt-1">
                 <button
                   type="button"
                   onClick={() => {
                     resetForm();
                     setShowModal(false);
                   }}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 999,
-                    border: "1px solid #e5e7eb",
-                    background: "#ffffff",
-                    fontSize: 12,
-                    cursor: "pointer",
-                  }}
+                  className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] text-slate-700 hover:bg-slate-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 999,
-                    border: "none",
-                    background: "#2563eb",
-                    color: "#ffffff",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+                  className="px-3.5 py-1.5 rounded-full border-0 bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700"
                 >
                   Simpan Pengguna
                 </button>
