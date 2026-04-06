@@ -14,12 +14,18 @@ type AdminWorkspaceDashboardProps = {
   workspaceName?: string;
   onBackToSuperAdmin?: () => void;
   onChangeWorkspaceName?: (name: string) => void;
+  onLogout?: () => void;
+  currentUserEmail?: string;
+  currentUserRole?: string;
 };
 
 const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
   workspaceName,
   onBackToSuperAdmin,
   onChangeWorkspaceName,
+  onLogout,
+  currentUserEmail,
+  currentUserRole,
 }) => {
   const [activeMenu, setActiveMenu] = useState<MenuKey>("dashboard");
   const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
@@ -100,81 +106,94 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
       ]
     : baseWorkspaceOptions;
 
+  const canSwitchWorkspace = Boolean(onBackToSuperAdmin || onChangeWorkspaceName);
+
+  const displayRoleLabel =
+    currentUserRole === "super_admin"
+      ? "Super Admin"
+      : currentUserRole
+      ? currentUserRole.split(" ")[0]
+      : "Admin";
+
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-100 via-slate-50 to-sky-100 text-slate-900">
       <aside className="w-64 px-4 py-5 bg-slate-950 text-slate-100 shadow-[4px_0_20px_rgba(15,23,42,0.4)] flex flex-col">
         <div className="mb-5 relative">
-          <button
-            type="button"
-            onClick={() => setShowWorkspaceMenu((v) => !v)}
-            className="w-full text-left px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-700/80 cursor-pointer text-slate-100 hover:bg-slate-600/80 transition-colors"
-          >
-            <div className="text-[13px] font-semibold text-slate-100">
-              {workspaceName ?? "Pilih Workspace"}
-            </div>
-            <div className="text-[11px] text-slate-400">Admin Workspace</div>
-          </button>
-
-          {showWorkspaceMenu && (
-            <div
-              className="absolute top-full left-0 mt-2 w-full bg-slate-900 rounded-xl shadow-xl shadow-slate-900/40 p-2 text-[12px] z-20 text-slate-100"
-            >
-              {onBackToSuperAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onBackToSuperAdmin();
-                    setShowWorkspaceMenu(false);
-                  }}
-                  className="w-full text-left px-2 py-1.5 rounded-lg border-0 bg-slate-800 cursor-pointer text-[12px] mb-1.5 text-slate-50 hover:bg-slate-700"
-                >
-                  Platform Central (Super Admin)
-                </button>
-              )}
-
-              <div
-                className="px-2 py-1 text-[11px] text-slate-400 uppercase tracking-[0.04em]"
-              >
-                Workspace
-              </div>
-
-              {workspaceOptions.map((name) => {
-                const isActive = name === workspaceName;
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => {
-                      if (onChangeWorkspaceName) {
-                        onChangeWorkspaceName(name);
-                      }
-                      setShowWorkspaceMenu(false);
-                    }}
-                    className={`w-full text-left px-2 py-1.5 rounded-lg border-0 cursor-pointer text-[12px] flex items-center gap-1.5 transition-all ${
-                      isActive
-                        ? "bg-slate-800 text-slate-50 translate-x-[2px]"
-                        : "bg-transparent text-slate-200 hover:bg-slate-800/70"
-                    }`}
-                  >
-                    <span
-                      className="w-5 h-5 rounded-md overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 inline-flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0"
-                    >
-                      {name
-                        .trim()
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                    <span>{name}</span>
-                  </button>
-                );
-              })}
-
+          {canSwitchWorkspace ? (
+            <>
               <button
                 type="button"
-                className="w-full text-left px-2 py-1.5 rounded-lg border-0 bg-transparent text-[12px] text-rose-200 cursor-pointer mt-1.5 hover:bg-rose-900/40"
+                onClick={() => setShowWorkspaceMenu((v) => !v)}
+                className="w-full text-left px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-700/80 cursor-pointer text-slate-100 hover:bg-slate-600/80 transition-colors"
               >
-                Logout (dummy)
+                <div className="text-[13px] font-semibold text-slate-100">
+                  {workspaceName ?? "Pilih Workspace"}
+                </div>
+                <div className="text-[11px] text-slate-400">Admin Workspace</div>
               </button>
+
+              {showWorkspaceMenu && (
+                <div
+                  className="absolute top-full left-0 mt-2 w-full bg-slate-900 rounded-xl shadow-xl shadow-slate-900/40 p-2 text-[12px] z-20 text-slate-100"
+                >
+                  {onBackToSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onBackToSuperAdmin();
+                        setShowWorkspaceMenu(false);
+                      }}
+                      className="w-full text-left px-2 py-1.5 rounded-lg border-0 bg-slate-800 cursor-pointer text-[12px] mb-1.5 text-slate-50 hover:bg-slate-700"
+                    >
+                      Platform Central (Super Admin)
+                    </button>
+                  )}
+
+                  <div
+                    className="px-2 py-1 text-[11px] text-slate-400 uppercase tracking-[0.04em]"
+                  >
+                    Workspace
+                  </div>
+
+                  {workspaceOptions.map((name) => {
+                    const isActive = name === workspaceName;
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => {
+                          if (onChangeWorkspaceName) {
+                            onChangeWorkspaceName(name);
+                          }
+                          setShowWorkspaceMenu(false);
+                        }}
+                        className={`w-full text-left px-2 py-1.5 rounded-lg border-0 cursor-pointer text-[12px] flex items-center gap-1.5 transition-all ${
+                          isActive
+                            ? "bg-slate-800 text-slate-50 translate-x-[2px]"
+                            : "bg-transparent text-slate-200 hover:bg-slate-800/70"
+                        }`}
+                      >
+                        <span
+                          className="w-5 h-5 rounded-md overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 inline-flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0"
+                        >
+                          {name
+                            .trim()
+                            .charAt(0)
+                            .toUpperCase()}
+                        </span>
+                        <span>{name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-700/80 text-slate-100">
+              <div className="text-[13px] font-semibold text-slate-100">
+                {workspaceName ?? "Workspace"}
+              </div>
+              <div className="text-[11px] text-slate-400">Admin Workspace</div>
             </div>
           )}
         </div>
@@ -189,7 +208,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
         )}
 
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-2 flex-1">
           <button
             type="button"
             onClick={() => setActiveMenu("dashboard")}
@@ -350,6 +369,38 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
             ⚙️ Pengaturan
           </button>
         </nav>
+
+        {onLogout && (
+          <div className="mt-4">
+            <div className="px-2.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 bg-transparent border-0 flex-1 text-left">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600">
+                  <span className="text-white text-sm font-semibold">
+                    {(workspaceName || currentUserEmail || "U")
+                      .trim()
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-[12px] font-semibold text-slate-100">
+                    {displayRoleLabel}
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    {currentUserEmail || "Logged in"}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="px-3 py-1.5 rounded-full border-0 bg-red-500 hover:bg-red-600 text-white text-[11px] font-semibold cursor-pointer transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
 
       <main className="flex-1 p-6">{renderContent()}</main>

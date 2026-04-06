@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type User = {
   id: number;
@@ -15,16 +15,10 @@ type UsersSectionProps = {
 };
 
 const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
-  const [users, setUsers] = useState<User[]>(() => [
-    {
-      id: 1,
-      fullName: "Super Admin Default",
-      email: "admin@isp.co.id",
-      whatsapp: "0812-0000-0000",
-      role: roles[0]?.name ?? "Super Admin",
-      workspaceId: workspaces[0]?.id ?? null,
-    },
-  ]);
+  const safeWorkspaces = Array.isArray(workspaces) ? workspaces : [];
+  const safeRoles = Array.isArray(roles) ? roles : [];
+
+  const [users, setUsers] = useState<User[]>([]);
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -32,13 +26,56 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<string>(
-    roles[1]?.name || roles[0]?.name || "Admin Workspace"
-  );
-  const [workspaceId, setWorkspaceId] = useState<string>(
-    workspaces[0] ? String(workspaces[0].id) : ""
-  );
+  const [role, setRole] = useState<string>("Admin Workspace");
+  const [workspaceId, setWorkspaceId] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
+
+  const [alert, setAlert] = useState<
+    | null
+    | {
+        type: "success" | "error";
+        message: string;
+      }
+  >(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/users`);
+        if (!res.ok) {
+          console.error("failed to load users", await res.text());
+          return;
+        }
+        const data: User[] = await res.json();
+        setUsers(data);
+      } catch (err) {
+        console.error("load users error", err);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    if (!role && safeRoles.length > 0) {
+      setRole(safeRoles[1]?.name || safeRoles[0]?.name || "Admin Workspace");
+    }
+
+    if (!workspaceId && safeWorkspaces.length > 0) {
+      setWorkspaceId(String(safeWorkspaces[0].id));
+    }
+  }, [role, workspaceId, safeRoles, safeWorkspaces]);
+
+  useEffect(() => {
+    if (!alert) return;
+    const timer = setTimeout(() => setAlert(null), 3000);
+    return () => clearTimeout(timer);
+  }, [alert]);
 
   const resetForm = () => {
     setFullName("");
@@ -46,10 +83,10 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
     setWhatsapp("");
     setPassword("");
     setRole("Admin Workspace");
-    setWorkspaceId(workspaces[0] ? String(workspaces[0].id) : "");
+    setWorkspaceId("");
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (
       !fullName.trim() ||
@@ -61,18 +98,39 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
       return;
     }
 
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
     if (editingId == null) {
-      setUsers((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
+      try {
+        const payload = {
           fullName: fullName.trim(),
           email: email.trim(),
           whatsapp: whatsapp.trim(),
+          password: password.trim(),
           role,
           workspaceId: parseInt(workspaceId, 10),
-        },
-      ]);
+        };
+
+        const res = await fetch(`${apiBase}/api/users`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          console.error("failed to create user", await res.text());
+          setAlert({ type: "error", message: "Gagal menambahkan pengguna." });
+        } else {
+          const created: User = await res.json();
+          setUsers((prev) => [...prev, created]);
+          setAlert({ type: "success", message: "Pengguna berhasil ditambahkan." });
+        }
+      } catch (err) {
+        console.error("create user error", err);
+        setAlert({ type: "error", message: "Terjadi error saat menambahkan pengguna." });
+      }
     } else {
       setUsers((prev) =>
         prev.map((u) =>
@@ -88,6 +146,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
             : u
         )
       );
+      setAlert({ type: "success", message: "Perubahan pengguna berhasil disimpan." });
     }
 
     resetForm();
@@ -112,18 +171,41 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
     setShowModal(true);
   };
 
-  const handleDeleteUser = (id: number) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+  const confirmDeleteUser = async () => {
+    if (!deleteTarget) return;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`${apiBase}/api/users/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok && res.status !== 404) {
+        console.error("failed to delete user", await res.text());
+        setAlert({ type: "error", message: "Gagal menghapus pengguna." });
+        return;
+      }
+
+      setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      setAlert({ type: "success", message: "Pengguna berhasil dihapus." });
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("delete user error", err);
+      setAlert({ type: "error", message: "Terjadi error saat menghapus pengguna." });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const getWorkspaceName = (id: number | null) => {
     if (!id) return "-";
-    const ws = workspaces.find((w) => w.id === id);
+    const ws = safeWorkspaces.find((w) => w.id === id);
     return ws ? ws.name : "-";
   };
 
   const totalUsers = users.length;
-  const userCountByRole = roles.map((r) => ({
+  const userCountByRole = safeRoles.map((r) => ({
     roleName: r.name,
     count: users.filter((u) => u.role === r.name).length,
   }));
@@ -209,7 +291,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteUser(user.id)}
+                    onClick={() => setDeleteTarget(user)}
                     className="px-2.5 py-1 rounded-full border-0 bg-red-500 text-white text-[11px] hover:bg-red-600"
                   >
                     Hapus
@@ -305,7 +387,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   onChange={(e) => setRole(e.target.value)}
                   className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 >
-                  {roles.map((r) => (
+                  {safeRoles.map((r) => (
                     <option key={r.id} value={r.name}>
                       {r.name}
                     </option>
@@ -323,7 +405,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 >
                   <option value="">Pilih Workspace</option>
-                  {workspaces.map((ws) => (
+                  {safeWorkspaces.map((ws) => (
                     <option key={ws.id} value={ws.id}>
                       {ws.name}
                     </option>
@@ -350,6 +432,87 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
+          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 transform transition-all duration-200">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="h-8 w-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 text-sm animate-pulse">
+                !
+              </div>
+              <div>
+                <h2 className="m-0 text-[14px] font-semibold text-slate-900">
+                  Hapus pengguna?
+                </h2>
+                <p className="m-0 mt-0.5 text-[11px] text-slate-500">
+                  Pengguna <strong>{deleteTarget.fullName}</strong> dengan email {" "}
+                  <span className="font-mono text-[11px]">{deleteTarget.email}</span> akan dihapus.
+                </p>
+              </div>
+            </div>
+            <p className="m-0 mb-3 text-[11px] text-slate-500">
+              Apakah Anda yakin ingin menghapus pengguna ini?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] cursor-pointer hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteUser}
+                disabled={isDeleting}
+                className="px-3.5 py-1.5 rounded-full border-0 bg-red-600 hover:bg-red-700 text-white text-[12px] font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Menghapus..." : "Ya, hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {alert && (
+        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50">
+          <div
+            className={`w-full max-w-sm rounded-2xl border px-4 py-3 text-[11px] shadow-2xl backdrop-blur-sm transform transition-all duration-200 ${
+              alert.type === "success"
+                ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
+                : "bg-red-50/95 border-red-200 text-red-700"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <div
+                className={`mt-0.5 h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold animate-pulse ${
+                  alert.type === "success"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {alert.type === "success" ? "✔" : "⚠"}
+              </div>
+              <div>
+                <p className="m-0 text-[12px] font-semibold">
+                  {alert.type === "success" ? "Berhasil" : "Terjadi kesalahan"}
+                </p>
+                <p className="m-0 mt-0.5 text-[11px]">{alert.message}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setAlert(null)}
+                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

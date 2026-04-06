@@ -1,5 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import BandwidthSparkline, { BandwidthPoint } from "./BandwidthSparkline";
+import {
+  AreaChart,
+  Area,
+  ResponsiveContainer,
+  YAxis,
+  XAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
 
 type MonitoringTab = "ping" | "alerts" | "interface" | "queue";
 
@@ -11,12 +20,100 @@ type MonitoringSectionProps = {
 const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, initialTab }) => {
   const [activeTab, setActiveTab] = useState<MonitoringTab>(initialTab ?? "ping");
 
+  type PingDevice = {
+    id: number;
+    name: string;
+    ip: string;
+    latencyMs: number;
+    loss: number;
+    status: "UP" | "DOWN";
+  };
+
+  const [pingDevices, setPingDevices] = useState<PingDevice[]>([]);
+  const [isLoadingPing, setIsLoadingPing] = useState(false);
+  const [pingError, setPingError] = useState<string>("");
+
+  type PingHistoryPoint = {
+    time: string;
+    latencyMs: number;
+    status: "UP" | "DOWN";
+  };
+
+  const [pingHistory, setPingHistory] = useState<Record<number, PingHistoryPoint[]>>({});
+  const [selectedPingDeviceId, setSelectedPingDeviceId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== "ping") return;
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    let interval: number | undefined;
+
+    const fetchPing = async () => {
+      try {
+        setPingError("");
+        setIsLoadingPing(true);
+        const res = await fetch(`${apiBase}/api/monitoring/ping`);
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("ping devices error", text);
+          setPingError("Gagal memuat data ping perangkat.");
+          return;
+        }
+        const data = (await res.json()) as PingDevice[];
+        setPingDevices(data);
+
+        const now = new Date();
+        const label = `${now.getHours().toString().padStart(2, "0")}:${now
+          .getMinutes()
+          .toString()
+          .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+
+        setPingHistory((prev) => {
+          const next: Record<number, PingHistoryPoint[]> = { ...prev };
+          data.forEach((d) => {
+            const points = next[d.id] ? [...next[d.id]] : [];
+            const latency = d.status === "UP" ? d.latencyMs : 0;
+            points.push({ time: label, latencyMs: latency, status: d.status });
+            if (points.length > 30) {
+              points.shift();
+            }
+            next[d.id] = points;
+          });
+          return next;
+        });
+
+        setSelectedPingDeviceId((prev) => {
+          if (prev !== null) return prev;
+          return data.length > 0 ? data[0].id : null;
+        });
+      } catch (err) {
+        console.error("ping devices error", err);
+        setPingError("Tidak dapat terhubung ke API monitoring ping.");
+      } finally {
+        setIsLoadingPing(false);
+      }
+    };
+
+    fetchPing();
+    interval = window.setInterval(fetchPing, 5000);
+
+    return () => {
+      if (interval) {
+        window.clearInterval(interval);
+      }
+    };
+  }, [activeTab]);
+
   const renderPing = () => {
-    const devices = [
-      { name: "Router Kantor Pusat", ip: "10.0.0.1", latencyMs: 18, loss: 0.2, status: "UP" },
-      { name: "Router POP Bandung", ip: "10.10.0.1", latencyMs: 35, loss: 0.8, status: "UP" },
-      { name: "Server Billing", ip: "10.0.10.5", latencyMs: 120, loss: 5.3, status: "DOWN" },
-    ];
+    const selectedDevice =
+      (selectedPingDeviceId &&
+        pingDevices.find((d) => d.id === selectedPingDeviceId)) ||
+      pingDevices[0] ||
+      null;
+
+    const historyPoints: PingHistoryPoint[] = selectedDevice
+      ? pingHistory[selectedDevice.id] || []
+      : [];
 
     return (
       <section>
@@ -24,52 +121,138 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
           Monitoring Ping
         </h2>
         <p className="m-0 text-[12px] text-slate-500 mb-3.5">
-          Tabel latency dan packet loss per device. Grafik per device bisa ditambahkan
-          menggunakan data historis dari backend.
+          Grafik latency ping perangkat yang sudah ditambahkan. Data diperbarui
+          otomatis setiap beberapa detik dari backend.
         </p>
 
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-md shadow-slate-900/5">
-          <table className="w-full border-collapse text-[12px]">
-            <thead className="bg-slate-100">
-              <tr className="text-left text-slate-500">
-                <th className="px-2.5 py-2">Device</th>
-                <th className="px-2.5 py-2">IP Address</th>
-                <th className="px-2.5 py-2">Latency (ms)</th>
-                <th className="px-2.5 py-2">Packet Loss (%)</th>
-                <th className="px-2.5 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {devices.map((d) => (
-                <tr key={d.ip} className="hover:bg-slate-50">
-                  <td className="px-2.5 py-2 border-t border-slate-200">
-                    {d.name}
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200 text-slate-600">
-                    {d.ip}
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200">
-                    {d.latencyMs}
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200">
-                    {d.loss}
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                        d.status === "UP"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-rose-50 text-rose-700 border-rose-200"
-                      }`}
+        {pingError && (
+          <div className="mb-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-[11px] border border-red-200">
+            {pingError}
+          </div>
+        )}
+        {pingDevices.length === 0 ? (
+          <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 px-3 py-4 text-center text-[11px] text-slate-400">
+            {isLoadingPing
+              ? "Memuat data ping perangkat..."
+              : "Belum ada perangkat yang dimonitor atau belum ada data ping."}
+          </div>
+        ) : (
+          selectedDevice && (
+            <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="m-0 text-[11px] text-slate-500">Grafik latency (ms)</p>
+                  <p className="m-0 text-[13px] font-semibold text-slate-900">
+                    {selectedDevice.name} <span className="text-slate-400">· {selectedDevice.ip}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                  {pingDevices.length > 1 && (
+                    <select
+                      className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700"
+                      value={selectedDevice.id}
+                      onChange={(e) => setSelectedPingDeviceId(Number(e.target.value))}
                     >
-                      {d.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      {pingDevices.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <span>Status:</span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-semibold ${
+                      selectedDevice.status === "UP"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-rose-50 text-rose-700 border-rose-200"
+                    }`}
+                  >
+                    {selectedDevice.status}
+                  </span>
+                </div>
+              </div>
+
+              {historyPoints.length === 0 ? (
+                <div className="flex h-24 items-center justify-center text-[11px] text-slate-400">
+                  Belum ada sampel ping untuk perangkat ini.
+                </div>
+              ) : (
+                <>
+                  <div className="h-32 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={historyPoints}
+                        margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="pingLatencyGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
+                            <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="#e5e7eb"
+                          strokeWidth={0.5}
+                          vertical={false}
+                        />
+                        <XAxis dataKey="time" hide />
+                        <YAxis hide />
+                        <Tooltip
+                          cursor={{ stroke: "#cbd5f5", strokeWidth: 1 }}
+                          contentStyle={{
+                            fontSize: 11,
+                            borderRadius: 12,
+                            borderColor: "#e5e7eb",
+                          }}
+                          labelStyle={{ fontSize: 11, color: "#6b7280" }}
+                          formatter={(value: any) => [`${value} ms`, "Latency"]}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="latencyMs"
+                          stroke="#0ea5e9"
+                          strokeWidth={1}
+                          fill="url(#pingLatencyGradient)"
+                          isAnimationActive={false}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {(() => {
+                    const latencies = historyPoints.map((p) => p.latencyMs);
+                    const count = latencies.length;
+                    const sum = latencies.reduce((acc, v) => acc + v, 0);
+                    const avg = count ? sum / count : 0;
+                    const min = count ? Math.min(...latencies) : 0;
+                    const max = count ? Math.max(...latencies) : 0;
+                    const lastPoint = historyPoints[historyPoints.length - 1];
+                    const currentLabel =
+                      lastPoint.status === "UP"
+                        ? `${lastPoint.latencyMs.toFixed(1)} ms`
+                        : "-";
+
+                    return (
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                        <span>
+                          Latency saat ini: <span className="font-semibold text-slate-700">{currentLabel}</span>
+                        </span>
+                        <span>
+                          Rata-rata: <span className="font-semibold text-slate-700">{avg.toFixed(1)} ms</span>
+                          {" · "}
+                          Min: <span className="font-semibold text-slate-700">{min.toFixed(1)} ms</span>
+                          {" · "}
+                          Max: <span className="font-semibold text-slate-700">{max.toFixed(1)} ms</span>
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
+          )
+        )}
       </section>
     );
   };

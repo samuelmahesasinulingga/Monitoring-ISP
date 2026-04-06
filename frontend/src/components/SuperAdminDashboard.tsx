@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DashboardSection from "./super-admin/DashboardSection";
 import AdminWorkspaceSection from "./super-admin/AdminWorkspaceSection";
 import UsersSection from "./super-admin/UsersSection";
@@ -36,20 +36,7 @@ type SuperAdminDashboardProps = {
 function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardProps) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionKey>("overview");
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([
-    {
-      id: 1,
-      name: "Kantor Pusat ISP",
-      address: "Jl. Utama No. 1, Jakarta",
-      iconUrl: "",
-    },
-    {
-      id: 2,
-      name: "POP Bandung",
-      address: "Jl. Telekomunikasi No. 10, Bandung",
-      iconUrl: "",
-    },
-  ]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [superAdminProfile, setSuperAdminProfile] = useState<SuperAdminProfile>({
     name: "Super Admin",
     email: "admin@isp.co.id",
@@ -68,6 +55,26 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
       description: "Mengelola 1 workspace, pelanggan, dan monitoring di dalamnya.",
     },
   ]);
+
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    const fetchWorkspaces = async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/workspaces`);
+        if (!res.ok) {
+          console.error("failed to load workspaces", await res.text());
+          return;
+        }
+        const data: Workspace[] = await res.json();
+        setWorkspaces(data);
+      } catch (err) {
+        console.error("load workspaces error", err);
+      }
+    };
+
+    fetchWorkspaces();
+  }, []);
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-indigo-100 via-slate-50 to-sky-100 text-slate-900">

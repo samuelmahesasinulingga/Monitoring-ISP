@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type Workspace = {
   id: number;
   name: string;
   address: string;
+  iconUrl?: string;
 };
 
 type WorkspaceMember = {
@@ -23,6 +24,8 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
   setWorkspaces,
 }) => {
 
+  const safeWorkspaces = Array.isArray(workspaces) ? workspaces : [];
+
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
@@ -31,39 +34,91 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
     undefined
   );
 
+  const [alert, setAlert] = useState<
+    | null
+    | {
+        type: "success" | "error";
+        message: string;
+      }
+  >(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<Workspace | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [memberModalWorkspaceId, setMemberModalWorkspaceId] = useState<number | null>(null);
   const [membersByWorkspace, setMembersByWorkspace] = useState<Record<number, WorkspaceMember[]>>({});
   const [memberSearch, setMemberSearch] = useState("");
 
-  const handleAddWorkspace = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (!alert) return;
+    const timer = setTimeout(() => setAlert(null), 3000);
+    return () => clearTimeout(timer);
+  }, [alert]);
+
+  const handleAddWorkspace = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!newWorkspaceName.trim() || !newWorkspaceAddress.trim()) return;
 
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
     if (editingId == null) {
-      // Tambah workspace baru
-      setWorkspaces((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          name: newWorkspaceName.trim(),
-          address: newWorkspaceAddress.trim(),
-          iconUrl: newWorkspaceIcon,
-        },
-      ]);
+      // Tambah workspace baru ke backend
+      try {
+        const res = await fetch(`${apiBase}/api/workspaces`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newWorkspaceName.trim(),
+            address: newWorkspaceAddress.trim(),
+            iconUrl: newWorkspaceIcon ?? null,
+          }),
+        });
+
+        if (!res.ok) {
+          const msg = await res.text();
+          console.error("failed to create workspace", msg);
+          setAlert({ type: "error", message: "Gagal menambahkan workspace." });
+        } else {
+          const created: Workspace = await res.json();
+          setWorkspaces((prev) => [...prev, created]);
+          setAlert({ type: "success", message: "Workspace berhasil ditambahkan." });
+        }
+      } catch (err) {
+        console.error("create workspace error", err);
+        setAlert({ type: "error", message: "Terjadi error saat menambahkan workspace." });
+      }
     } else {
-      // Update workspace yang sedang di-edit
-      setWorkspaces((prev) =>
-        prev.map((ws) =>
-          ws.id === editingId
-            ? {
-                ...ws,
-                name: newWorkspaceName.trim(),
-                address: newWorkspaceAddress.trim(),
-                iconUrl: newWorkspaceIcon,
-              }
-            : ws
-        )
-      );
+      // Update workspace yang sedang di-edit di backend
+      try {
+        const res = await fetch(`${apiBase}/api/workspaces/${editingId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newWorkspaceName.trim(),
+            address: newWorkspaceAddress.trim(),
+            iconUrl: newWorkspaceIcon ?? null,
+          }),
+        });
+
+        if (!res.ok) {
+          const msg = await res.text();
+          console.error("failed to update workspace", msg);
+          setAlert({ type: "error", message: "Gagal memperbarui workspace." });
+        } else {
+          const updated: Workspace = await res.json();
+          setWorkspaces((prev) =>
+            prev.map((ws) => (ws.id === updated.id ? updated : ws))
+          );
+          setAlert({ type: "success", message: "Workspace berhasil disimpan." });
+        }
+      } catch (err) {
+        console.error("update workspace error", err);
+        setAlert({ type: "error", message: "Terjadi error saat memperbarui workspace." });
+      }
     }
 
     setNewWorkspaceName("");
@@ -89,8 +144,30 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
     setShowModal(true);
   };
 
-  const handleDeleteWorkspace = (id: number) => {
-    setWorkspaces((prev) => prev.filter((ws) => ws.id !== id));
+  const confirmDeleteWorkspace = async () => {
+    if (!deleteTarget) return;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`${apiBase}/api/workspaces/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok && res.status !== 404) {
+        const msg = await res.text();
+        console.error("failed to delete workspace", msg);
+        setAlert({ type: "error", message: "Gagal menghapus workspace." });
+        return;
+      }
+      setWorkspaces((prev) => prev.filter((ws) => ws.id !== deleteTarget.id));
+      setAlert({ type: "success", message: "Workspace berhasil dihapus." });
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("delete workspace error", err);
+      setAlert({ type: "error", message: "Terjadi error saat menghapus workspace." });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleWorkspaceIconChange = (
@@ -158,7 +235,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
             </tr>
           </thead>
           <tbody>
-            {workspaces.map((workspace) => (
+            {safeWorkspaces.map((workspace) => (
               <tr key={workspace.id}>
                 <td className="py-2 px-1.5 border-t border-slate-200">
                   <div className="w-7 h-7 rounded-lg overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-[12px] font-semibold">
@@ -196,7 +273,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteWorkspace(workspace.id)}
+                    onClick={() => setDeleteTarget(workspace)}
                     className="px-2.5 py-1.5 rounded-full border-0 bg-red-500 hover:bg-red-600 text-white text-[11px] cursor-pointer"
                   >
                     Hapus
@@ -454,6 +531,86 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                 </>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
+          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 transform transition-all duration-200">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="h-8 w-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 text-sm animate-pulse">
+                !
+              </div>
+              <div>
+                <h2 className="m-0 text-[14px] font-semibold text-slate-900">
+                  Hapus workspace?
+                </h2>
+                <p className="m-0 mt-0.5 text-[11px] text-slate-500">
+                  Workspace <strong>{deleteTarget.name}</strong> dan datanya akan dihapus.
+                </p>
+              </div>
+            </div>
+            <p className="m-0 mb-3 text-[11px] text-slate-500">
+              Apakah Anda yakin ingin menghapus workspace ini?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] cursor-pointer hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteWorkspace}
+                disabled={isDeleting}
+                className="px-3.5 py-1.5 rounded-full border-0 bg-red-600 hover:bg-red-700 text-white text-[12px] font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Menghapus..." : "Ya, hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {alert && (
+        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50">
+          <div
+            className={`w-full max-w-sm rounded-2xl border px-4 py-3 text-[11px] shadow-2xl backdrop-blur-sm transform transition-all duration-200 ${
+              alert.type === "success"
+                ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
+                : "bg-red-50/95 border-red-200 text-red-700"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <div
+                className={`mt-0.5 h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold animate-pulse ${
+                  alert.type === "success"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {alert.type === "success" ? "✔" : "⚠"}
+              </div>
+              <div>
+                <p className="m-0 text-[12px] font-semibold">
+                  {alert.type === "success" ? "Berhasil" : "Terjadi kesalahan"}
+                </p>
+                <p className="m-0 mt-0.5 text-[11px]">{alert.message}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setAlert(null)}
+                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

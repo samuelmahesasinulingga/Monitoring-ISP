@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export type DeviceType = "router" | "switch" | "ap" | "server" | "client";
 
@@ -24,56 +24,7 @@ type DevicesSectionProps = {
 };
 
 const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
-  const [devices, setDevices] = useState<DeviceRecord[]>([
-    {
-      id: 1,
-      name: "Upstream ISP",
-      ip: "0.0.0.0",
-      type: "router",
-      integrationMode: "snmp+api",
-      snmpVersion: "v2c",
-      snmpCommunity: "public",
-      apiUser: "api-user",
-      apiPort: 8728,
-      monitoringEnabled: true,
-    },
-    {
-      id: 2,
-      name: "Router Kantor Pusat",
-      ip: "10.0.0.1",
-      type: "router",
-      integrationMode: "snmp+api",
-      snmpVersion: "v2c",
-      snmpCommunity: "public",
-      apiUser: "api-user",
-      apiPort: 8728,
-      monitoringEnabled: true,
-    },
-    {
-      id: 3,
-      name: "Switch Lantai 1",
-      ip: "10.0.1.2",
-      type: "switch",
-      integrationMode: "snmp",
-      snmpVersion: "v2c",
-      snmpCommunity: "public",
-      apiUser: "api-user",
-      apiPort: 161,
-      monitoringEnabled: false,
-    },
-    {
-      id: 4,
-      name: "Client VLAN 10",
-      ip: "10.0.10.1",
-      type: "client",
-      integrationMode: "ping",
-      snmpVersion: null,
-      snmpCommunity: "public",
-      apiUser: "",
-      apiPort: 0,
-      monitoringEnabled: false,
-    },
-  ]);
+  const [devices, setDevices] = useState<DeviceRecord[]>([]);
 
   const [name, setName] = useState("");
   const [ip, setIp] = useState("");
@@ -84,8 +35,33 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
   const [apiUser, setApiUser] = useState("api-user");
   const [apiPort, setApiPort] = useState(8728);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testStatus, setTestStatus] = useState<"idle" | "success" | "failed">("idle");
+  const [testMessage, setTestMessage] = useState<string>("");
+  const [testIp, setTestIp] = useState("");
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
 
-  const handleAddDevice = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    const fetchDevices = async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/devices`);
+        if (!res.ok) {
+          console.error("failed to load devices", await res.text());
+          return;
+        }
+        const data: DeviceRecord[] = await res.json();
+        setDevices(data);
+      } catch (err) {
+        console.error("load devices error", err);
+      }
+    };
+
+    fetchDevices();
+  }, []);
+
+  const handleAddDevice = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name.trim() || !ip.trim()) return;
 
@@ -105,10 +81,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
     const normalizedApiPort =
       integrationMode === "api" || integrationMode === "snmp+api" ? apiPort : 0;
 
-    setDevices((prev) => [
-      ...prev,
-      {
-        id: prev.length ? Math.max(...prev.map((d) => d.id)) + 1 : 1,
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    try {
+      const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
         name: name.trim(),
         ip: ip.trim(),
         type,
@@ -118,8 +94,32 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
         apiUser: normalizedApiUser,
         apiPort: normalizedApiPort,
         monitoringEnabled,
-      },
-    ]);
+      };
+
+      const res = await fetch(`${apiBase}/api/devices`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("failed to create device", errText);
+        setTestStatus("failed");
+        setTestMessage(errText);
+      } else {
+        const created: DeviceRecord = await res.json();
+        setDevices((prev) => [...prev, created]);
+        setTestStatus("success");
+        setTestMessage("Perangkat berhasil ditambahkan dan koneksi OK.");
+      }
+    } catch (err) {
+      console.error("create device error", err);
+      setTestStatus("failed");
+      setTestMessage("Terjadi error saat menambah perangkat.");
+    }
 
     setName("");
     setIp("");
@@ -129,6 +129,75 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
     setApiUser("api-user");
     setApiPort(8728);
     setMonitoringEnabled(true);
+    setIsTesting(false);
+    setTestStatus("idle");
+    setTestMessage("");
+  };
+
+  const handleTestConnection = async () => {
+    const ipToTest = testIp.trim();
+    if (!ipToTest) {
+      setTestStatus("failed");
+      setTestMessage("Isi IP terlebih dahulu untuk tes koneksi.");
+      return;
+    }
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    const normalizedApiPortForTest =
+      integrationMode === "api" || integrationMode === "snmp+api" ? apiPort : 0;
+
+    setIsTesting(true);
+    setTestStatus("idle");
+    setTestMessage("");
+
+    try {
+      const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
+        name: "",
+        ip: ipToTest,
+        type,
+        // Gunakan mode yang dipilih saat ini supaya tes koneksi
+        // sesuai dengan jenis endpoint (Ping saja vs SNMP+API).
+        integrationMode,
+        snmpVersion: null,
+        snmpCommunity: "",
+        apiUser: "",
+        apiPort: normalizedApiPortForTest,
+        monitoringEnabled: true,
+      };
+
+      const res = await fetch(`${apiBase}/api/devices/test-connection`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        let msg = await res.text();
+        try {
+          const parsed = JSON.parse(msg);
+          if (parsed?.error) {
+            msg = parsed.error;
+          }
+        } catch {
+          // ignore JSON parse error, use raw text
+        }
+        setTestStatus("failed");
+        setTestMessage(msg || "Tes koneksi gagal.");
+      } else {
+        const data = await res.json().catch(() => null as any);
+        setTestStatus("success");
+        setTestMessage(data?.message || "Tes koneksi berhasil.");
+      }
+    } catch (err) {
+      console.error("test connection error", err);
+      setTestStatus("failed");
+      setTestMessage("Terjadi error saat tes koneksi.");
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const renderNodeIcon = (deviceType: DeviceType) => {
@@ -181,9 +250,23 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
         <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-md shadow-slate-900/5">
-          <h3 className="m-0 mb-2 text-[13px] font-semibold text-slate-900">
-            Tambah perangkat
-          </h3>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h3 className="m-0 text-[13px] font-semibold text-slate-900">
+              Tambah perangkat
+            </h3>
+            <button
+              type="button"
+              onClick={() => {
+                setIsTestModalOpen(true);
+                setTestStatus("idle");
+                setTestMessage("");
+                setTestIp(ip || "");
+              }}
+              className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Tes koneksi perangkat
+            </button>
+          </div>
           <form onSubmit={handleAddDevice} className="flex flex-col gap-2.5 text-[12px]">
             <div>
               <label className="mb-1 block text-[11px] text-slate-600">
@@ -341,7 +424,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
             </label>
             <button
               type="submit"
-              className="mt-1 inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
+              className="mt-2 inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
             >
               + Tambah perangkat
             </button>
@@ -424,6 +507,76 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
           </div>
         </div>
       </div>
+
+      {isTestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="m-0 text-[14px] font-semibold text-slate-900">
+                Tes koneksi perangkat
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTestModalOpen(false);
+                  setIsTesting(false);
+                }}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mb-3 text-[11px] text-slate-500">
+              Masukkan IP / hostname yang ingin dites. Sistem akan melakukan
+              tes koneksi sederhana (TCP ke port 80) sebagai ping/health check.
+            </p>
+            <div className="mb-3">
+              <label className="mb-1 block text-[11px] text-slate-600">
+                IP address / hostname untuk tes
+              </label>
+              <input
+                value={testIp}
+                onChange={(e) => setTestIp(e.target.value)}
+                placeholder="Misal: 10.10.0.1 atau pop-bandung"
+                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+              />
+            </div>
+
+            {testStatus !== "idle" && (
+              <div
+                className={`mb-3 rounded-lg border px-3 py-2 text-[11px] ${
+                  testStatus === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {testMessage}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTestModalOpen(false);
+                  setIsTesting(false);
+                }}
+                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={isTesting || !testIp.trim()}
+                className="inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isTesting ? "Menguji..." : "Tes koneksi sekarang"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 
 type LoginPageProps = {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (payload: {
+    email: string;
+    role: string;
+    workspaceId?: number | null;
+    workspaceName?: string | null;
+    workspaceAddress?: string | null;
+  }) => void;
 };
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState("admin@isp.co.id");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,9 +40,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         return;
       }
 
-      // Optional: bisa baca role/email dari response jika ingin dibedakan.
-      // const data = await res.json();
-      onLoginSuccess();
+      const data = await res.json();
+      onLoginSuccess({
+        email: data.email,
+        role: data.role,
+        workspaceId: data.workspaceId ?? null,
+        workspaceName: data.workspaceName ?? null,
+        workspaceAddress: data.workspaceAddress ?? null,
+      });
     } catch (err) {
       console.error("login error", err);
       setError("Tidak dapat menghubungi server login.");
@@ -104,7 +115,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="nama@perusahaan.co.id"
+              placeholder="Masukkan email anda"
               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs md:text-sm bg-white text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60 placeholder:text-slate-300"
             />
           </div>
@@ -115,13 +126,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               className="flex items-center justify-between text-[11px] mb-1.5 font-medium text-slate-600"
             >
               <span>Password</span>
-              <span className="text-[10px] opacity-70">Minimal 6 karakter</span>
             </label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Masukkan password anda"
               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs md:text-sm bg-white text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60 placeholder:text-slate-300"
             />
           </div>
@@ -145,28 +156,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             {isSubmitting ? "Memproses..." : "Login"}
           </button>
         </form>
-
-          <div className="mt-3 text-[11px] text-slate-500 border-t border-dashed border-slate-200 pt-2.5 flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-slate-600">Akun default (database)</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[10px] text-slate-400 border border-slate-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                <span>Hanya untuk pengujian awal</span>
-              </span>
-            </div>
-            <p className="m-0">
-              <span className="font-mono text-[11px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 mr-1">
-                admin@isp.co.id
-              </span>
-              <span className="font-mono text-[11px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
-                admin123
-              </span>
-            </p>
-            <p className="m-0 text-[10px] text-slate-400">
-              Akun ini dibuat di tabel <code>admins</code> database PostgreSQL
-              melalui skrip inisialisasi.
-            </p>
-          </div>
         </div>
       </div>
     </div>
