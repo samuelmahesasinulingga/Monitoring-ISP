@@ -19,7 +19,7 @@ services:
     working_dir: /app
     volumes:
       - ./../backend:/app
-    command: ["sh", "-c", "go mod download && go run main.go"]
+    command: ["sh", "-c", "go mod download && go run ."]
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
