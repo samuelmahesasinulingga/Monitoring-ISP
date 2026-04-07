@@ -41,6 +41,29 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
   const [testIp, setTestIp] = useState("");
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<DeviceRecord | null>(null);
+  const [editIntegrationMode, setEditIntegrationMode] = useState<IntegrationMode>("snmp+api");
+  const [editSnmpVersion, setEditSnmpVersion] = useState<SnmpVersion>("v2c");
+  const [editSnmpCommunity, setEditSnmpCommunity] = useState("");
+  const [editApiUser, setEditApiUser] = useState("");
+  const [editApiPort, setEditApiPort] = useState(8728);
+  const [editMonitoringEnabled, setEditMonitoringEnabled] = useState(true);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<DeviceRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string>("");
+
+  const [feedbackModal, setFeedbackModal] = useState<
+    | null
+    | {
+        type: "success" | "error";
+        title: string;
+        message: string;
+      }
+  >(null);
+
   useEffect(() => {
     const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
@@ -109,11 +132,25 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
         console.error("failed to create device", errText);
         setTestStatus("failed");
         setTestMessage(errText);
+        const lower = errText.toLowerCase();
+        const message = lower.includes("gagal konek")
+          ? "IP perangkat tidak dapat dikoneksikan. Pastikan perangkat hidup dan port/API sudah benar. Perangkat tidak disimpan."
+          : (errText || "Gagal menambahkan perangkat.") + " Perangkat tidak disimpan.";
+        setFeedbackModal({
+          type: "error",
+          title: "Gagal menambahkan perangkat",
+          message,
+        });
       } else {
         const created: DeviceRecord = await res.json();
         setDevices((prev) => [...prev, created]);
         setTestStatus("success");
         setTestMessage("Perangkat berhasil ditambahkan dan koneksi OK.");
+        setFeedbackModal({
+          type: "success",
+          title: "Perangkat tersimpan",
+          message: "Perangkat berhasil ditambahkan dan siap dimonitor.",
+        });
       }
     } catch (err) {
       console.error("create device error", err);
@@ -197,6 +234,129 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
       setTestMessage("Terjadi error saat tes koneksi.");
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const openEditDevice = (device: DeviceRecord) => {
+    setEditingDevice(device);
+    setName(device.name);
+    setIp(device.ip);
+    setType(device.type);
+    setEditIntegrationMode(device.integrationMode);
+    setEditSnmpVersion(device.snmpVersion || "v2c");
+    setEditSnmpCommunity(device.snmpCommunity || "public");
+    setEditApiUser(device.apiUser || "api-user");
+    setEditApiPort(device.apiPort || 8728);
+    setEditMonitoringEnabled(device.monitoringEnabled);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateDevice = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingDevice) return;
+
+    if (!name.trim() || !ip.trim()) return;
+
+    const normalizedSnmp =
+      editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api"
+        ? editSnmpCommunity.trim() || "public"
+        : "";
+
+    const normalizedSnmpVersion: SnmpVersion | null =
+      editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api" ? editSnmpVersion : null;
+
+    const normalizedApiUser =
+      editIntegrationMode === "api" || editIntegrationMode === "snmp+api"
+        ? editApiUser.trim()
+        : "";
+
+    const normalizedApiPort =
+      editIntegrationMode === "api" || editIntegrationMode === "snmp+api" ? editApiPort : 0;
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    try {
+      const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
+        name: name.trim(),
+        ip: ip.trim(),
+        type,
+        integrationMode: editIntegrationMode,
+        snmpVersion: normalizedSnmpVersion,
+        snmpCommunity: normalizedSnmp,
+        apiUser: normalizedApiUser,
+        apiPort: normalizedApiPort,
+        monitoringEnabled: editMonitoringEnabled,
+      };
+
+      const res = await fetch(`${apiBase}/api/devices/${editingDevice.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("failed to update device", errText);
+        setFeedbackModal({
+          type: "error",
+          title: "Gagal menyimpan perubahan",
+          message: errText || "Gagal mengupdate perangkat.",
+        });
+      } else {
+        const updated: DeviceRecord = await res.json();
+        setDevices((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+        setIsEditModalOpen(false);
+        setEditingDevice(null);
+        setFeedbackModal({
+          type: "success",
+          title: "Perubahan tersimpan",
+          message: "Perubahan konfigurasi perangkat berhasil disimpan.",
+        });
+      }
+    } catch (err) {
+      console.error("update device error", err);
+      setFeedbackModal({
+        type: "error",
+        title: "Error saat menyimpan",
+        message: "Terjadi error saat mengupdate perangkat.",
+      });
+    }
+  };
+
+  const handleDeleteDevice = async (device: DeviceRecord) => {
+    setDeviceToDelete(device);
+    setDeleteError("");
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteDevice = async () => {
+    if (!deviceToDelete) return;
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`${apiBase}/api/devices/${deviceToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("failed to delete device", errText);
+        setDeleteError(errText || "Gagal menghapus perangkat.");
+      } else {
+        setDevices((prev) => prev.filter((d) => d.id !== deviceToDelete.id));
+        setIsDeleteModalOpen(false);
+        setDeviceToDelete(null);
+        setDeleteError("");
+      }
+    } catch (err) {
+      console.error("delete device error", err);
+      setDeleteError("Terjadi error saat menghapus perangkat.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -453,6 +613,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
                   <th className="px-2.5 py-1.5 text-left">API user</th>
                   <th className="px-2.5 py-1.5 text-left">API port</th>
                   <th className="px-2.5 py-1.5 text-left">Monitoring</th>
+                  <th className="px-2.5 py-1.5 text-left">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -490,12 +651,30 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
                         {d.monitoringEnabled ? "Aktif" : "Nonaktif"}
                       </span>
                     </td>
+                    <td className="px-2.5 py-1.5 align-top">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openEditDevice(d)}
+                          className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDevice(d)}
+                          className="inline-flex items-center justify-center rounded-full border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {devices.length === 0 && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="px-2.5 py-4 text-center text-slate-400"
                     >
                       Belum ada perangkat terdaftar.
@@ -528,7 +707,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
             </div>
             <p className="mb-3 text-[11px] text-slate-500">
               Masukkan IP / hostname yang ingin dites. Sistem akan melakukan
-              tes koneksi sederhana (TCP ke port 80) sebagai ping/health check.
+              tes koneksi sederhana menggunakan ICMP ping (untuk mode Ping/SNMP)
+              atau cek port API (untuk mode API/SNMP+API).
             </p>
             <div className="mb-3">
               <label className="mb-1 block text-[11px] text-slate-600">
@@ -572,6 +752,295 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
                 className="inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isTesting ? "Menguji..." : "Tes koneksi sekarang"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && editingDevice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="m-0 text-[14px] font-semibold text-slate-900">
+                Edit perangkat
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingDevice(null);
+                }}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mb-3 text-[11px] text-slate-500">
+              Ubah nama, IP, dan konfigurasi monitoring untuk perangkat ini.
+            </p>
+
+            <form onSubmit={handleUpdateDevice} className="flex flex-col gap-2.5 text-[12px]">
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-600">
+                  Nama perangkat
+                </label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-600">
+                  IP address / hostname
+                </label>
+                <input
+                  value={ip}
+                  onChange={(e) => setIp(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-600">Tipe perangkat</label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as DeviceType)}
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                >
+                  <option value="router">Router</option>
+                  <option value="switch">Switch</option>
+                  <option value="ap">Access Point</option>
+                  <option value="server">Server</option>
+                  <option value="client">Client / Network</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-600">
+                  Kebutuhan monitoring / integrasi
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    {
+                      key: "ping" as IntegrationMode,
+                      label: "Ping saja",
+                    },
+                    {
+                      key: "snmp" as IntegrationMode,
+                      label: "SNMP",
+                    },
+                    {
+                      key: "api" as IntegrationMode,
+                      label: "API Mikrotik",
+                    },
+                    {
+                      key: "snmp+api" as IntegrationMode,
+                      label: "SNMP + API",
+                    },
+                  ].map((mode) => {
+                    const isActive = editIntegrationMode === mode.key;
+                    return (
+                      <button
+                        key={mode.key}
+                        type="button"
+                        onClick={() => setEditIntegrationMode(mode.key)}
+                        className={`px-2.5 py-1.5 rounded-full border text-[11px] cursor-pointer flex items-center gap-1.5 ${
+                          isActive
+                            ? "bg-blue-600/10 border-blue-600 text-blue-700"
+                            : "bg-white border-slate-200 text-slate-600 hover:border-blue-400/60 hover:text-blue-600"
+                        }`}
+                      >
+                        <span className="text-[11px] font-semibold">{mode.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {(editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api") && (
+                <div className="flex gap-2">
+                  <div className="w-28">
+                    <label className="mb-1 block text-[11px] text-slate-600">
+                      SNMP versi
+                    </label>
+                    <select
+                      value={editSnmpVersion}
+                      onChange={(e) => setEditSnmpVersion(e.target.value as SnmpVersion)}
+                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    >
+                      <option value="v1">v1</option>
+                      <option value="v2c">v2c</option>
+                      <option value="v3">v3</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="mb-1 block text-[11px] text-slate-600">
+                      SNMP community
+                    </label>
+                    <input
+                      value={editSnmpCommunity}
+                      onChange={(e) => setEditSnmpCommunity(e.target.value)}
+                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(editIntegrationMode === "api" || editIntegrationMode === "snmp+api") && (
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-[11px] text-slate-600">
+                      API user (Mikrotik)
+                    </label>
+                    <input
+                      value={editApiUser}
+                      onChange={(e) => setEditApiUser(e.target.value)}
+                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                  <div className="w-28">
+                    <label className="mb-1 block text-[11px] text-slate-600">
+                      API port
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={editApiPort}
+                      onChange={(e) => setEditApiPort(Number(e.target.value))}
+                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <label className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={editMonitoringEnabled}
+                  onChange={(e) => setEditMonitoringEnabled(e.target.checked)}
+                />
+                <span>Aktifkan monitoring untuk perangkat ini</span>
+              </label>
+
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingDevice(null);
+                  }}
+                  className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700"
+                >
+                  Simpan perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && deviceToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="m-0 text-[14px] font-semibold text-slate-900">
+                Konfirmasi hapus perangkat
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isDeleting) return;
+                  setIsDeleteModalOpen(false);
+                  setDeviceToDelete(null);
+                  setDeleteError("");
+                }}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="mb-3 text-[11px] text-slate-500">
+              Anda yakin ingin menghapus perangkat
+              <span className="font-semibold text-slate-800"> {deviceToDelete.name}</span>
+              <span className="text-slate-400"> · {deviceToDelete.ip}</span>? Data perangkat akan
+              dihapus dari daftar dan monitoring.
+            </p>
+
+            {deleteError && (
+              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isDeleting) return;
+                  setIsDeleteModalOpen(false);
+                  setDeviceToDelete(null);
+                  setDeleteError("");
+                }}
+                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isDeleting}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteDevice}
+                disabled={isDeleting}
+                className="inline-flex h-8 items-center justify-center rounded-full border-0 bg-rose-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Menghapus..." : "Ya, hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {feedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+          <div
+            className={`w-full max-w-sm rounded-2xl border px-4 py-4 text-[12px] shadow-2xl transform transition-all duration-150 ${
+              feedbackModal.type === "success"
+                ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
+                : "bg-red-50/95 border-red-200 text-red-700"
+            }`}
+          >
+            <div className="flex items-start gap-2 mb-2">
+              <div
+                className={`mt-0.5 h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold ${
+                  feedbackModal.type === "success"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {feedbackModal.type === "success" ? "✔" : "!"}
+              </div>
+              <div className="flex-1">
+                <p className="m-0 text-[13px] font-semibold">{feedbackModal.title}</p>
+                <p className="m-0 mt-0.5 text-[12px] leading-snug">
+                  {feedbackModal.message}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setFeedbackModal(null)}
+                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50"
+              >
+                Tutup
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import BandwidthSparkline, { BandwidthPoint } from "./BandwidthSparkline";
 import {
   AreaChart,
@@ -40,7 +40,15 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   };
 
   const [pingHistory, setPingHistory] = useState<Record<number, PingHistoryPoint[]>>({});
-  const [selectedPingDeviceId, setSelectedPingDeviceId] = useState<number | null>(null);
+  const [expandedPingDeviceId, setExpandedPingDeviceId] = useState<number | null>(null);
+  const [devicePingIntervals, setDevicePingIntervals] = useState<Record<number, number>>({});
+  const devicePingIntervalsRef = useRef<Record<number, number>>({});
+  const lastSampleTimeRef = useRef<Record<number, number>>({});
+
+  // Sink state ke ref supaya efek polling tidak perlu restart setiap interval berubah
+  useEffect(() => {
+    devicePingIntervalsRef.current = devicePingIntervals;
+  }, [devicePingIntervals]);
 
   useEffect(() => {
     if (activeTab !== "ping") return;
@@ -70,8 +78,9 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
 
         setPingHistory((prev) => {
           const next: Record<number, PingHistoryPoint[]> = { ...prev };
+
           data.forEach((d) => {
-            const points = next[d.id] ? [...next[d.id]] : [];
+            const points = prev[d.id] ? [...prev[d.id]] : [];
             const latency = d.status === "UP" ? d.latencyMs : 0;
             points.push({ time: label, latencyMs: latency, status: d.status });
             if (points.length > 30) {
@@ -79,12 +88,8 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
             }
             next[d.id] = points;
           });
-          return next;
-        });
 
-        setSelectedPingDeviceId((prev) => {
-          if (prev !== null) return prev;
-          return data.length > 0 ? data[0].id : null;
+          return next;
         });
       } catch (err) {
         console.error("ping devices error", err);
@@ -95,7 +100,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
     };
 
     fetchPing();
-    interval = window.setInterval(fetchPing, 5000);
+    interval = window.setInterval(fetchPing, 10000); // polling fisik ke backend setiap 10 detik
 
     return () => {
       if (interval) {
@@ -105,99 +110,260 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   }, [activeTab]);
 
   const renderPing = () => {
-    const selectedDevice =
-      (selectedPingDeviceId &&
-        pingDevices.find((d) => d.id === selectedPingDeviceId)) ||
-      pingDevices[0] ||
-      null;
+    const expandedDevice =
+      expandedPingDeviceId !== null
+        ? pingDevices.find((d) => d.id === expandedPingDeviceId) || null
+        : null;
 
-    const historyPoints: PingHistoryPoint[] = selectedDevice
-      ? pingHistory[selectedDevice.id] || []
+    const expandedHistory: PingHistoryPoint[] = expandedDevice
+      ? pingHistory[expandedDevice.id] || []
       : [];
 
-    return (
-      <section>
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
-          Monitoring Ping
-        </h2>
-        <p className="m-0 text-[12px] text-slate-500 mb-3.5">
-          Grafik latency ping perangkat yang sudah ditambahkan. Data diperbarui
-          otomatis setiap beberapa detik dari backend.
-        </p>
+    let expandedStats: { currentLabel: string; avg: number; min: number; max: number } = {
+      currentLabel: "-",
+      avg: 0,
+      min: 0,
+      max: 0,
+    };
 
-        {pingError && (
-          <div className="mb-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-[11px] border border-red-200">
-            {pingError}
-          </div>
-        )}
-        {pingDevices.length === 0 ? (
-          <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 px-3 py-4 text-center text-[11px] text-slate-400">
-            {isLoadingPing
-              ? "Memuat data ping perangkat..."
-              : "Belum ada perangkat yang dimonitor atau belum ada data ping."}
-          </div>
-        ) : (
-          selectedDevice && (
-            <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 p-3">
-              <div className="flex items-center justify-between mb-2">
+    if (expandedHistory.length > 0) {
+      const latencies = expandedHistory.map((p) => p.latencyMs);
+      const count = latencies.length;
+      const sum = latencies.reduce((acc, v) => acc + v, 0);
+      const avg = count ? sum / count : 0;
+      const min = count ? Math.min(...latencies) : 0;
+      const max = count ? Math.max(...latencies) : 0;
+      const lastPoint = expandedHistory[expandedHistory.length - 1];
+      const currentLabel =
+        lastPoint && lastPoint.status === "UP"
+          ? `${lastPoint.latencyMs.toFixed(1)} ms`
+          : "-";
+
+      expandedStats = { currentLabel, avg, min, max };
+    }
+
+    return (
+      <>
+        <section>
+          <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
+            Monitoring Ping
+          </h2>
+          <p className="m-0 text-[12px] text-slate-500 mb-3.5">
+            Grafik latency ping perangkat yang sudah ditambahkan. Data diperbarui
+            otomatis setiap beberapa detik dari backend.
+          </p>
+
+          {pingError && (
+            <div className="mb-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-[11px] border border-red-200">
+              {pingError}
+            </div>
+          )}
+
+          {pingDevices.length === 0 ? (
+            <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 px-3 py-4 text-center text-[11px] text-slate-400">
+              {isLoadingPing
+                ? "Memuat data ping perangkat..."
+                : "Belum ada perangkat yang dimonitor atau belum ada data ping."}
+            </div>
+          ) : (
+            <div className="mt-2 grid gap-3 md:grid-cols-2">
+              {pingDevices.map((device) => {
+                const rawHistory: PingHistoryPoint[] = pingHistory[device.id] || [];
+
+                const intervalMs = devicePingIntervals[device.id] ?? 10000; // default 10 detik
+                const baseSampleMs = 10000; // kita ambil sampel dari backend setiap 10 detik
+                const step = Math.max(1, Math.round(intervalMs / baseSampleMs));
+
+                const historyPoints: PingHistoryPoint[] = rawHistory.filter((_, idx) => idx % step === 0);
+
+                const latencies = historyPoints.map((p) => p.latencyMs);
+                const count = latencies.length;
+                const sum = latencies.reduce((acc, v) => acc + v, 0);
+                const avg = count ? sum / count : 0;
+                const min = count ? Math.min(...latencies) : 0;
+                const max = count ? Math.max(...latencies) : 0;
+                const lastPoint = historyPoints[historyPoints.length - 1];
+                const currentLabel =
+                  lastPoint && lastPoint.status === "UP"
+                    ? `${lastPoint.latencyMs.toFixed(1)} ms`
+                    : "-";
+
+                return (
+                  <button
+                    key={device.id}
+                    type="button"
+                    onClick={() => setExpandedPingDeviceId(device.id)}
+                    className="text-left rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 p-3 hover:border-blue-400/70 hover:shadow-lg transition cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="m-0 text-[11px] text-slate-500">Grafik latency (ms)</p>
+                        <p className="m-0 text-[13px] font-semibold text-slate-900">
+                          {device.name} <span className="text-slate-400">· {device.ip}</span>
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 text-[11px] text-slate-500">
+                        <div className="flex items-center gap-2">
+                          <span>Status:</span>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-semibold ${
+                              device.status === "UP"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-rose-50 text-rose-700 border-rose-200"
+                            }`}
+                          >
+                            {device.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-slate-500">Interval:</span>
+                          <select
+                            className="px-2 py-0.5 rounded-full border border-slate-200 bg-white text-[11px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                            value={devicePingIntervals[device.id] ?? 10000}
+                            onChange={(e) => {
+                              const value = Number(e.target.value);
+                              setDevicePingIntervals((prev) => ({
+                                ...prev,
+                                [device.id]: value,
+                              }));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <option value={10000}>10 detik</option>
+                            <option value={30000}>30 detik</option>
+                            <option value={60000}>1 menit</option>
+                            <option value={300000}>5 menit</option>
+                            <option value={600000}>10 menit</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {historyPoints.length === 0 ? (
+                      <div className="flex h-24 items-center justify-center text-[11px] text-slate-400">
+                        Belum ada sampel ping untuk perangkat ini.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="h-32 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                              data={historyPoints}
+                              margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                            >
+                              <defs>
+                                <linearGradient id="pingLatencyGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
+                                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid
+                                stroke="#e5e7eb"
+                                strokeWidth={0.5}
+                                vertical={false}
+                              />
+                              <XAxis dataKey="time" hide />
+                              <YAxis hide />
+                              <Tooltip
+                                cursor={{ stroke: "#cbd5f5", strokeWidth: 1 }}
+                                contentStyle={{
+                                  fontSize: 11,
+                                  borderRadius: 12,
+                                  borderColor: "#e5e7eb",
+                                }}
+                                labelStyle={{ fontSize: 11, color: "#6b7280" }}
+                                formatter={(value: any) => [`${value} ms`, "Latency"]}
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="latencyMs"
+                                stroke="#0ea5e9"
+                                strokeWidth={1}
+                                fill="url(#pingLatencyGradient)"
+                                isAnimationActive={false}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                          <span>
+                            Latency saat ini: <span className="font-semibold text-slate-700">{currentLabel}</span>
+                          </span>
+                          <span>
+                            Rata-rata: <span className="font-semibold text-slate-700">{avg.toFixed(1)} ms</span>
+                            {" · "}
+                            Min: <span className="font-semibold text-slate-700">{min.toFixed(1)} ms</span>
+                            {" · "}
+                            Max: <span className="font-semibold text-slate-700">{max.toFixed(1)} ms</span>
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {expandedDevice && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+            <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-slate-900/40">
+              <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <p className="m-0 text-[11px] text-slate-500">Grafik latency (ms)</p>
-                  <p className="m-0 text-[13px] font-semibold text-slate-900">
-                    {selectedDevice.name} <span className="text-slate-400">· {selectedDevice.ip}</span>
+                  <h3 className="m-0 text-[15px] font-semibold text-slate-900">
+                    Detail ping – {expandedDevice.name}
+                  </h3>
+                  <p className="m-0 text-[11px] text-slate-500">
+                    {expandedDevice.ip} · status
+                    {" "}
+                    <span
+                      className={
+                        expandedDevice.status === "UP"
+                          ? "text-emerald-600 font-semibold"
+                          : "text-rose-600 font-semibold"
+                      }
+                    >
+                      {" "}
+                      {expandedDevice.status}
+                    </span>
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                  {pingDevices.length > 1 && (
-                    <select
-                      className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700"
-                      value={selectedDevice.id}
-                      onChange={(e) => setSelectedPingDeviceId(Number(e.target.value))}
-                    >
-                      {pingDevices.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <span>Status:</span>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-semibold ${
-                      selectedDevice.status === "UP"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-rose-50 text-rose-700 border-rose-200"
-                    }`}
-                  >
-                    {selectedDevice.status}
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setExpandedPingDeviceId(null)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+                >
+                  ✕
+                </button>
               </div>
 
-              {historyPoints.length === 0 ? (
-                <div className="flex h-24 items-center justify-center text-[11px] text-slate-400">
+              {expandedHistory.length === 0 ? (
+                <div className="flex h-40 items-center justify-center text-[11px] text-slate-400">
                   Belum ada sampel ping untuk perangkat ini.
                 </div>
               ) : (
                 <>
-                  <div className="h-32 w-full">
+                  <div className="h-56 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
-                        data={historyPoints}
-                        margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                        data={expandedHistory}
+                        margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
                       >
                         <defs>
-                          <linearGradient id="pingLatencyGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
+                          <linearGradient id="pingLatencyGradientExpanded" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.45} />
                             <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid
                           stroke="#e5e7eb"
-                          strokeWidth={0.5}
+                          strokeWidth={0.75}
                           vertical={false}
                         />
-                        <XAxis dataKey="time" hide />
-                        <YAxis hide />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
                         <Tooltip
                           cursor={{ stroke: "#cbd5f5", strokeWidth: 1 }}
                           contentStyle={{
@@ -212,48 +378,48 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
                           type="monotone"
                           dataKey="latencyMs"
                           stroke="#0ea5e9"
-                          strokeWidth={1}
-                          fill="url(#pingLatencyGradient)"
+                          strokeWidth={1.2}
+                          fill="url(#pingLatencyGradientExpanded)"
                           isAnimationActive={false}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
 
-                  {(() => {
-                    const latencies = historyPoints.map((p) => p.latencyMs);
-                    const count = latencies.length;
-                    const sum = latencies.reduce((acc, v) => acc + v, 0);
-                    const avg = count ? sum / count : 0;
-                    const min = count ? Math.min(...latencies) : 0;
-                    const max = count ? Math.max(...latencies) : 0;
-                    const lastPoint = historyPoints[historyPoints.length - 1];
-                    const currentLabel =
-                      lastPoint.status === "UP"
-                        ? `${lastPoint.latencyMs.toFixed(1)} ms`
-                        : "-";
-
-                    return (
-                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-                        <span>
-                          Latency saat ini: <span className="font-semibold text-slate-700">{currentLabel}</span>
-                        </span>
-                        <span>
-                          Rata-rata: <span className="font-semibold text-slate-700">{avg.toFixed(1)} ms</span>
-                          {" · "}
-                          Min: <span className="font-semibold text-slate-700">{min.toFixed(1)} ms</span>
-                          {" · "}
-                          Max: <span className="font-semibold text-slate-700">{max.toFixed(1)} ms</span>
-                        </span>
-                      </div>
-                    );
-                  })()}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
+                    <span>
+                      Latency saat ini:
+                      {" "}
+                      <span className="font-semibold text-slate-800">
+                        {expandedStats.currentLabel}
+                      </span>
+                    </span>
+                    <span>
+                      Rata-rata:
+                      {" "}
+                      <span className="font-semibold text-slate-800">
+                        {expandedStats.avg.toFixed(1)} ms
+                      </span>
+                      {" · "}
+                      Min:
+                      {" "}
+                      <span className="font-semibold text-slate-800">
+                        {expandedStats.min.toFixed(1)} ms
+                      </span>
+                      {" · "}
+                      Max:
+                      {" "}
+                      <span className="font-semibold text-slate-800">
+                        {expandedStats.max.toFixed(1)} ms
+                      </span>
+                    </span>
+                  </div>
                 </>
               )}
             </div>
-          )
+          </div>
         )}
-      </section>
+      </>
     );
   };
 

@@ -82,7 +82,10 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
           setAlert({ type: "error", message: "Gagal menambahkan workspace." });
         } else {
           const created: Workspace = await res.json();
-          setWorkspaces((prev) => [...prev, created]);
+          setWorkspaces((prev) => {
+            const base = Array.isArray(prev) ? prev : [];
+            return [...base, created];
+          });
           setAlert({ type: "success", message: "Workspace berhasil ditambahkan." });
         }
       } catch (err) {
@@ -110,9 +113,10 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
           setAlert({ type: "error", message: "Gagal memperbarui workspace." });
         } else {
           const updated: Workspace = await res.json();
-          setWorkspaces((prev) =>
-            prev.map((ws) => (ws.id === updated.id ? updated : ws))
-          );
+          setWorkspaces((prev) => {
+            const base = Array.isArray(prev) ? prev : [];
+            return base.map((ws) => (ws.id === updated.id ? updated : ws));
+          });
           setAlert({ type: "success", message: "Workspace berhasil disimpan." });
         }
       } catch (err) {
@@ -159,7 +163,10 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
         setAlert({ type: "error", message: "Gagal menghapus workspace." });
         return;
       }
-      setWorkspaces((prev) => prev.filter((ws) => ws.id !== deleteTarget.id));
+      setWorkspaces((prev) => {
+        const base = Array.isArray(prev) ? prev : [];
+        return base.filter((ws) => ws.id !== deleteTarget.id);
+      });
       setAlert({ type: "success", message: "Workspace berhasil dihapus." });
       setDeleteTarget(null);
     } catch (err) {

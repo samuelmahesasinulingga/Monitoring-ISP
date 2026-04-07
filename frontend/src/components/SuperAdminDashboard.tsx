@@ -56,6 +56,8 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
     },
   ]);
 
+  const safeWorkspaces = Array.isArray(workspaces) ? workspaces : [];
+
   useEffect(() => {
     const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
@@ -106,12 +108,12 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
               >
                 Platform Central
               </button>
-              {workspaces.length > 0 && (
+              {safeWorkspaces.length > 0 && (
                 <div className="px-2.5 py-1 text-[11px] text-slate-500 uppercase tracking-wide">
                   Workspace
                 </div>
               )}
-              {workspaces.map((ws) => (
+              {safeWorkspaces.map((ws) => (
                 <button
                   key={ws.id}
                   type="button"
@@ -262,12 +264,12 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
         {activeSection === "overview" && <DashboardSection />}
         {activeSection === "adminWorkspace" && (
           <AdminWorkspaceSection
-            workspaces={workspaces}
+            workspaces={safeWorkspaces}
             setWorkspaces={setWorkspaces}
           />
         )}
         {activeSection === "users" && (
-          <UsersSection workspaces={workspaces} roles={roles} />
+          <UsersSection workspaces={safeWorkspaces} roles={roles} />
         )}
         {activeSection === "roles" && (
           <RolesSection roles={roles} setRoles={setRoles} />
