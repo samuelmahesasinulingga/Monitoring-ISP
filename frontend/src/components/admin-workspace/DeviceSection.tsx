@@ -105,11 +105,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
   >(null);
 
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
     const fetchDevices = async () => {
       try {
-        const res = await fetch(`${apiBase}/api/devices`);
+        const res = await fetch(`/api/devices`);
         if (!res.ok) {
           console.error("failed to load devices", await res.text());
           return;
@@ -144,22 +142,20 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
     const normalizedApiPort =
       integrationMode === "api" || integrationMode === "snmp+api" ? apiPort : 0;
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
+      name: name.trim(),
+      ip: ip.trim(),
+      type,
+      integrationMode,
+      snmpVersion: normalizedSnmpVersion,
+      snmpCommunity: normalizedSnmp,
+      apiUser: normalizedApiUser,
+      apiPort: normalizedApiPort,
+      monitoringEnabled,
+    };
 
     try {
-      const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
-        name: name.trim(),
-        ip: ip.trim(),
-        type,
-        integrationMode,
-        snmpVersion: normalizedSnmpVersion,
-        snmpCommunity: normalizedSnmp,
-        apiUser: normalizedApiUser,
-        apiPort: normalizedApiPort,
-        monitoringEnabled,
-      };
-
-      const res = await fetch(`${apiBase}/api/devices`, {
+      const res = await fetch(`/api/devices`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -219,8 +215,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
       return;
     }
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
     const normalizedApiPortForTest =
       integrationMode === "api" || integrationMode === "snmp+api" ? apiPort : 0;
 
@@ -236,14 +230,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
         // Gunakan mode yang dipilih saat ini supaya tes koneksi
         // sesuai dengan jenis endpoint (Ping saja vs SNMP+API).
         integrationMode,
-        snmpVersion: null,
-        snmpCommunity: "",
-        apiUser: "",
+        snmpVersion: snmpVersion,
+        snmpCommunity: snmpCommunity,
+        apiUser: apiUser,
         apiPort: normalizedApiPortForTest,
         monitoringEnabled: true,
       };
 
-      const res = await fetch(`${apiBase}/api/devices/test-connection`, {
+      const res = await fetch(`/api/devices/test-connection`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -313,8 +307,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
     const normalizedApiPort =
       editIntegrationMode === "api" || editIntegrationMode === "snmp+api" ? editApiPort : 0;
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
     try {
       const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
         name: name.trim(),
@@ -328,7 +320,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
         monitoringEnabled: editMonitoringEnabled,
       };
 
-      const res = await fetch(`${apiBase}/api/devices/${editingDevice.id}`, {
+      const res = await fetch(`/api/devices/${editingDevice.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -374,11 +366,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
   const confirmDeleteDevice = async () => {
     if (!deviceToDelete) return;
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
     try {
       setIsDeleting(true);
-      const res = await fetch(`${apiBase}/api/devices/${deviceToDelete.id}`, {
+      const res = await fetch(`/api/devices/${deviceToDelete.id}`, {
         method: "DELETE",
       });
 

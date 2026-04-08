@@ -51,9 +51,8 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
   useEffect(() => {
     if (currentUserRole !== "super_admin") return;
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
     setIsLoadingWorkspaces(true);
-    fetch(`${apiBase}/api/workspaces`)
+    fetch(`/api/workspaces`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         setFetchedWorkspaces(data);

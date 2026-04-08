@@ -72,8 +72,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   // Fetch interface list when device changes
   useEffect(() => {
     if (!selectedBwDeviceId) return;
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-    fetch(`${apiBase}/api/monitoring/interfaces/${selectedBwDeviceId}`)
+    fetch(`/api/monitoring/interfaces/${selectedBwDeviceId}`)
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         setIfaceList(data);
@@ -85,11 +84,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   // Polling traffic data
   useEffect(() => {
     if (!selectedBwDeviceId || !selectedIface || activeTab !== "interface") return;
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
     const fetchTraffic = () => {
       setIsLoadingBw(true);
-      fetch(`${apiBase}/api/monitoring/traffic/${selectedBwDeviceId}?interface=${encodeURIComponent(selectedIface)}`)
+      fetch(`/api/monitoring/traffic/${selectedBwDeviceId}?interface=${encodeURIComponent(selectedIface)}`)
         .then(r => r.ok ? r.json() : [])
         .then(data => {
           setRealBandwidthSamples(data);
@@ -109,14 +107,13 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   useEffect(() => {
     if (activeTab !== "ping" && activeTab !== "interface" && activeTab !== "queue") return;
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-    let interval: number | undefined;
+    let interval: any;
 
     const fetchPing = async () => {
       try {
         setPingError("");
         setIsLoadingPing(true);
-        const res = await fetch(`${apiBase}/api/monitoring/ping`);
+        const res = await fetch(`/api/monitoring/ping`);
         if (!res.ok) {
           const text = await res.text();
           console.error("ping devices error", text);
@@ -167,9 +164,8 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
 
   useEffect(() => {
     if (detailLogDeviceId === null) return;
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
     setIsLoadingLogs(true);
-    fetch(`${apiBase}/api/monitoring/ping-logs/${detailLogDeviceId}?page=${detailLogPage}`)
+    fetch(`/api/monitoring/ping-logs/${detailLogDeviceId}?page=${detailLogPage}`)
       .then(r => r.json())
       .then(d => {
         if (d && d.logs) {
@@ -318,8 +314,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
                                   ...prev,
                                   [device.id]: value,
                                 }));
-                                const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-                                fetch(`${apiBase}/api/devices/${device.id}/ping-interval`, {
+                                fetch(`/api/devices/${device.id}/ping-interval`, {
                                   method: 'PUT',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ pingIntervalMs: value })

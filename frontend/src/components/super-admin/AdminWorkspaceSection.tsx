@@ -59,12 +59,12 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
     e.preventDefault();
     if (!newWorkspaceName.trim() || !newWorkspaceAddress.trim()) return;
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 
     if (editingId == null) {
       // Tambah workspace baru ke backend
       try {
-        const res = await fetch(`${apiBase}/api/workspaces`, {
+        const res = await fetch(`/api/workspaces`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -95,7 +95,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
     } else {
       // Update workspace yang sedang di-edit di backend
       try {
-        const res = await fetch(`${apiBase}/api/workspaces/${editingId}`, {
+        const res = await fetch(`/api/workspaces/${editingId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -150,11 +150,11 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
 
   const confirmDeleteWorkspace = async () => {
     if (!deleteTarget) return;
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`${apiBase}/api/workspaces/${deleteTarget.id}`, {
+      const res = await fetch(`/api/workspaces/${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok && res.status !== 404) {

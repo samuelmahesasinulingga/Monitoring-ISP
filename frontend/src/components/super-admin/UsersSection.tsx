@@ -42,11 +42,11 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 
     const fetchUsers = async () => {
       try {
-        const res = await fetch(`${apiBase}/api/users`);
+        const res = await fetch(`/api/users`);
         if (!res.ok) {
           console.error("failed to load users", await res.text());
           return;
@@ -98,7 +98,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
       return;
     }
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 
     if (editingId == null) {
       try {
@@ -111,7 +111,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
           workspaceId: parseInt(workspaceId, 10),
         };
 
-        const res = await fetch(`${apiBase}/api/users`, {
+        const res = await fetch(`/api/users`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -173,11 +173,11 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
 
   const confirmDeleteUser = async () => {
     if (!deleteTarget) return;
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`${apiBase}/api/users/${deleteTarget.id}`, {
+      const res = await fetch(`/api/users/${deleteTarget.id}`, {
         method: "DELETE",
       });
 

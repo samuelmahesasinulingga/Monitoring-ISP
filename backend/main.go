@@ -19,6 +19,7 @@ type appState struct {
 func main() {
 	ctx := context.Background()
 
+	// DSN format: postgres://user:password@host:port/dbname?sslmode=disable
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		getEnv("POSTGRES_USER", "isp_user"),
@@ -41,6 +42,8 @@ func main() {
 	state := &appState{db: pool}
 
 	e := echo.New()
+
+	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -54,7 +57,8 @@ func main() {
 		return c.String(http.StatusOK, "OK")
 	})
 
-	// Auth: login super admin / admin workspace
+	// API Routes
+	// Auth
 	e.POST("/api/login", state.handleLogin)
 
 	// Workspace management
@@ -64,29 +68,29 @@ func main() {
 	e.DELETE("/api/workspaces/:id", state.handleDeleteWorkspace)
 
 	// Users management
-	e.GET("/api/users", state.handleListUsers)
 	e.POST("/api/users", state.handleCreateUser)
+	e.GET("/api/users", state.handleListUsers)
 	e.DELETE("/api/users/:id", state.handleDeleteUser)
 
 	// Devices management
-	e.GET("/api/devices", state.handleListDevices)
 	e.POST("/api/devices", state.handleCreateDevice)
+	e.GET("/api/devices", state.handleListDevices)
 	e.PUT("/api/devices/:id", state.handleUpdateDevice)
 	e.DELETE("/api/devices/:id", state.handleDeleteDevice)
 	e.POST("/api/devices/test-connection", state.handleTestDeviceConnection)
 
-	// Monitoring summary (contoh sederhana)
-	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
+	// Monitoring & Traffic
 	e.GET("/api/monitoring/ping", state.handlePingDevices)
 	e.GET("/api/monitoring/ping-logs/:id", state.handleGetDevicePingLogs)
 	e.PUT("/api/devices/:id/ping-interval", state.handleUpdatePingInterval)
 	e.GET("/api/monitoring/interfaces/:id", state.handleListDeviceInterfaces)
 	e.GET("/api/monitoring/traffic/:id", state.handleGetInterfaceTraffic)
+	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
 
-	// Contoh endpoint: list pelanggan dari PostgreSQL
+	// Others
 	e.GET("/api/customers", state.handleListCustomers)
 
-	// Jalankan background workers
+	// Background workers
 	go startPingWorker(state)
 	go startSnmpWorker(state)
 
@@ -94,6 +98,7 @@ func main() {
 	e.Logger.Fatal(e.Start(":8080"))
 }
 
+// Helper to get environment variables with default values
 func getEnv(key, fallback string) string {
 	if v, ok := os.LookupEnv(key); ok && v != "" {
 		return v

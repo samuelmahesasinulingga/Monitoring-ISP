@@ -21,10 +21,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setError("");
     setIsSubmitting(true);
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
     try {
-      const res = await fetch(`${apiBase}/api/login`, {
+      const res = await fetch(`/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

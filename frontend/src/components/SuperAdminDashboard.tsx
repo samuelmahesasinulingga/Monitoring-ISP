@@ -59,11 +59,9 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
   const safeWorkspaces = Array.isArray(workspaces) ? workspaces : [];
 
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
     const fetchWorkspaces = async () => {
       try {
-        const res = await fetch(`${apiBase}/api/workspaces`);
+        const res = await fetch(`/api/workspaces`);
         if (!res.ok) {
           console.error("failed to load workspaces", await res.text());
           return;
