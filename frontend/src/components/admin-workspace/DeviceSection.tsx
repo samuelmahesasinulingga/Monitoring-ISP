@@ -23,6 +23,46 @@ type DevicesSectionProps = {
   workspaceName?: string;
 };
 
+const Switch = ({
+  label,
+  checked,
+  onChange,
+  description,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  description?: string;
+}) => {
+  return (
+    <div
+      className="flex items-center justify-between gap-4 p-1 cursor-pointer select-none"
+      onClick={() => onChange(!checked)}
+    >
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[12px] font-semibold text-slate-700">{label}</span>
+        {description && (
+          <span className="text-[10px] text-slate-400 leading-tight">
+            {description}
+          </span>
+        )}
+      </div>
+      <button
+        type="button"
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none ${
+          checked ? "bg-blue-600 shadow-sm shadow-blue-500/20" : "bg-slate-200"
+        }`}
+      >
+        <span
+          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-all duration-200 ease-in-out ${
+            checked ? "translate-x-5" : "translate-x-0.5"
+          } shadow-sm`}
+        />
+      </button>
+    </div>
+  );
+};
+
 const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
 
@@ -467,53 +507,41 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
               </select>
             </div>
 
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-600">
-                Kebutuhan monitoring / integrasi
+            <div className="space-y-1">
+              <label className="mb-2 block text-[11px] text-slate-600 font-semibold">
+                Fitur Monitoring & Integrasi
               </label>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  {
-                    key: "ping" as IntegrationMode,
-                    label: "Ping saja",
-                    hint: "Untuk monitoring latency & up/down basic.",
-                  },
-                  {
-                  key: "snmp" as IntegrationMode,
-                  label: "SNMP",
-                  hint: "Tarik data interface, traffic, resource via SNMP.",
-                },
-                {
-                  key: "api" as IntegrationMode,
-                  label: "API Mikrotik",
-                  hint: "Gunakan API untuk queue, simple queue, dsb.",
-                },
-                {
-                  key: "snmp+api" as IntegrationMode,
-                  label: "SNMP + API",
-                  hint: "Gunakan keduanya untuk visibilitas penuh.",
-                }].map((mode) => {
-                  const isActive = integrationMode === mode.key;
-                  return (
-                    <button
-                      key={mode.key}
-                      type="button"
-                      onClick={() => setIntegrationMode(mode.key)}
-                      className={`px-2.5 py-1.5 rounded-full border text-[11px] cursor-pointer flex items-center gap-1.5 ${
-                        isActive
-                          ? "bg-blue-600/10 border-blue-600 text-blue-700"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-blue-400/60 hover:text-blue-600"
-                      }`}
-                    >
-                      <span className="text-[11px] font-semibold">{mode.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="grid gap-2 p-2 rounded-xl border border-slate-100 bg-slate-50/50">
+                <Switch
+                  label="SNMP Monitoring"
+                  description="Tarik data interface, traffic, & resource via SNMP"
+                  checked={integrationMode === "snmp" || integrationMode === "snmp+api"}
+                  onChange={(val) => {
+                    const isApiActive = integrationMode === "api" || integrationMode === "snmp+api";
+                    if (val) {
+                      setIntegrationMode(isApiActive ? "snmp+api" : "snmp");
+                    } else {
+                      setIntegrationMode(isApiActive ? "api" : "ping");
+                    }
+                  }}
+                />
+                <div className="h-px bg-slate-200/60 mx-1" />
+                <Switch
+                  label="Mikrotik API"
+                  description="Gunakan API untuk queue dan fitur spesifik lannya"
+                  checked={integrationMode === "api" || integrationMode === "snmp+api"}
+                  onChange={(val) => {
+                    const isSnmpActive = integrationMode === "snmp" || integrationMode === "snmp+api";
+                    if (val) {
+                      setIntegrationMode(isSnmpActive ? "snmp+api" : "api");
+                    } else {
+                      setIntegrationMode(isSnmpActive ? "snmp" : "ping");
+                    }
+                  }}
+                />
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Pilihan ini menentukan endpoint apa yang perlu diisi. Misal untuk
-                router Mikrotik biasanya pakai <span className="font-semibold">SNMP + API</span>,
-                sedangkan untuk client cukup <span className="font-semibold">Ping saja</span>.
+              <p className="mt-1.5 text-[10px] text-slate-400 px-1">
+                Mode <span className="text-slate-500 font-medium italic">ICMP Ping</span> selalu aktif sebagai monitoring dasar.
               </p>
             </div>
 
@@ -574,14 +602,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
                 </div>
               </div>
             )}
-            <label className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
-              <input
-                type="checkbox"
+            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+              <Switch
+                label="Aktifkan Monitoring"
+                description="Mulai merekam log ping & data perangkat ini"
                 checked={monitoringEnabled}
-                onChange={(e) => setMonitoringEnabled(e.target.checked)}
+                onChange={setMonitoringEnabled}
               />
-              <span>Aktifkan monitoring untuk perangkat ini</span>
-            </label>
+            </div>
             <button
               type="submit"
               className="mt-2 inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
@@ -817,45 +845,38 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1 block text-[11px] text-slate-600">
-                  Kebutuhan monitoring / integrasi
+              <div className="space-y-1">
+                <label className="mb-2 block text-[11px] text-slate-600 font-semibold">
+                  Fitur Monitoring & Integrasi
                 </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    {
-                      key: "ping" as IntegrationMode,
-                      label: "Ping saja",
-                    },
-                    {
-                      key: "snmp" as IntegrationMode,
-                      label: "SNMP",
-                    },
-                    {
-                      key: "api" as IntegrationMode,
-                      label: "API Mikrotik",
-                    },
-                    {
-                      key: "snmp+api" as IntegrationMode,
-                      label: "SNMP + API",
-                    },
-                  ].map((mode) => {
-                    const isActive = editIntegrationMode === mode.key;
-                    return (
-                      <button
-                        key={mode.key}
-                        type="button"
-                        onClick={() => setEditIntegrationMode(mode.key)}
-                        className={`px-2.5 py-1.5 rounded-full border text-[11px] cursor-pointer flex items-center gap-1.5 ${
-                          isActive
-                            ? "bg-blue-600/10 border-blue-600 text-blue-700"
-                            : "bg-white border-slate-200 text-slate-600 hover:border-blue-400/60 hover:text-blue-600"
-                        }`}
-                      >
-                        <span className="text-[11px] font-semibold">{mode.label}</span>
-                      </button>
-                    );
-                  })}
+                <div className="grid gap-2 p-2 rounded-xl border border-slate-100 bg-slate-50/50">
+                  <Switch
+                    label="SNMP Monitoring"
+                    description="Tarik data interface, traffic, & resource via SNMP"
+                    checked={editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api"}
+                    onChange={(val) => {
+                      const isApiActive = editIntegrationMode === "api" || editIntegrationMode === "snmp+api";
+                      if (val) {
+                        setEditIntegrationMode(isApiActive ? "snmp+api" : "snmp");
+                      } else {
+                        setEditIntegrationMode(isApiActive ? "api" : "ping");
+                      }
+                    }}
+                  />
+                  <div className="h-px bg-slate-200/60 mx-1" />
+                  <Switch
+                    label="Mikrotik API"
+                    description="Gunakan API untuk queue dan fitur spesifik lannya"
+                    checked={editIntegrationMode === "api" || editIntegrationMode === "snmp+api"}
+                    onChange={(val) => {
+                      const isSnmpActive = editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api";
+                      if (val) {
+                        setEditIntegrationMode(isSnmpActive ? "snmp+api" : "api");
+                      } else {
+                        setEditIntegrationMode(isSnmpActive ? "snmp" : "ping");
+                      }
+                    }}
+                  />
                 </div>
               </div>
 
@@ -915,14 +936,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
                 </div>
               )}
 
-              <label className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
-                <input
-                  type="checkbox"
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+                <Switch
+                  label="Aktifkan Monitoring"
+                  description="Mulai merekam log ping & data perangkat ini"
                   checked={editMonitoringEnabled}
-                  onChange={(e) => setEditMonitoringEnabled(e.target.checked)}
+                  onChange={setEditMonitoringEnabled}
                 />
-                <span>Aktifkan monitoring untuk perangkat ini</span>
-              </label>
+              </div>
 
               <div className="mt-3 flex justify-end gap-2">
                 <button

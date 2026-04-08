@@ -27,6 +27,8 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
     latencyMs: number;
     loss: number;
     status: "UP" | "DOWN";
+    pingIntervalMs?: number;
+    history?: PingHistoryPoint[];
   };
 
   const [pingDevices, setPingDevices] = useState<PingDevice[]>([]);
@@ -41,6 +43,11 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
 
   const [pingHistory, setPingHistory] = useState<Record<number, PingHistoryPoint[]>>({});
   const [expandedPingDeviceId, setExpandedPingDeviceId] = useState<number | null>(null);
+  const [detailLogDeviceId, setDetailLogDeviceId] = useState<number | null>(null);
+  const [detailLogPage, setDetailLogPage] = useState<number>(1);
+  const [detailLogTotalPages, setDetailLogTotalPages] = useState<number>(1);
+  const [detailLogs, setDetailLogs] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [devicePingIntervals, setDevicePingIntervals] = useState<Record<number, number>>({});
   const devicePingIntervalsRef = useRef<Record<number, number>>({});
   const lastSampleTimeRef = useRef<Record<number, number>>({});
@@ -50,8 +57,57 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
     devicePingIntervalsRef.current = devicePingIntervals;
   }, [devicePingIntervals]);
 
+  const [selectedBwDeviceId, setSelectedBwDeviceId] = useState<number | null>(null);
+  const [ifaceList, setIfaceList] = useState<string[]>([]);
+  const [selectedIface, setSelectedIface] = useState<string>("");
+  const [realBandwidthSamples, setRealBandwidthSamples] = useState<BandwidthPoint[]>([]);
+  const [isLoadingBw, setIsLoadingBw] = useState(false);
+
   useEffect(() => {
-    if (activeTab !== "ping") return;
+    if (pingDevices.length > 0 && selectedBwDeviceId === null) {
+      setSelectedBwDeviceId(pingDevices[0].id);
+    }
+  }, [pingDevices, selectedBwDeviceId]);
+
+  // Fetch interface list when device changes
+  useEffect(() => {
+    if (!selectedBwDeviceId) return;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    fetch(`${apiBase}/api/monitoring/interfaces/${selectedBwDeviceId}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        setIfaceList(data);
+        if (data.length > 0) setSelectedIface(data[0]);
+      })
+      .catch(err => console.error("fetch interfaces error", err));
+  }, [selectedBwDeviceId]);
+
+  // Polling traffic data
+  useEffect(() => {
+    if (!selectedBwDeviceId || !selectedIface || activeTab !== "interface") return;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+    const fetchTraffic = () => {
+      setIsLoadingBw(true);
+      fetch(`${apiBase}/api/monitoring/traffic/${selectedBwDeviceId}?interface=${encodeURIComponent(selectedIface)}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          setRealBandwidthSamples(data);
+          setIsLoadingBw(false);
+        })
+        .catch(err => {
+          console.error("fetch traffic error", err);
+          setIsLoadingBw(false);
+        });
+    };
+
+    fetchTraffic();
+    const interval = setInterval(fetchTraffic, 30000); // sync with worker 30s
+    return () => clearInterval(interval);
+  }, [selectedBwDeviceId, selectedIface, activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "ping" && activeTab !== "interface" && activeTab !== "queue") return;
 
     const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
     let interval: number | undefined;
@@ -70,25 +126,23 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
         const data = (await res.json()) as PingDevice[];
         setPingDevices(data);
 
-        const now = new Date();
-        const label = `${now.getHours().toString().padStart(2, "0")}:${now
-          .getMinutes()
-          .toString()
-          .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
-
-        setPingHistory((prev) => {
-          const next: Record<number, PingHistoryPoint[]> = { ...prev };
-
-          data.forEach((d) => {
-            const points = prev[d.id] ? [...prev[d.id]] : [];
-            const latency = d.status === "UP" ? d.latencyMs : 0;
-            points.push({ time: label, latencyMs: latency, status: d.status });
-            if (points.length > 30) {
-              points.shift();
-            }
-            next[d.id] = points;
+        setDevicePingIntervals((prev) => {
+          let updated = { ...prev };
+          let changed = false;
+          data.forEach(d => {
+             if (prev[d.id] === undefined && d.pingIntervalMs) {
+                updated[d.id] = d.pingIntervalMs;
+                changed = true;
+             }
           });
+          return changed ? updated : prev;
+        });
 
+        setPingHistory(() => {
+          const next: Record<number, PingHistoryPoint[]> = {};
+          data.forEach(d => {
+            next[d.id] = d.history || [];
+          });
           return next;
         });
       } catch (err) {
@@ -100,7 +154,9 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
     };
 
     fetchPing();
-    interval = window.setInterval(fetchPing, 10000); // polling fisik ke backend setiap 10 detik
+    // polling fisik dikembalikan ke 10 detik agar deteksi status UP/DOWN tetap realtime,
+    // sedangkan grafik mengikuti interval yang dipilih pengguna.
+    interval = window.setInterval(fetchPing, 10000);
 
     return () => {
       if (interval) {
@@ -109,15 +165,43 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
     };
   }, [activeTab]);
 
+  useEffect(() => {
+    if (detailLogDeviceId === null) return;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    setIsLoadingLogs(true);
+    fetch(`${apiBase}/api/monitoring/ping-logs/${detailLogDeviceId}?page=${detailLogPage}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.logs) {
+          setDetailLogs(d.logs);
+          setDetailLogTotalPages(d.totalPages || 1);
+        } else {
+          setDetailLogs(Array.isArray(d) ? d : []);
+        }
+        setIsLoadingLogs(false);
+      })
+      .catch(e => {
+        console.error(e);
+        setIsLoadingLogs(false);
+      });
+  }, [detailLogDeviceId, detailLogPage]);
+
   const renderPing = () => {
     const expandedDevice =
       expandedPingDeviceId !== null
         ? pingDevices.find((d) => d.id === expandedPingDeviceId) || null
         : null;
 
-    const expandedHistory: PingHistoryPoint[] = expandedDevice
+    let expandedHistory: PingHistoryPoint[] = expandedDevice
       ? pingHistory[expandedDevice.id] || []
       : [];
+
+    if (expandedHistory.length === 1) {
+      expandedHistory = [
+        { ...expandedHistory[0], time: expandedHistory[0].time + " " },
+        expandedHistory[0]
+      ];
+    }
 
     let expandedStats: { currentLabel: string; avg: number; min: number; max: number } = {
       currentLabel: "-",
@@ -168,13 +252,14 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
           ) : (
             <div className="mt-2 grid gap-3 md:grid-cols-2">
               {pingDevices.map((device) => {
-                const rawHistory: PingHistoryPoint[] = pingHistory[device.id] || [];
-
-                const intervalMs = devicePingIntervals[device.id] ?? 10000; // default 10 detik
-                const baseSampleMs = 10000; // kita ambil sampel dari backend setiap 10 detik
-                const step = Math.max(1, Math.round(intervalMs / baseSampleMs));
-
-                const historyPoints: PingHistoryPoint[] = rawHistory.filter((_, idx) => idx % step === 0);
+                let historyPoints: PingHistoryPoint[] = pingHistory[device.id] || [];
+                
+                if (historyPoints.length === 1) {
+                  historyPoints = [
+                    { ...historyPoints[0], time: historyPoints[0].time + " " },
+                    historyPoints[0]
+                  ];
+                }
 
                 const latencies = historyPoints.map((p) => p.latencyMs);
                 const count = latencies.length;
@@ -189,10 +274,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
                     : "-";
 
                 return (
-                  <button
+                  <div
                     key={device.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setExpandedPingDeviceId(device.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setExpandedPingDeviceId(device.id);
+                      }
+                    }}
                     className="text-left rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 p-3 hover:border-blue-400/70 hover:shadow-lg transition cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -215,26 +306,48 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
                             {device.status}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-slate-500">Interval:</span>
-                          <select
-                            className="px-2 py-0.5 rounded-full border border-slate-200 bg-white text-[11px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
-                            value={devicePingIntervals[device.id] ?? 10000}
-                            onChange={(e) => {
-                              const value = Number(e.target.value);
-                              setDevicePingIntervals((prev) => ({
-                                ...prev,
-                                [device.id]: value,
-                              }));
+                        <div className="flex flex-col gap-1 items-end">
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-500">Interval:</span>
+                            <select
+                              className="px-2 py-0.5 rounded-full border border-slate-200 bg-white text-[11px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                              value={devicePingIntervals[device.id] ?? 30000}
+                              onChange={(e) => {
+                                const value = Number(e.target.value);
+                                setDevicePingIntervals((prev) => ({
+                                  ...prev,
+                                  [device.id]: value,
+                                }));
+                                const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+                                fetch(`${apiBase}/api/devices/${device.id}/ping-interval`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ pingIntervalMs: value })
+                                }).catch(err => console.error("Update interval err", err));
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <option value={30000}>30 detik</option>
+                              <option value={60000}>1 menit</option>
+                              <option value={180000}>3 menit</option>
+                              <option value={300000}>5 menit</option>
+                              <option value={600000}>10 menit</option>
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDetailLogDeviceId(device.id);
+                              setDetailLogPage(1);
                             }}
-                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 mt-2.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all text-[11px] font-semibold border border-blue-100 hover:border-blue-500 hover:shadow-md hover:shadow-blue-500/20 active:scale-95"
                           >
-                            <option value={10000}>10 detik</option>
-                            <option value={30000}>30 detik</option>
-                            <option value={60000}>1 menit</option>
-                            <option value={300000}>5 menit</option>
-                            <option value={600000}>10 menit</option>
-                          </select>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            Detail Log
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -300,7 +413,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
                         </div>
                       </>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -419,6 +532,89 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
             </div>
           </div>
         )}
+
+        {detailLogDeviceId !== null && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+            <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-900/40">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="m-0 text-[16px] font-semibold text-slate-900">
+                    Detail Log Monitoring
+                  </h3>
+                  <p className="m-0 text-[12px] text-slate-500">
+                    Riwayat ping perangkat ({pingDevices.find(d => d.id === detailLogDeviceId)?.name})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDetailLogDeviceId(null)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[12px]"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="max-h-[360px] overflow-auto border border-slate-200 rounded-xl">
+                <table className="w-full text-left text-[12px]">
+                  <thead className="bg-slate-50 text-slate-500 sticky top-0 border-b border-slate-200 outline outline-1 outline-slate-200">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold">Tanggal & Waktu</th>
+                      <th className="px-5 py-3 font-semibold">Status</th>
+                      <th className="px-5 py-3 font-semibold">Latency (ms)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoadingLogs ? (
+                      <tr>
+                        <td colSpan={3} className="px-5 py-8 text-center text-slate-400">Memuat log dari server...</td>
+                      </tr>
+                    ) : detailLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-5 py-8 text-center text-slate-400">Belum ada history log yang tersimpan.</td>
+                      </tr>
+                    ) : (
+                      detailLogs.map((log: any) => (
+                        <tr key={log.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition">
+                          <td className="px-5 py-2.5 text-slate-600 font-medium">
+                            {new Date(log.created_at).toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-5 py-2.5">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                              log.status === "UP" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
+                            }`}>
+                              {log.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-2.5 font-medium text-slate-700">{log.latencyMs} ms</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                <span className="text-[12px] text-slate-500 font-medium">
+                  Halaman {detailLogPage} dari {detailLogTotalPages}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={detailLogPage <= 1 || isLoadingLogs}
+                    onClick={() => setDetailLogPage(p => p - 1)}
+                    className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Sebelumnya
+                  </button>
+                  <button
+                    disabled={detailLogPage >= detailLogTotalPages || isLoadingLogs}
+                    onClick={() => setDetailLogPage(p => p + 1)}
+                    className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Selanjutnya
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   };
@@ -505,20 +701,15 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   };
 
   const renderInterface = () => {
-    const bandwidthSamples: BandwidthPoint[] = [
-      { time: "10:00", rx: 12, tx: 6 },
-      { time: "10:05", rx: 18, tx: 9 },
-      { time: "10:10", rx: 22, tx: 11 },
-      { time: "10:15", rx: 30, tx: 15 },
-      { time: "10:20", rx: 26, tx: 13 },
-      { time: "10:25", rx: 32, tx: 18 },
-      { time: "10:30", rx: 40, tx: 20 },
-      { time: "10:35", rx: 34, tx: 17 },
-      { time: "10:40", rx: 28, tx: 14 },
-      { time: "10:45", rx: 22, tx: 11 },
-      { time: "10:50", rx: 18, tx: 9 },
-      { time: "10:55", rx: 14, tx: 7 },
-    ];
+    const selectedDevice = pingDevices.find(d => d.id === selectedBwDeviceId);
+    const isDown = selectedDevice?.status === "DOWN";
+
+    // Gunakan data asli jika tersedia, jika tidak (atau jika down) gunakan placeholder 0
+    const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
+      ? realBandwidthSamples 
+      : [
+          { time: "00:00", rx: 0, tx: 0 },
+        ];
 
     const rxValues = bandwidthSamples.map((p) => p.rx);
     const txValues = bandwidthSamples.map((p) => p.tx);
@@ -535,7 +726,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
     const rxMin = rxValues.length ? Math.min(...rxValues) : 0;
     const txMin = txValues.length ? Math.min(...txValues) : 0;
 
-    const lastSample = bandwidthSamples[bandwidthSamples.length - 1];
+    const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
 
     return (
       <section>
@@ -550,26 +741,38 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
         <div className="flex flex-wrap gap-2.5 mb-3.5">
           <select
             className="px-2.5 py-1.5 rounded-full border border-slate-200 text-[12px] min-w-[180px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
-            defaultValue="router1"
+            value={selectedBwDeviceId ?? ""}
+            onChange={(e) => setSelectedBwDeviceId(Number(e.target.value))}
           >
-            <option value="router1">Router Kantor Pusat</option>
-            <option value="router2">Router POP Bandung</option>
+            {pingDevices.map(d => (
+              <option key={d.id} value={d.id}>{d.name} ({d.ip})</option>
+            ))}
+            {pingDevices.length === 0 && <option value="">Tidak ada perangkat</option>}
           </select>
           <select
             className="px-2.5 py-1.5 rounded-full border border-slate-200 text-[12px] min-w-[180px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
-            defaultValue="iface1"
+            value={selectedIface}
+            onChange={(e) => setSelectedIface(e.target.value)}
           >
-            <option value="iface1">ether1-UPLINK</option>
-            <option value="iface2">ether2-POP</option>
-            <option value="iface3">vlan10-Client</option>
+            {ifaceList.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+            {ifaceList.length === 0 && <option value="">Tidak ada interface</option>}
           </select>
         </div>
         <div className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="m-0 text-[11px] text-slate-500">Grafik waktu nyata (dummy)</p>
-              <p className="m-0 text-[13px] font-semibold text-slate-900">
-                ether1-UPLINK
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="m-0 text-[11px] text-slate-500">Grafik waktu nyata</p>
+                {realBandwidthSamples.length === 0 && (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-wider border border-amber-200">
+                    Menunggu Data...
+                  </span>
+                )}
+              </div>
+              <p className="m-0 text-[13px] font-semibold text-slate-900 line-clamp-1">
+                {selectedIface || "Pilih Interface"}
               </p>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-slate-500">
@@ -586,39 +789,59 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
 
           <BandwidthSparkline data={bandwidthSamples} />
 
+          {ifaceList.length === 0 && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex flex-col gap-1.5">
+              <span className="font-bold flex items-center gap-1.5 uppercase tracking-wide">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Peringatan: Tidak Ada Interface Terdeteksi
+              </span>
+              <p className="m-0 leading-relaxed font-medium">
+                Sistem tidak menemukan data interface untuk perangkat ini. Hal ini biasanya terjadi karena:
+              </p>
+              <ul className="m-0 pl-4 list-disc space-y-0.5">
+                <li>Mode <span className="font-bold">SNMP</span> belum diaktifkan saat menambah perangkat.</li>
+                <li><span className="font-bold">Community String</span> (misal: "public") salah atau tidak cocok.</li>
+                <li>Fitur SNMP belum diaktifkan di sisi perangkat (misal: MikroTik IP &gt; SNMP).</li>
+                <li>Perangkat sedang dalam status <span className="font-bold font-mono">DOWN</span> sehingga data tidak dapat ditarik.</li>
+              </ul>
+            </div>
+          )}
+
           <div className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-600">
             <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1">
               <span>
-                RX: {rxAvg.toFixed(1)} Mbps avg,
+                RX: {rxAvg.toFixed(2)} Mbps avg,
                 {" "}
-                {rxMin.toFixed(1)} min,
+                {rxMin.toFixed(2)} min,
                 {" "}
-                {rxMax.toFixed(1)} max
+                {rxMax.toFixed(2)} max
               </span>
               <span>
-                TX: {txAvg.toFixed(1)} Mbps avg,
+                TX: {txAvg.toFixed(2)} Mbps avg,
                 {" "}
-                {txMin.toFixed(1)} min,
+                {txMin.toFixed(2)} min,
                 {" "}
-                {txMax.toFixed(1)} max
+                {txMax.toFixed(2)} max
               </span>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-500">
               <span>
-                current: RX {lastSample.rx.toFixed(1)} Mbps / TX
+                current: RX {lastSample.rx.toFixed(2)} Mbps / TX
                 {" "}
-                {lastSample.tx.toFixed(1)} Mbps
+                {lastSample.tx.toFixed(2)} Mbps
               </span>
-              <span>
-                periode: {bandwidthSamples[0].time} -
-                {" "}
-                {bandwidthSamples[bandwidthSamples.length - 1].time}
-              </span>
+              {bandwidthSamples.length > 1 && (
+                <span>
+                  periode: {bandwidthSamples[0].time} -
+                  {" "}
+                  {bandwidthSamples[bandwidthSamples.length - 1].time}
+                </span>
+              )}
             </div>
-            <p className="m-0 mt-1 text-[10px] text-slate-400">
-              Angka di atas masih dummy, nanti akan mengikuti data historis
-              dari backend sehingga keterangan statistiknya mirip SmokePing.
-            </p>
           </div>
         </div>
       </section>

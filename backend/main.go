@@ -20,7 +20,7 @@ func main() {
 	ctx := context.Background()
 
 	dsn := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s",
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		getEnv("POSTGRES_USER", "isp_user"),
 		getEnv("POSTGRES_PASSWORD", "isp_password"),
 		getEnv("POSTGRES_HOST", "localhost"),
@@ -78,9 +78,17 @@ func main() {
 	// Monitoring summary (contoh sederhana)
 	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
 	e.GET("/api/monitoring/ping", state.handlePingDevices)
+	e.GET("/api/monitoring/ping-logs/:id", state.handleGetDevicePingLogs)
+	e.PUT("/api/devices/:id/ping-interval", state.handleUpdatePingInterval)
+	e.GET("/api/monitoring/interfaces/:id", state.handleListDeviceInterfaces)
+	e.GET("/api/monitoring/traffic/:id", state.handleGetInterfaceTraffic)
 
 	// Contoh endpoint: list pelanggan dari PostgreSQL
 	e.GET("/api/customers", state.handleListCustomers)
+
+	// Jalankan background workers
+	go startPingWorker(state)
+	go startSnmpWorker(state)
 
 	log.Println("Backend running on :8080")
 	e.Logger.Fatal(e.Start(":8080"))

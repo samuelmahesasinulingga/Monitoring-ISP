@@ -112,14 +112,9 @@ function App() {
     content = (
       <AdminWorkspaceDashboard
         workspaceName={activeWorkspace?.name}
-        onChangeWorkspaceName={
+        onChangeWorkspace={
           isSuperAdmin
-            ? (name: string) =>
-                setActiveWorkspace((prev) =>
-                  prev
-                    ? { ...prev, name }
-                    : { id: 0, name, address: "", iconUrl: "" }
-                )
+            ? (ws) => setActiveWorkspace(ws)
             : undefined
         }
         onBackToSuperAdmin={

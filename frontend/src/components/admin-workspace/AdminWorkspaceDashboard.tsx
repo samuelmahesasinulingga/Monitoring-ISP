@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import WorkspaceDashboardSection from "./WorkspaceDashboardSection";
 import MonitoringSection from "./MonitoringSection";
 import SLAReportSection from "./SLAReportSection";
@@ -10,10 +10,17 @@ import TopologySection from "./TopologySection";
 type MenuKey = "dashboard" | "monitoring" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings";
 type MonitoringTabKey = "ping" | "alerts" | "interface" | "queue";
 
+type Workspace = {
+  id: number;
+  name: string;
+  address: string;
+  iconUrl?: string;
+};
+
 type AdminWorkspaceDashboardProps = {
   workspaceName?: string;
   onBackToSuperAdmin?: () => void;
-  onChangeWorkspaceName?: (name: string) => void;
+  onChangeWorkspace?: (ws: Workspace) => void;
   onLogout?: () => void;
   currentUserEmail?: string;
   currentUserRole?: string;
@@ -22,15 +29,53 @@ type AdminWorkspaceDashboardProps = {
 const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
   workspaceName,
   onBackToSuperAdmin,
-  onChangeWorkspaceName,
+  onChangeWorkspace,
   onLogout,
   currentUserEmail,
   currentUserRole,
 }) => {
-  const [activeMenu, setActiveMenu] = useState<MenuKey>("dashboard");
+  const [activeMenu, setActiveMenu] = useState<MenuKey>(() => {
+    return (localStorage.getItem("adminActiveMenu") as MenuKey) || "dashboard";
+  });
   const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
-  const [showMonitoringMenu, setShowMonitoringMenu] = useState(false);
-  const [monitoringTab, setMonitoringTab] = useState<MonitoringTabKey>("ping");
+  const [showMonitoringMenu, setShowMonitoringMenu] = useState(() => {
+    return localStorage.getItem("adminShowMonitoringMenu") === "true";
+  });
+  const [monitoringTab, setMonitoringTab] = useState<MonitoringTabKey>(() => {
+    return (localStorage.getItem("adminMonitoringTab") as MonitoringTabKey) || "ping";
+  });
+
+  const [fetchedWorkspaces, setFetchedWorkspaces] = useState<Workspace[]>([]);
+  const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(false);
+
+  useEffect(() => {
+    if (currentUserRole !== "super_admin") return;
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    setIsLoadingWorkspaces(true);
+    fetch(`${apiBase}/api/workspaces`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        setFetchedWorkspaces(data);
+        setIsLoadingWorkspaces(false);
+      })
+      .catch((err) => {
+        console.error("fetch workspaces error", err);
+        setIsLoadingWorkspaces(false);
+      });
+  }, [currentUserRole]);
+
+  useEffect(() => {
+    localStorage.setItem("adminActiveMenu", activeMenu);
+  }, [activeMenu]);
+
+  useEffect(() => {
+    localStorage.setItem("adminShowMonitoringMenu", String(showMonitoringMenu));
+  }, [showMonitoringMenu]);
+
+  useEffect(() => {
+    localStorage.setItem("adminMonitoringTab", monitoringTab);
+  }, [monitoringTab]);
 
   const renderContent = () => {
     if (activeMenu === "dashboard") {
@@ -93,20 +138,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
     return null;
   };
 
-  const baseWorkspaceOptions = [
-    "Kantor Pusat ISP",
-    "POP Bandung",
-    "POP Surabaya",
-  ];
-
-  const workspaceOptions = workspaceName
-    ? [
-        workspaceName,
-        ...baseWorkspaceOptions.filter((n) => n !== workspaceName),
-      ]
-    : baseWorkspaceOptions;
-
-  const canSwitchWorkspace = Boolean(onBackToSuperAdmin || onChangeWorkspaceName);
+  const canSwitchWorkspace = Boolean(onBackToSuperAdmin || onChangeWorkspace);
 
   const displayRoleLabel =
     currentUserRole === "super_admin"
@@ -155,15 +187,15 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                     Workspace
                   </div>
 
-                  {workspaceOptions.map((name) => {
-                    const isActive = name === workspaceName;
+                  {fetchedWorkspaces.map((ws) => {
+                    const isActive = ws.name === workspaceName;
                     return (
                       <button
-                        key={name}
+                        key={ws.id}
                         type="button"
                         onClick={() => {
-                          if (onChangeWorkspaceName) {
-                            onChangeWorkspaceName(name);
+                          if (onChangeWorkspace) {
+                            onChangeWorkspace(ws);
                           }
                           setShowWorkspaceMenu(false);
                         }}
@@ -176,15 +208,20 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                         <span
                           className="w-5 h-5 rounded-md overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 inline-flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0"
                         >
-                          {name
+                          {ws.name
                             .trim()
                             .charAt(0)
                             .toUpperCase()}
                         </span>
-                        <span>{name}</span>
+                        <span>{ws.name}</span>
                       </button>
                     );
                   })}
+                  {isLoadingWorkspaces && (
+                    <div className="px-2 py-2 text-[11px] text-slate-500 animate-pulse">
+                      Memuat daftar...
+                    </div>
+                  )}
                 </div>
               )}
             </>

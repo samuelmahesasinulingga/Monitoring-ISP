@@ -14,7 +14,7 @@ services:
       - isp_net
 
   backend:
-    image: golang:1.22
+    image: golang:1.22.12
     container_name: isp_monitoring_backend
     working_dir: /app
     volumes:

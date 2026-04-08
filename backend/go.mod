@@ -1,11 +1,12 @@
 module isp-monitoring-backend
 
-go 1.22
+go 1.22.0
 
 require (
+	github.com/gosnmp/gosnmp v1.38.0
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/labstack/echo/v4 v4.12.0
-	golang.org/x/net v0.24.0
+	golang.org/x/net v0.26.0
 )
 
 require (
@@ -18,9 +19,9 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 )
