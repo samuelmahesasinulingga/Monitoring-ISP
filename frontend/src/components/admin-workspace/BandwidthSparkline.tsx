@@ -15,6 +15,20 @@ export type BandwidthPoint = {
   tx: number;
 };
 
+export const formatBandwidth = (mbps: number) => {
+  if (typeof mbps !== "number" || isNaN(mbps) || mbps < 0.000001) return "0 bps";
+  if (mbps < 0.001) return `${(mbps * 1000000).toFixed(0)} bps`;
+  if (mbps < 1) return `${(mbps * 1000).toFixed(2)} Kbps`;
+  if (mbps < 1000) return `${mbps.toFixed(2)} Mbps`;
+  return `${(mbps / 1000).toFixed(2)} Gbps`;
+};
+
+const tooltipFormatter = (value: any, name: string) => {
+  if (typeof value !== "number") return [value, name];
+  const formatted = formatBandwidth(value);
+  return [formatted, name.toLowerCase() === "rx" ? "RX" : "TX"];
+};
+
 type BandwidthSparklineProps = {
   data: BandwidthPoint[];
 };
@@ -54,6 +68,7 @@ const BandwidthSparkline: React.FC<BandwidthSparklineProps> = ({ data }) => {
               borderColor: "#e5e7eb",
             }}
             labelStyle={{ fontSize: 11, color: "#6b7280" }}
+            formatter={tooltipFormatter as any}
           />
 
           <Area

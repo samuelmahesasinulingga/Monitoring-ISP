@@ -65,6 +65,7 @@ func main() {
 	e.POST("/api/workspaces", state.handleCreateWorkspace)
 	e.GET("/api/workspaces", state.handleListWorkspaces)
 	e.PUT("/api/workspaces/:id", state.handleUpdateWorkspace)
+	e.PUT("/api/workspaces/:id/settings", state.handleUpdateWorkspaceSettings)
 	e.DELETE("/api/workspaces/:id", state.handleDeleteWorkspace)
 
 	// Users management
@@ -86,6 +87,7 @@ func main() {
 	e.GET("/api/monitoring/interfaces/:id", state.handleListDeviceInterfaces)
 	e.GET("/api/monitoring/traffic/:id", state.handleGetInterfaceTraffic)
 	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
+	e.GET("/api/monitoring/alerts", state.handleGetAlerts)
 
 	// Others
 	e.GET("/api/customers", state.handleListCustomers)

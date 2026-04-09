@@ -79,7 +79,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-indigo-100 via-slate-50 to-sky-100 text-slate-900">
       {/* Sidebar */}
-      <aside className="w-64 px-4 py-6 bg-slate-950 text-slate-200 shadow-2xl shadow-slate-900/70 flex flex-col">
+      <aside className="fixed top-0 left-0 z-20 h-screen w-64 px-4 py-6 bg-slate-950 text-slate-200 shadow-2xl shadow-slate-900/70 flex flex-col">
         <div className="mb-8 relative">
           <button
             onClick={() => setShowAccountMenu((v) => !v)}
@@ -163,7 +163,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
             </div>
           )}
         </div>
-        <nav className="flex flex-col gap-2 text-[13px]">
+        <nav className="flex flex-col gap-2 text-[13px] flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80">
           <button
             onClick={() => setActiveSection("overview")}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
@@ -258,7 +258,7 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 ml-64">
         {activeSection === "overview" && <DashboardSection />}
         {activeSection === "adminWorkspace" && (
           <AdminWorkspaceSection

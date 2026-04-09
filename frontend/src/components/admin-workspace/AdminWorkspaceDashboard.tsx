@@ -19,6 +19,7 @@ type Workspace = {
 
 type AdminWorkspaceDashboardProps = {
   workspaceName?: string;
+  workspaceId?: number;
   onBackToSuperAdmin?: () => void;
   onChangeWorkspace?: (ws: Workspace) => void;
   onLogout?: () => void;
@@ -28,6 +29,7 @@ type AdminWorkspaceDashboardProps = {
 
 const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
   workspaceName,
+  workspaceId,
   onBackToSuperAdmin,
   onChangeWorkspace,
   onLogout,
@@ -85,6 +87,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
       return (
         <MonitoringSection
           workspaceName={workspaceName}
+          workspaceId={workspaceId}
           initialTab={monitoringTab}
           key={monitoringTab}
         />
@@ -92,7 +95,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
     }
 
     if (activeMenu === "devices") {
-      return <DevicesSection workspaceName={workspaceName} />;
+      return <DevicesSection workspaceName={workspaceName} workspaceId={workspaceId} />;
     }
 
     if (activeMenu === "topology") {
@@ -131,7 +134,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
     }
 
     if (activeMenu === "settings") {
-      return <WorkspaceSettingsSection workspaceName={workspaceName} />;
+      return <WorkspaceSettingsSection workspaceName={workspaceName} workspaceId={workspaceId} />;
     }
 
     return null;
@@ -148,7 +151,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-100 via-slate-50 to-sky-100 text-slate-900">
-      <aside className="w-64 px-4 py-5 bg-slate-950 text-slate-100 shadow-[4px_0_20px_rgba(15,23,42,0.4)] flex flex-col">
+      <aside className="fixed top-0 left-0 z-20 h-screen w-64 px-4 py-5 bg-slate-950 text-slate-100 shadow-[4px_0_20px_rgba(15,23,42,0.4)] flex flex-col">
         <div className="mb-5 relative">
           {canSwitchWorkspace ? (
             <>
@@ -244,7 +247,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
         )}
 
-        <nav className="flex flex-col gap-2 flex-1">
+        <nav className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80">
           <button
             type="button"
             onClick={() => setActiveMenu("dashboard")}
@@ -439,7 +442,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
         )}
       </aside>
 
-      <main className="flex-1 p-6">{renderContent()}</main>
+      <main className="flex-1 p-6 ml-64">{renderContent()}</main>
     </div>
   );
 };

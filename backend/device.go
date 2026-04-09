@@ -56,3 +56,12 @@ type devicePingLog struct {
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type deviceAlert struct {
+	ID         int       `json:"id"`
+	DeviceID   int       `json:"deviceId"`
+	DeviceName string    `json:"deviceName"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
+

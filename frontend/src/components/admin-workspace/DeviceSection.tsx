@@ -21,6 +21,7 @@ export type DeviceRecord = {
 
 type DevicesSectionProps = {
   workspaceName?: string;
+  workspaceId?: number;
 };
 
 const Switch = ({
@@ -63,7 +64,7 @@ const Switch = ({
   );
 };
 
-const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
+const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspaceId }) => {
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
 
   const [name, setName] = useState("");
@@ -107,7 +108,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
   useEffect(() => {
     const fetchDevices = async () => {
       try {
-        const res = await fetch(`/api/devices`);
+        const url = workspaceId ? `/api/devices?workspaceId=${workspaceId}` : `/api/devices`;
+        const res = await fetch(url);
         if (!res.ok) {
           console.error("failed to load devices", await res.text());
           return;
@@ -120,7 +122,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
     };
 
     fetchDevices();
-  }, []);
+  }, [workspaceId]);
 
   const handleAddDevice = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -152,6 +154,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
       apiUser: normalizedApiUser,
       apiPort: normalizedApiPort,
       monitoringEnabled,
+      workspaceId: workspaceId ?? null,
     };
 
     try {
@@ -235,6 +238,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
         apiUser: apiUser,
         apiPort: normalizedApiPortForTest,
         monitoringEnabled: true,
+        workspaceId: workspaceId ?? null,
       };
 
       const res = await fetch(`/api/devices/test-connection`, {
@@ -318,6 +322,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName }) => {
         apiUser: normalizedApiUser,
         apiPort: normalizedApiPort,
         monitoringEnabled: editMonitoringEnabled,
+        workspaceId: workspaceId ?? null,
       };
 
       const res = await fetch(`/api/devices/${editingDevice.id}`, {

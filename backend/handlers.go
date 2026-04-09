@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
@@ -43,10 +44,10 @@ func (a *appState) handleUpdateWorkspace(c echo.Context) error {
 		UPDATE workspaces
 		SET name = $1, address = $2, icon_url = $3
 		WHERE id = $4
-		RETURNING id, name, address, icon_url, created_at
+		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, created_at
 	`
 	if err := a.db.QueryRow(ctx, query, req.Name, req.Address, req.IconURL, id).
-		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.CreatedAt); err != nil {
+		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.CreatedAt); err != nil {
 		log.Printf("update workspace error (id=%d): %v", id, err)
 		return c.String(http.StatusInternalServerError, "failed to update workspace")
 	}
@@ -82,7 +83,7 @@ func (a *appState) handleDeleteWorkspace(c echo.Context) error {
 
 func (a *appState) handleListWorkspaces(c echo.Context) error {
 	ctx := c.Request().Context()
-	rows, err := a.db.Query(ctx, `SELECT id, name, address, icon_url, created_at FROM workspaces ORDER BY id`)
+	rows, err := a.db.Query(ctx, `SELECT id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, created_at FROM workspaces ORDER BY id`)
 	if err != nil {
 		log.Printf("list workspaces query error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to query workspaces")
@@ -92,7 +93,7 @@ func (a *appState) handleListWorkspaces(c echo.Context) error {
 	var workspaces []workspace
 	for rows.Next() {
 		var ws workspace
-		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.CreatedAt); err != nil {
+		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.CreatedAt); err != nil {
 			log.Printf("scan workspace error: %v", err)
 			continue
 		}
@@ -119,15 +120,45 @@ func (a *appState) handleCreateWorkspace(c echo.Context) error {
 	query := `
 		INSERT INTO workspaces (name, address, icon_url)
 		VALUES ($1, $2, $3)
-		RETURNING id, name, address, icon_url, created_at
+		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, created_at
 	`
 	if err := a.db.QueryRow(ctx, query, req.Name, req.Address, req.IconURL).
-		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.CreatedAt); err != nil {
+		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.CreatedAt); err != nil {
 		log.Printf("create workspace insert error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to create workspace")
 	}
 
 	return c.JSON(http.StatusCreated, ws)
+}
+
+func (a *appState) handleUpdateWorkspaceSettings(c echo.Context) error {
+	ctx := c.Request().Context()
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return c.String(http.StatusBadRequest, "invalid workspace id")
+	}
+
+	var req updateWorkspaceSettingsRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		log.Printf("update workspace settings decode error: %v", err)
+		return c.String(http.StatusBadRequest, "invalid request body")
+	}
+
+	var ws workspace
+	query := `
+		UPDATE workspaces
+		SET telegram_bot_token = $1, telegram_chat_id = $2, alert_enabled = $3
+		WHERE id = $4
+		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, created_at
+	`
+	if err := a.db.QueryRow(ctx, query, req.TelegramBotToken, req.TelegramChatID, req.AlertEnabled, id).
+		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.CreatedAt); err != nil {
+		log.Printf("update workspace settings error (id=%d): %v", id, err)
+		return c.String(http.StatusInternalServerError, "failed to update workspace settings")
+	}
+
+	return c.JSON(http.StatusOK, ws)
 }
 
 // User handlers
@@ -179,6 +210,9 @@ func (a *appState) handleCreateUser(c echo.Context) error {
 	if err := a.db.QueryRow(ctx, query, req.FullName, req.Email, req.Whatsapp, req.Password, req.Role, req.WorkspaceID).
 		Scan(&u.ID, &u.FullName, &u.Email, &u.Whatsapp, &u.Role, &u.WorkspaceID, &u.CreatedAt); err != nil {
 		log.Printf("create user insert error: %v", err)
+		if err.Error() != "" && (strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint")) {
+			return c.String(http.StatusConflict, "Email atau nomor WhatsApp sudah terdaftar.")
+		}
 		return c.String(http.StatusInternalServerError, "failed to create user")
 	}
 
@@ -209,11 +243,30 @@ func (a *appState) handleDeleteUser(c echo.Context) error {
 
 func (a *appState) handleListDevices(c echo.Context) error {
 	ctx := c.Request().Context()
-	rows, err := a.db.Query(ctx, `
-		SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_port, monitoring_enabled, ping_interval_ms, workspace_id, created_at
-		FROM devices
-		ORDER BY id
-	`)
+	wsIDStr := c.QueryParam("workspaceId")
+
+	var rows pgx.Rows
+	var err error
+
+	if wsIDStr != "" {
+		wsID, convErr := strconv.Atoi(wsIDStr)
+		if convErr != nil || wsID <= 0 {
+			return c.String(http.StatusBadRequest, "invalid workspaceId")
+		}
+		rows, err = a.db.Query(ctx, `
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_port, monitoring_enabled, ping_interval_ms, workspace_id, created_at
+			FROM devices
+			WHERE workspace_id = $1
+			ORDER BY id
+		`, wsID)
+	} else {
+		rows, err = a.db.Query(ctx, `
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_port, monitoring_enabled, ping_interval_ms, workspace_id, created_at
+			FROM devices
+			ORDER BY id
+		`)
+	}
+
 	if err != nil {
 		log.Printf("list devices query error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to query devices")
@@ -435,7 +488,7 @@ func (a *appState) handlePingDevices(c echo.Context) error {
 					var lStatus string
 					var lTime time.Time
 					if scanErr := logRows.Scan(&lMs, &lStatus, &lTime); scanErr == nil {
-						timeStr := lTime.Format("15:04:05")
+						timeStr := lTime.Format(time.RFC3339)
 						history = append(history, HistoricalPing{
 							Time:      timeStr,
 							LatencyMs: lMs,
@@ -659,7 +712,20 @@ func (a *appState) handleMonitoringSummary(c echo.Context) error {
 
 func (a *appState) handleListCustomers(c echo.Context) error {
 	ctx := c.Request().Context()
-	rows, err := a.db.Query(ctx, `SELECT id, name, email, address, created_at FROM customers ORDER BY id LIMIT 100`)
+	wsIDStr := c.QueryParam("workspaceId")
+
+	var rows pgx.Rows
+	var err error
+
+	if wsIDStr != "" {
+		wsID, convErr := strconv.Atoi(wsIDStr)
+		if convErr != nil || wsID <= 0 {
+			return c.String(http.StatusBadRequest, "invalid workspaceId")
+		}
+		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, created_at FROM customers WHERE workspace_id = $1 ORDER BY id LIMIT 100`, wsID)
+	} else {
+		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, created_at FROM customers ORDER BY id LIMIT 100`)
+	}
 	if err != nil {
 		log.Printf("list customers query error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to query customers")
@@ -925,7 +991,7 @@ func (a *appState) handleGetInterfaceTraffic(c echo.Context) error {
 		}
 
 		results = append(results, TrafficData{
-			Time: curr.Taken.Format("15:04:05"),
+			Time: curr.Taken.Format(time.RFC3339),
 			RX:   rxMbps,
 			TX:   txMbps,
 		})
@@ -968,4 +1034,37 @@ func (a *appState) handleUpdatePingInterval(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (a *appState) handleGetAlerts(c echo.Context) error {
+	ctx := c.Request().Context()
+	workspaceIDStr := c.QueryParam("workspace_id")
+	workspaceID, _ := strconv.Atoi(workspaceIDStr)
+
+	query := `
+		SELECT a.id, a.device_id, d.name as device_name, a.status, a.created_at
+		FROM device_alerts a
+		JOIN devices d ON a.device_id = d.id
+		WHERE ($1 = 0 OR d.workspace_id = $1)
+		ORDER BY a.created_at DESC
+		LIMIT 50
+	`
+	rows, err := a.db.Query(ctx, query, workspaceID)
+	if err != nil {
+		log.Printf("get alerts query error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to query alerts")
+	}
+	defer rows.Close()
+
+	alerts := []deviceAlert{}
+	for rows.Next() {
+		var al deviceAlert
+		if err := rows.Scan(&al.ID, &al.DeviceID, &al.DeviceName, &al.Status, &al.CreatedAt); err != nil {
+			log.Printf("scan alert error: %v", err)
+			continue
+		}
+		alerts = append(alerts, al)
+	}
+
+	return c.JSON(http.StatusOK, alerts)
 }

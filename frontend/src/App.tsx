@@ -87,7 +87,7 @@ function App() {
       <LoginPage
 		onLoginSuccess={(payload) => {
 		  setAuthInfo(payload);
-		  if (payload.role === "super_admin") {
+		  if (payload.role === "super_admin" || payload.role === "Super Admin") {
 			setViewMode("superAdmin");
 			setActiveWorkspace(null);
 		  } else {
@@ -108,10 +108,11 @@ function App() {
       />
     );
   } else if (viewMode === "workspace") {
-    const isSuperAdmin = authInfo?.role === "super_admin";
+    const isSuperAdmin = authInfo?.role === "super_admin" || authInfo?.role === "Super Admin";
     content = (
       <AdminWorkspaceDashboard
         workspaceName={activeWorkspace?.name}
+        workspaceId={activeWorkspace?.id}
         onChangeWorkspace={
           isSuperAdmin
             ? (ws) => setActiveWorkspace(ws)

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import BandwidthSparkline, { BandwidthPoint } from "./BandwidthSparkline";
+import BandwidthSparkline, { BandwidthPoint, formatBandwidth } from "./BandwidthSparkline";
 import {
   AreaChart,
   Area,
@@ -14,10 +14,17 @@ type MonitoringTab = "ping" | "alerts" | "interface" | "queue";
 
 type MonitoringSectionProps = {
   workspaceName?: string;
+  workspaceId?: number;
   initialTab?: MonitoringTab;
 };
 
-const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, initialTab }) => {
+const formatTime = (isoString: string) => {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
+};
+
+const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, workspaceId, initialTab }) => {
   const [activeTab, setActiveTab] = useState<MonitoringTab>(initialTab ?? "ping");
 
   type PingDevice = {
@@ -63,6 +70,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   const [realBandwidthSamples, setRealBandwidthSamples] = useState<BandwidthPoint[]>([]);
   const [isLoadingBw, setIsLoadingBw] = useState(false);
 
+  type DeviceAlert = {
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    status: string;
+    createdAt: string;
+  };
+  const [alerts, setAlerts] = useState<DeviceAlert[]>([]);
+  const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
+
   useEffect(() => {
     if (pingDevices.length > 0 && selectedBwDeviceId === null) {
       setSelectedBwDeviceId(pingDevices[0].id);
@@ -81,28 +98,42 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
       .catch(err => console.error("fetch interfaces error", err));
   }, [selectedBwDeviceId]);
 
-  // Polling traffic data
-  useEffect(() => {
+  const fetchTraffic = () => {
     if (!selectedBwDeviceId || !selectedIface || activeTab !== "interface") return;
+    setIsLoadingBw(true);
+    fetch(`/api/monitoring/traffic/${selectedBwDeviceId}?interface=${encodeURIComponent(selectedIface)}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const formatted = data.map((d: any) => ({
+          ...d,
+          time: formatTime(d.time)
+        }));
+        setRealBandwidthSamples(formatted);
+        setIsLoadingBw(false);
+      })
+      .catch(err => {
+        console.error("fetch traffic error", err);
+        setIsLoadingBw(false);
+      });
+  };
 
-    const fetchTraffic = () => {
-      setIsLoadingBw(true);
-      fetch(`/api/monitoring/traffic/${selectedBwDeviceId}?interface=${encodeURIComponent(selectedIface)}`)
-        .then(r => r.ok ? r.json() : [])
-        .then(data => {
-          setRealBandwidthSamples(data);
-          setIsLoadingBw(false);
-        })
-        .catch(err => {
-          console.error("fetch traffic error", err);
-          setIsLoadingBw(false);
-        });
-    };
+    const fetchAlerts = () => {
+    if (activeTab !== "alerts") return;
+    setIsLoadingAlerts(true);
+    fetch(`/api/monitoring/alerts?workspace_id=${workspaceId || 0}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        setAlerts(data || []);
+        setIsLoadingAlerts(false);
+      })
+      .catch((err) => {
+        console.error("fetch alerts error", err);
+        setAlerts([]);
+        setIsLoadingAlerts(false);
+      });
+  };
 
-    fetchTraffic();
-    const interval = setInterval(fetchTraffic, 30000); // sync with worker 30s
-    return () => clearInterval(interval);
-  }, [selectedBwDeviceId, selectedIface, activeTab]);
+
 
   useEffect(() => {
     if (activeTab !== "ping" && activeTab !== "interface" && activeTab !== "queue") return;
@@ -113,7 +144,8 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
       try {
         setPingError("");
         setIsLoadingPing(true);
-        const res = await fetch(`/api/monitoring/ping`);
+        const url = workspaceId ? `/api/monitoring/ping?workspaceId=${workspaceId}` : `/api/monitoring/ping`;
+        const res = await fetch(url);
         if (!res.ok) {
           const text = await res.text();
           console.error("ping devices error", text);
@@ -138,7 +170,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
         setPingHistory(() => {
           const next: Record<number, PingHistoryPoint[]> = {};
           data.forEach(d => {
-            next[d.id] = d.history || [];
+            next[d.id] = (d.history || []).map(h => ({
+              ...h,
+              time: formatTime(h.time)
+            }));
           });
           return next;
         });
@@ -160,13 +195,27 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
         window.clearInterval(interval);
       }
     };
-  }, [activeTab]);
+  }, [activeTab, workspaceId]);
+
+  // Global Polling Manager
+  useEffect(() => {
+    if (activeTab === "interface") {
+      fetchTraffic();
+      const tInt = setInterval(fetchTraffic, 10000);
+      return () => clearInterval(tInt);
+    }
+    if (activeTab === "alerts") {
+      fetchAlerts();
+      const aInt = setInterval(fetchAlerts, 10000);
+      return () => clearInterval(aInt);
+    }
+  }, [activeTab, selectedBwDeviceId, selectedIface, workspaceId]);
 
   useEffect(() => {
-    if (detailLogDeviceId === null) return;
+    if (!detailLogDeviceId) return;
     setIsLoadingLogs(true);
     fetch(`/api/monitoring/ping-logs/${detailLogDeviceId}?page=${detailLogPage}`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : [])
       .then(d => {
         if (d && d.logs) {
           setDetailLogs(d.logs);
@@ -615,85 +664,95 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
   };
 
   const renderAlerts = () => {
-    const alerts = [
-      {
-        id: 1,
-        title: "Ping timeout - Router Kantor Pusat",
-        severity: "High",
-        since: "5 menit lalu",
-        type: "Ping",
-      },
-      {
-        id: 2,
-        title: "BW > 80% - ether1-UPLINK",
-        severity: "Medium",
-        since: "25 menit lalu",
-        type: "Bandwidth",
-      },
-    ];
-
     return (
       <section>
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
-          Alert Monitoring
-        </h2>
-        <p className="m-0 text-[12px] text-slate-500 mb-3.5">
-          Daftar alert aktif dan riwayat singkat. Tombol acknowledge/close saat ini
-          masih dummy dan akan dihubungkan ke backend kemudian.
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <h2 className="m-0 text-[18px] font-semibold text-slate-900">
+            Alert Monitoring (Real-time)
+          </h2>
+          {isLoadingAlerts && (
+            <div className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
+          )}
+        </div>
+        <p className="m-0 text-[12px] text-slate-500 mb-4">
+          Riwayat kejadian status perangkat (UP/DOWN) yang terekam dalam sistem.
         </p>
 
         <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-md shadow-slate-900/5">
-          <table className="w-full border-collapse text-[12px]">
-            <thead className="bg-slate-100">
-              <tr className="text-left text-slate-500">
-                <th className="px-2.5 py-2">Alert</th>
-                <th className="px-2.5 py-2">Tipe</th>
-                <th className="px-2.5 py-2">Severitas</th>
-                <th className="px-2.5 py-2">Sejak</th>
-                <th className="px-2.5 py-2">Action</th>
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+                  Waktu
+                </th>
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+                  Perangkat
+                </th>
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+                  Kejadian
+                </th>
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody>
-              {alerts.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50">
-                  <td className="px-2.5 py-2 border-t border-slate-200">
-                    {a.title}
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200 text-slate-600">
-                    {a.type}
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                        a.severity === "High"
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
-                          : a.severity === "Medium"
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      }`}
-                    >
-                      {a.severity}
-                    </span>
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200 text-slate-600">
-                    {a.since}
-                  </td>
-                  <td className="px-2.5 py-2 border-t border-slate-200">
-                    <button
-                      type="button"
-                      className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-[11px] text-slate-700 hover:bg-slate-100"
-                    >
-                      Acknowledge
-                    </button>
+              {(!alerts || alerts.length === 0) ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-slate-400 text-[13px]"
+                  >
+                    Belum ada alert terekam.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                alerts.map((alert) => {
+                  const isDown = alert.status === "DOWN";
+                  return (
+                    <tr
+                      key={alert.id}
+                      className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-[12px] text-slate-600">
+                        {new Date(alert.createdAt).toLocaleString("id-ID", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-[12px] font-medium text-slate-800">
+                        {alert.deviceName}
+                      </td>
+                      <td className="px-4 py-3 text-[12px] text-slate-600">
+                        {isDown
+                          ? "Perangkat terdeteksi Mati"
+                          : "Perangkat kembali Normal"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            isDown
+                              ? "bg-red-100 text-red-600"
+                              : "bg-emerald-100 text-emerald-600"
+                          }`}
+                        >
+                          {alert.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       </section>
     );
   };
+
 
   const renderInterface = () => {
     const selectedDevice = pingDevices.find(d => d.id === selectedBwDeviceId);
@@ -809,25 +868,25 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, in
           <div className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-600">
             <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1">
               <span>
-                RX: {rxAvg.toFixed(2)} Mbps avg,
+                RX: {formatBandwidth(rxAvg)} avg,
                 {" "}
-                {rxMin.toFixed(2)} min,
+                {formatBandwidth(rxMin)} min,
                 {" "}
-                {rxMax.toFixed(2)} max
+                {formatBandwidth(rxMax)} max
               </span>
               <span>
-                TX: {txAvg.toFixed(2)} Mbps avg,
+                TX: {formatBandwidth(txAvg)} avg,
                 {" "}
-                {txMin.toFixed(2)} min,
+                {formatBandwidth(txMin)} min,
                 {" "}
-                {txMax.toFixed(2)} max
+                {formatBandwidth(txMax)} max
               </span>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-500">
               <span>
-                current: RX {lastSample.rx.toFixed(2)} Mbps / TX
+                current: RX {formatBandwidth(lastSample.rx)} / TX
                 {" "}
-                {lastSample.tx.toFixed(2)} Mbps
+                {formatBandwidth(lastSample.tx)}
               </span>
               {bandwidthSamples.length > 1 && (
                 <span>

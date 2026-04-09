@@ -92,8 +92,8 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
       !fullName.trim() ||
       !email.trim() ||
       !whatsapp.trim() ||
-      !password.trim() ||
-      !workspaceId
+      (editingId == null && !password.trim()) ||
+      (role !== "Super Admin" && !workspaceId)
     ) {
       return;
     }
@@ -108,7 +108,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
           whatsapp: whatsapp.trim(),
           password: password.trim(),
           role,
-          workspaceId: parseInt(workspaceId, 10),
+          workspaceId: role === "Super Admin" ? null : parseInt(workspaceId, 10),
         };
 
         const res = await fetch(`/api/users`, {
@@ -120,8 +120,9 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
         });
 
         if (!res.ok) {
-          console.error("failed to create user", await res.text());
-          setAlert({ type: "error", message: "Gagal menambahkan pengguna." });
+          const textMsg = await res.text();
+          console.error("failed to create user", textMsg);
+          setAlert({ type: "error", message: res.status === 409 ? textMsg : "Gagal menambahkan pengguna." });
         } else {
           const created: User = await res.json();
           setUsers((prev) => [...prev, created]);
@@ -141,7 +142,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                 email: email.trim(),
                 whatsapp: whatsapp.trim(),
                 role,
-                workspaceId: parseInt(workspaceId, 10),
+                workspaceId: role === "Super Admin" ? null : parseInt(workspaceId, 10),
               }
             : u
         )
@@ -400,11 +401,16 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   Workspace
                 </label>
                 <select
-                  value={workspaceId}
+                  value={role === "Super Admin" ? "" : workspaceId}
                   onChange={(e) => setWorkspaceId(e.target.value)}
-                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  disabled={role === "Super Admin"}
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
-                  <option value="">Pilih Workspace</option>
+                  {role === "Super Admin" ? (
+                    <option value="">Akses Semua Workspace</option>
+                  ) : (
+                    <option value="">Pilih Workspace</option>
+                  )}
                   {safeWorkspaces.map((ws) => (
                     <option key={ws.id} value={ws.id}>
                       {ws.name}

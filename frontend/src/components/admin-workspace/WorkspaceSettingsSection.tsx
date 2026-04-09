@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface WorkspaceSettingsSectionProps {
   workspaceName?: string;
+  workspaceId?: number;
 }
 
 const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   workspaceName,
+  workspaceId,
 }) => {
   // Email template + SMTP
   const [smtpProvider, setSmtpProvider] = useState("smtp");
@@ -29,6 +31,62 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   const [latencyAlertMs, setLatencyAlertMs] = useState(120);
   const [packetLossThreshold, setPacketLossThreshold] = useState(1);
   const [slaSaveMessage, setSlaSaveMessage] = useState<string | null>(null);
+
+  // Telegram Alerting
+  const [telegramBotToken, setTelegramBotToken] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [alertEnabled, setAlertEnabled] = useState(false);
+  const [alertSaveMessage, setAlertSaveMessage] = useState<string | null>(null);
+
+  // Fetch current settings if workspaceId exists
+  useEffect(() => {
+    if (!workspaceId) return;
+
+    const fetchWorkspace = async () => {
+      try {
+        const res = await fetch(`/api/workspaces`);
+        if (res.ok) {
+          const list = await res.json();
+          const thisWs = list.find((w: any) => w.id === workspaceId);
+          if (thisWs) {
+            setTelegramBotToken(thisWs.telegramBotToken || "");
+            setTelegramChatId(thisWs.telegramChatId || "");
+            setAlertEnabled(thisWs.alertEnabled || false);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch workspace settings:", err);
+      }
+    };
+
+    fetchWorkspace();
+  }, [workspaceId]);
+
+  const handleSaveAlerting = async () => {
+    if (!workspaceId) return;
+
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegramBotToken,
+          telegramChatId,
+          alertEnabled,
+        }),
+      });
+
+      if (res.ok) {
+        setAlertSaveMessage("Pengaturan notifikasi berhasil disimpan.");
+        setTimeout(() => setAlertSaveMessage(null), 3000);
+      } else {
+        setAlertSaveMessage("Gagal menyimpan pengaturan notifikasi.");
+      }
+    } catch (err) {
+      console.error("Save alerting error:", err);
+      setAlertSaveMessage("Terjadi kesalahan saat menyimpan.");
+    }
+  };
 
   const handleSaveEmail = () => {
     // Nanti diintegrasikan ke backend untuk menyimpan SMTP & template email
@@ -212,6 +270,79 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
             </div>
             <div className="font-semibold mb-1">{exampleSubject}</div>
             <pre className="m-0 whitespace-pre-wrap font-sans">{exampleBody}</pre>
+          </div>
+        </div>
+
+        {/* Telegram Alerting Section */}
+        <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <h2 className="m-0 text-[16px] font-semibold text-slate-900">
+              Pengaturan Notifikasi (Telegram)
+            </h2>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={alertEnabled}
+                onChange={(e) => setAlertEnabled(e.target.checked)}
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <span className="ml-2 text-[12px] font-medium text-slate-700">
+                {alertEnabled ? "Aktif" : "Nonaktif"}
+              </span>
+            </label>
+          </div>
+          <p className="m-0 mb-4 text-[12px] text-slate-500">
+            Dapatkan notifikasi instan via Telegram saat perangkat terdeteksi
+            mati (DOWN) atau hidup kembali (UP).
+          </p>
+
+          <div className="grid gap-4 mb-4 md:grid-cols-2">
+            <div>
+              <div className="mb-1 text-[12px] text-slate-600 font-medium">
+                Bot Token Telegram
+              </div>
+              <input
+                type="password"
+                value={telegramBotToken}
+                onChange={(e) => setTelegramBotToken(e.target.value)}
+                placeholder="123456789:ABCDEF..."
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+              />
+              <p className="mt-1 text-[10px] text-slate-400">
+                Didapat dari @BotFather saat membuat bot baru.
+              </p>
+            </div>
+            <div>
+              <div className="mb-1 text-[12px] text-slate-600 font-medium">
+                Telegram Chat ID (Grup/User)
+              </div>
+              <input
+                type="text"
+                value={telegramChatId}
+                onChange={(e) => setTelegramChatId(e.target.value)}
+                placeholder="-100123456789"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+              />
+              <p className="mt-1 text-[10px] text-slate-400">
+                ID grup atau akun anda (gunakan @userinfobot untuk cek ID).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveAlerting}
+              className="px-4 py-2 rounded-full border-0 bg-blue-600 text-[12px] font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              Simpan Pengaturan Alert
+            </button>
+            {alertSaveMessage && (
+              <span className="text-[11px] text-blue-600 animate-pulse">
+                {alertSaveMessage}
+              </span>
+            )}
           </div>
         </div>
 

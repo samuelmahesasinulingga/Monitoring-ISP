@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS workspaces (
 	name VARCHAR(255) NOT NULL,
 	address TEXT NOT NULL,
 	icon_url TEXT,
+	telegram_bot_token VARCHAR(255),
+	telegram_chat_id VARCHAR(255),
+	alert_enabled BOOLEAN DEFAULT FALSE,
 	created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -105,5 +108,12 @@ CREATE TABLE IF NOT EXISTS device_interface_logs (
     interface_name VARCHAR(255) NOT NULL,
     in_octets BIGINT NOT NULL,
     out_octets BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS device_alerts (
+    id SERIAL PRIMARY KEY,
+    device_id INT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    status VARCHAR(10) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
