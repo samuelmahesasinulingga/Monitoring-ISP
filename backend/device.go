@@ -11,6 +11,7 @@ type device struct {
 	SnmpVersion       *string   `json:"snmpVersion,omitempty"`
 	SnmpCommunity     string    `json:"snmpCommunity"`
 	ApiUser           string    `json:"apiUser"`
+	ApiPassword       string    `json:"apiPassword"`
 	ApiPort           int       `json:"apiPort"`
 	MonitoringEnabled bool      `json:"monitoringEnabled"`
 	PingIntervalMs    int       `json:"pingIntervalMs"`
@@ -26,6 +27,7 @@ type createDeviceRequest struct {
 	SnmpVersion       *string `json:"snmpVersion"`
 	SnmpCommunity     string  `json:"snmpCommunity"`
 	ApiUser           string  `json:"apiUser"`
+	ApiPassword       string  `json:"apiPassword"`
 	ApiPort           int     `json:"apiPort"`
 	MonitoringEnabled bool    `json:"monitoringEnabled"`
 	PingIntervalMs    int     `json:"pingIntervalMs"`
@@ -42,6 +44,7 @@ type devicePingResult struct {
 	ID             int              `json:"id"`
 	Name           string           `json:"name"`
 	IP             string           `json:"ip"`
+	IntegrationMode string           `json:"integrationMode"`
 	LatencyMs      int64            `json:"latencyMs"`
 	Loss           float64          `json:"loss"`
 	Status         string           `json:"status"`

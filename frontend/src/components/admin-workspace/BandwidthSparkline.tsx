@@ -31,21 +31,27 @@ const tooltipFormatter = (value: any, name: string) => {
 
 type BandwidthSparklineProps = {
   data: BandwidthPoint[];
+  showAxes?: boolean;
+  height?: number;
 };
 
-const BandwidthSparkline: React.FC<BandwidthSparklineProps> = ({ data }) => {
+const BandwidthSparkline: React.FC<BandwidthSparklineProps> = ({ data, showAxes = false, height = 128 }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-24 items-center justify-center text-[11px] text-slate-400">
+      <div className="flex items-center justify-center text-[11px] text-slate-400" style={{ height: height }}>
         Belum ada data bandwidth.
       </div>
     );
   }
 
+  const margin = showAxes 
+    ? { top: 10, right: 10, left: 0, bottom: 20 }
+    : { top: 4, right: 8, left: 0, bottom: 0 };
+
   return (
-    <div className="h-32 w-full">
+    <div className="w-full" style={{ height: height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+        <AreaChart data={data} margin={margin}>
           <defs>
             <linearGradient id="rxGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
@@ -58,8 +64,23 @@ const BandwidthSparkline: React.FC<BandwidthSparklineProps> = ({ data }) => {
           </defs>
 
           <CartesianGrid stroke="#e5e7eb" strokeWidth={0.5} vertical={false} />
-          <XAxis dataKey="time" hide />
-          <YAxis hide />
+          <XAxis 
+            dataKey="time" 
+            hide={!showAxes} 
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickMargin={10}
+            minTickGap={20}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis 
+            hide={!showAxes} 
+            tickFormatter={(val) => formatBandwidth(val).replace(' bps','').replace(' Mbps',' M').replace(' Kbps', ' K')}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            width={45}
+            axisLine={false}
+            tickLine={false}
+          />
           <Tooltip
             cursor={{ stroke: "#cbd5f5", strokeWidth: 1 }}
             contentStyle={{

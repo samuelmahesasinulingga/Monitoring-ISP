@@ -15,6 +15,7 @@ export type DeviceRecord = {
   snmpVersion: SnmpVersion | null;
   snmpCommunity: string;
   apiUser: string;
+  apiPassword?: string;
   apiPort: number;
   monitoringEnabled: boolean;
 };
@@ -74,6 +75,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     const [snmpVersion, setSnmpVersion] = useState<SnmpVersion>("v2c");
   const [snmpCommunity, setSnmpCommunity] = useState("public");
   const [apiUser, setApiUser] = useState("api-user");
+  const [apiPassword, setApiPassword] = useState("");
   const [apiPort, setApiPort] = useState(8728);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
@@ -88,6 +90,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [editSnmpVersion, setEditSnmpVersion] = useState<SnmpVersion>("v2c");
   const [editSnmpCommunity, setEditSnmpCommunity] = useState("");
   const [editApiUser, setEditApiUser] = useState("");
+  const [editApiPassword, setEditApiPassword] = useState("");
   const [editApiPort, setEditApiPort] = useState(8728);
   const [editMonitoringEnabled, setEditMonitoringEnabled] = useState(true);
 
@@ -141,6 +144,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         ? apiUser.trim()
         : "";
 
+    const normalizedApiPassword =
+      integrationMode === "api" || integrationMode === "snmp+api"
+        ? apiPassword.trim()
+        : "";
+
     const normalizedApiPort =
       integrationMode === "api" || integrationMode === "snmp+api" ? apiPort : 0;
 
@@ -152,6 +160,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       snmpVersion: normalizedSnmpVersion,
       snmpCommunity: normalizedSnmp,
       apiUser: normalizedApiUser,
+      apiPassword: normalizedApiPassword,
       apiPort: normalizedApiPort,
       monitoringEnabled,
       workspaceId: workspaceId ?? null,
@@ -203,6 +212,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setSnmpVersion("v2c");
     setSnmpCommunity("public");
     setApiUser("api-user");
+    setApiPassword("");
     setApiPort(8728);
     setMonitoringEnabled(true);
     setIsTesting(false);
@@ -236,6 +246,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         snmpVersion: snmpVersion,
         snmpCommunity: snmpCommunity,
         apiUser: apiUser,
+        apiPassword: apiPassword,
         apiPort: normalizedApiPortForTest,
         monitoringEnabled: true,
         workspaceId: workspaceId ?? null,
@@ -284,6 +295,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setEditSnmpVersion(device.snmpVersion || "v2c");
     setEditSnmpCommunity(device.snmpCommunity || "public");
     setEditApiUser(device.apiUser || "api-user");
+    setEditApiPassword(device.apiPassword || "");
     setEditApiPort(device.apiPort || 8728);
     setEditMonitoringEnabled(device.monitoringEnabled);
     setIsEditModalOpen(true);
@@ -308,6 +320,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         ? editApiUser.trim()
         : "";
 
+    const normalizedApiPassword =
+      editIntegrationMode === "api" || editIntegrationMode === "snmp+api"
+        ? editApiPassword.trim()
+        : "";
+
     const normalizedApiPort =
       editIntegrationMode === "api" || editIntegrationMode === "snmp+api" ? editApiPort : 0;
 
@@ -320,6 +337,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         snmpVersion: normalizedSnmpVersion,
         snmpCommunity: normalizedSnmp,
         apiUser: normalizedApiUser,
+        apiPassword: normalizedApiPassword,
         apiPort: normalizedApiPort,
         monitoringEnabled: editMonitoringEnabled,
         workspaceId: workspaceId ?? null,
@@ -574,7 +592,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="mb-1 block text-[11px] text-slate-600">
-                    API user (Mikrotik)
+                    API user
                   </label>
                   <input
                     value={apiUser}
@@ -583,9 +601,21 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
-                <div className="w-28">
+                <div className="flex-1">
                   <label className="mb-1 block text-[11px] text-slate-600">
-                    API port
+                    API password
+                  </label>
+                  <input
+                    type="password"
+                    value={apiPassword}
+                    onChange={(e) => setApiPassword(e.target.value)}
+                    placeholder="password"
+                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  />
+                </div>
+                <div className="w-20">
+                  <label className="mb-1 block text-[11px] text-slate-600">
+                    Port
                   </label>
                   <input
                     type="number"
@@ -908,7 +938,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="mb-1 block text-[11px] text-slate-600">
-                      API user (Mikrotik)
+                      API user
                     </label>
                     <input
                       value={editApiUser}
@@ -916,9 +946,20 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                     />
                   </div>
-                  <div className="w-28">
+                  <div className="flex-1">
                     <label className="mb-1 block text-[11px] text-slate-600">
-                      API port
+                      API password
+                    </label>
+                    <input
+                      type="password"
+                      value={editApiPassword}
+                      onChange={(e) => setEditApiPassword(e.target.value)}
+                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                  <div className="w-20">
+                    <label className="mb-1 block text-[11px] text-slate-600">
+                      Port
                     </label>
                     <input
                       type="number"

@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/go-routeros/routeros v0.0.0-20210123142807-2a44d57c6730 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect

@@ -86,6 +86,8 @@ func main() {
 	e.PUT("/api/devices/:id/ping-interval", state.handleUpdatePingInterval)
 	e.GET("/api/monitoring/interfaces/:id", state.handleListDeviceInterfaces)
 	e.GET("/api/monitoring/traffic/:id", state.handleGetInterfaceTraffic)
+	e.GET("/api/monitoring/queues/:id", state.handleListDeviceQueues)
+	e.GET("/api/monitoring/queue-traffic/:id", state.handleGetQueueTraffic)
 	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
 	e.GET("/api/monitoring/alerts", state.handleGetAlerts)
 
@@ -95,6 +97,7 @@ func main() {
 	// Background workers
 	go startPingWorker(state)
 	go startSnmpWorker(state)
+	go startMikrotikApiWorker(state)
 
 	log.Println("Backend running on :8080")
 	e.Logger.Fatal(e.Start(":8080"))

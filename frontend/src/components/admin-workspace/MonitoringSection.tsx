@@ -25,7 +25,6 @@ const formatTime = (isoString: string) => {
 };
 
 const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, workspaceId, initialTab }) => {
-  const [activeTab, setActiveTab] = useState<MonitoringTab>(initialTab ?? "ping");
 
   type PingDevice = {
     id: number;
@@ -35,6 +34,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     loss: number;
     status: "UP" | "DOWN";
     pingIntervalMs?: number;
+    integrationMode?: string;
     history?: PingHistoryPoint[];
   };
 
@@ -64,11 +64,30 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     devicePingIntervalsRef.current = devicePingIntervals;
   }, [devicePingIntervals]);
 
-  const [selectedBwDeviceId, setSelectedBwDeviceId] = useState<number | null>(null);
-  const [ifaceList, setIfaceList] = useState<string[]>([]);
-  const [selectedIface, setSelectedIface] = useState<string>("");
-  const [realBandwidthSamples, setRealBandwidthSamples] = useState<BandwidthPoint[]>([]);
-  const [isLoadingBw, setIsLoadingBw] = useState(false);
+
+  // Interface Multi-device states
+  const [deviceIfaceLists, setDeviceIfaceLists] = useState<Record<number, string[]>>({});
+  const [deviceSelectedIfaces, setDeviceSelectedIfaces] = useState<Record<number, string>>({});
+  const deviceSelectedIfacesRef = useRef<Record<number, string>>({});
+
+  useEffect(() => {
+    deviceSelectedIfacesRef.current = deviceSelectedIfaces;
+  }, [deviceSelectedIfaces]);
+
+  const [deviceBandwidthSamples, setDeviceBandwidthSamples] = useState<Record<number, BandwidthPoint[]>>({});
+  const [isLoadingIfaceMap, setIsLoadingIfaceMap] = useState<Record<number, boolean>>({});
+
+  // Queue Multi-device states
+  const [deviceQueueLists, setDeviceQueueLists] = useState<Record<number, string[]>>({});
+  const [deviceSelectedQueues, setDeviceSelectedQueues] = useState<Record<number, string>>({});
+  const deviceSelectedQueuesRef = useRef<Record<number, string>>({});
+
+  useEffect(() => {
+    deviceSelectedQueuesRef.current = deviceSelectedQueues;
+  }, [deviceSelectedQueues]);
+
+  const [deviceQueueBandwidthSamples, setDeviceQueueBandwidthSamples] = useState<Record<number, BandwidthPoint[]>>({});
+  const [isLoadingQueueMap, setIsLoadingQueueMap] = useState<Record<number, boolean>>({});
 
   type DeviceAlert = {
     id: number;
@@ -78,52 +97,115 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     createdAt: string;
   };
   const [alerts, setAlerts] = useState<DeviceAlert[]>([]);
+  const [alertPage, setAlertPage] = useState<number>(1);
+  const [alertTotalPages, setAlertTotalPages] = useState<number>(1);
   const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
 
-  useEffect(() => {
-    if (pingDevices.length > 0 && selectedBwDeviceId === null) {
-      setSelectedBwDeviceId(pingDevices[0].id);
-    }
-  }, [pingDevices, selectedBwDeviceId]);
+  const [selectedDetailDeviceId, setSelectedDetailDeviceId] = useState<number | null>(null);
 
-  // Fetch interface list when device changes
+
+  // Fetch interface lists for ALL devices
   useEffect(() => {
-    if (!selectedBwDeviceId) return;
-    fetch(`/api/monitoring/interfaces/${selectedBwDeviceId}`)
+    pingDevices.forEach(device => {
+      // Fetch only if not fetched yet
+      if (deviceIfaceLists[device.id] === undefined) {
+        fetch(`/api/monitoring/interfaces/${device.id}`)
+          .then(r => r.ok ? r.json() : [])
+          .then(data => {
+            setDeviceIfaceLists(prev => ({ ...prev, [device.id]: data }));
+            if (data.length > 0) {
+              setDeviceSelectedIfaces(prev => ({ ...prev, [device.id]: data[0] }));
+            }
+          })
+          .catch(err => console.error("fetch interfaces error config", err));
+      }
+    });
+  }, [pingDevices]);
+
+  const fetchTrafficForDevice = (deviceId: number, iface: string) => {
+    setIsLoadingIfaceMap(prev => ({ ...prev, [deviceId]: true }));
+    fetch(`/api/monitoring/traffic/${deviceId}?interface=${encodeURIComponent(iface)}`)
       .then(r => r.ok ? r.json() : [])
       .then(data => {
-        setIfaceList(data);
-        if (data.length > 0) setSelectedIface(data[0]);
-      })
-      .catch(err => console.error("fetch interfaces error", err));
-  }, [selectedBwDeviceId]);
-
-  const fetchTraffic = () => {
-    if (!selectedBwDeviceId || !selectedIface || activeTab !== "interface") return;
-    setIsLoadingBw(true);
-    fetch(`/api/monitoring/traffic/${selectedBwDeviceId}?interface=${encodeURIComponent(selectedIface)}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        const formatted = data.map((d: any) => ({
-          ...d,
-          time: formatTime(d.time)
+        const formatted = data.map((point: any) => ({
+          ...point,
+          time: formatTime(point.time)
         }));
-        setRealBandwidthSamples(formatted);
-        setIsLoadingBw(false);
+        setDeviceBandwidthSamples(prev => ({ ...prev, [deviceId]: formatted }));
       })
       .catch(err => {
-        console.error("fetch traffic error", err);
-        setIsLoadingBw(false);
+        console.error("fetch traffic error for", deviceId, err);
+      })
+      .finally(() => {
+        setIsLoadingIfaceMap(prev => ({ ...prev, [deviceId]: false }));
       });
   };
 
-    const fetchAlerts = () => {
-    if (activeTab !== "alerts") return;
+  const fetchQueueTrafficForDevice = (deviceId: number, queue: string) => {
+    setIsLoadingQueueMap(prev => ({ ...prev, [deviceId]: true }));
+    fetch(`/api/monitoring/queue-traffic/${deviceId}?queue=${encodeURIComponent(queue)}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const formatted = data.map((point: any) => ({
+          ...point,
+          time: formatTime(point.time)
+        }));
+        setDeviceQueueBandwidthSamples(prev => ({ ...prev, [deviceId]: formatted }));
+      })
+      .catch(err => {
+        console.error("fetch queue traffic error for", deviceId, err);
+      })
+      .finally(() => {
+        setIsLoadingQueueMap(prev => ({ ...prev, [deviceId]: false }));
+      });
+  };
+
+  const fetchAllTraffic = () => {
+    if (initialTab === "interface") {
+      pingDevices.forEach(d => {
+        const iface = deviceSelectedIfacesRef.current[d.id];
+        if (iface) fetchTrafficForDevice(d.id, iface);
+      });
+    } else if (initialTab === "queue") {
+      pingDevices.forEach(d => {
+        const queue = deviceSelectedQueuesRef.current[d.id];
+        if (queue) fetchQueueTrafficForDevice(d.id, queue);
+      });
+    }
+  };
+
+  // Fetch queue lists for ALL API devices
+  useEffect(() => {
+    pingDevices.forEach(device => {
+      // Fetch only for Mikrotik API devices
+      if (device.integrationMode?.toLowerCase().includes("api") && deviceQueueLists[device.id] === undefined) {
+        fetch(`/api/monitoring/queues/${device.id}`)
+          .then(r => r.ok ? r.json() : [])
+          .then(data => {
+            setDeviceQueueLists(prev => ({ ...prev, [device.id]: data }));
+            if (data.length > 0) {
+              setDeviceSelectedQueues(prev => ({ ...prev, [device.id]: data[0] }));
+            }
+          })
+          .catch(err => console.error("fetch queues error config", err));
+      }
+    });
+  }, [pingDevices]);
+
+
+
+  const fetchAlerts = () => {
     setIsLoadingAlerts(true);
-    fetch(`/api/monitoring/alerts?workspace_id=${workspaceId || 0}`)
-      .then((r) => (r.ok ? r.json() : []))
+    fetch(`/api/monitoring/alerts?workspace_id=${workspaceId || 0}&page=${alertPage}`)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        setAlerts(data || []);
+        if (data && data.alerts) {
+          setAlerts(data.alerts);
+          setAlertTotalPages(data.totalPages || 1);
+        } else {
+          setAlerts(Array.isArray(data) ? data : []);
+          setAlertTotalPages(1);
+        }
         setIsLoadingAlerts(false);
       })
       .catch((err) => {
@@ -136,7 +218,6 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
 
   useEffect(() => {
-    if (activeTab !== "ping" && activeTab !== "interface" && activeTab !== "queue") return;
 
     let interval: any;
 
@@ -159,10 +240,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
           let updated = { ...prev };
           let changed = false;
           data.forEach(d => {
-             if (prev[d.id] === undefined && d.pingIntervalMs) {
-                updated[d.id] = d.pingIntervalMs;
-                changed = true;
-             }
+            if (prev[d.id] === undefined && d.pingIntervalMs) {
+              updated[d.id] = d.pingIntervalMs;
+              changed = true;
+            }
           });
           return changed ? updated : prev;
         });
@@ -195,21 +276,21 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
         window.clearInterval(interval);
       }
     };
-  }, [activeTab, workspaceId]);
+  }, [workspaceId]);
 
   // Global Polling Manager
   useEffect(() => {
-    if (activeTab === "interface") {
-      fetchTraffic();
-      const tInt = setInterval(fetchTraffic, 10000);
+    if (initialTab === "interface" || initialTab === "queue") {
+      fetchAllTraffic();
+      const tInt = setInterval(fetchAllTraffic, 10000);
       return () => clearInterval(tInt);
     }
-    if (activeTab === "alerts") {
+    if (initialTab === "alerts") {
       fetchAlerts();
       const aInt = setInterval(fetchAlerts, 10000);
       return () => clearInterval(aInt);
     }
-  }, [activeTab, selectedBwDeviceId, selectedIface, workspaceId]);
+  }, [initialTab, workspaceId, alertPage]);
 
   useEffect(() => {
     if (!detailLogDeviceId) return;
@@ -298,7 +379,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
             <div className="mt-2 grid gap-3 md:grid-cols-2">
               {pingDevices.map((device) => {
                 let historyPoints: PingHistoryPoint[] = pingHistory[device.id] || [];
-                
+
                 if (historyPoints.length === 1) {
                   historyPoints = [
                     { ...historyPoints[0], time: historyPoints[0].time + " " },
@@ -342,11 +423,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         <div className="flex items-center gap-2">
                           <span>Status:</span>
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-semibold ${
-                              device.status === "UP"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-rose-50 text-rose-700 border-rose-200"
-                            }`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-semibold ${device.status === "UP"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-rose-50 text-rose-700 border-rose-200"
+                              }`}
                           >
                             {device.status}
                           </span>
@@ -622,9 +702,8 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                             {new Date(log.created_at).toLocaleString('id-ID')}
                           </td>
                           <td className="px-5 py-2.5">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
-                              log.status === "UP" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-                            }`}>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${log.status === "UP" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
+                              }`}>
                               {log.status}
                             </span>
                           </td>
@@ -718,6 +797,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         {new Date(alert.createdAt).toLocaleString("id-ID", {
                           day: "2-digit",
                           month: "short",
+                          year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
@@ -733,11 +813,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            isDown
-                              ? "bg-red-100 text-red-600"
-                              : "bg-emerald-100 text-emerald-600"
-                          }`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${isDown
+                            ? "bg-red-100 text-red-600"
+                            : "bg-emerald-100 text-emerald-600"
+                            }`}
                         >
                           {alert.status}
                         </span>
@@ -749,221 +828,421 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
             </tbody>
           </table>
         </div>
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+          <span className="text-[12px] text-slate-500 font-medium">
+            Halaman {alertPage} dari {alertTotalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={alertPage <= 1 || isLoadingAlerts}
+              onClick={() => setAlertPage(p => p - 1)}
+              className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Sebelumnya
+            </button>
+            <button
+              disabled={alertPage >= alertTotalPages || isLoadingAlerts}
+              onClick={() => setAlertPage(p => p + 1)}
+              className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
       </section>
     );
   };
 
 
   const renderInterface = () => {
-    const selectedDevice = pingDevices.find(d => d.id === selectedBwDeviceId);
-    const isDown = selectedDevice?.status === "DOWN";
-
-    // Gunakan data asli jika tersedia, jika tidak (atau jika down) gunakan placeholder 0
-    const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
-      ? realBandwidthSamples 
-      : [
-          { time: "00:00", rx: 0, tx: 0 },
-        ];
-
-    const rxValues = bandwidthSamples.map((p) => p.rx);
-    const txValues = bandwidthSamples.map((p) => p.tx);
-
-    const sum = (values: number[]) =>
-      values.reduce((acc, val) => acc + val, 0);
-
-    const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
-    const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
-
-    const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
-    const txMax = txValues.length ? Math.max(...txValues) : 0;
-
-    const rxMin = rxValues.length ? Math.min(...rxValues) : 0;
-    const txMin = txValues.length ? Math.min(...txValues) : 0;
-
-    const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
-
     return (
       <section>
         <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
           Monitoring Bandwidth per Interface
         </h2>
         <p className="m-0 text-[12px] text-slate-500 mb-3.5">
-          Pilih router dan interface untuk melihat grafik penggunaan bandwidth
-          (rx/tx) per waktu.
+          Daftar grafik penggunaan bandwidth (rx/tx) untuk setiap router secara paralel.
         </p>
 
-        <div className="flex flex-wrap gap-2.5 mb-3.5">
-          <select
-            className="px-2.5 py-1.5 rounded-full border border-slate-200 text-[12px] min-w-[180px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
-            value={selectedBwDeviceId ?? ""}
-            onChange={(e) => setSelectedBwDeviceId(Number(e.target.value))}
-          >
-            {pingDevices.map(d => (
-              <option key={d.id} value={d.id}>{d.name} ({d.ip})</option>
-            ))}
-            {pingDevices.length === 0 && <option value="">Tidak ada perangkat</option>}
-          </select>
-          <select
-            className="px-2.5 py-1.5 rounded-full border border-slate-200 text-[12px] min-w-[180px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
-            value={selectedIface}
-            onChange={(e) => setSelectedIface(e.target.value)}
-          >
-            {ifaceList.map(name => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-            {ifaceList.length === 0 && <option value="">Tidak ada interface</option>}
-          </select>
-        </div>
-        <div className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <p className="m-0 text-[11px] text-slate-500">Grafik waktu nyata</p>
-                {realBandwidthSamples.length === 0 && (
-                  <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-wider border border-amber-200">
-                    Menunggu Data...
-                  </span>
-                )}
-              </div>
-              <p className="m-0 text-[13px] font-semibold text-slate-900 line-clamp-1">
-                {selectedIface || "Pilih Interface"}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500">
-              <div className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>RX Mbps</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-sky-500" />
-                <span>TX Mbps</span>
-              </div>
-            </div>
+        {pingDevices.length === 0 ? (
+          <p className="text-[12px] text-slate-500">Belum ada perangkat yang ditambahkan.</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("snmp")).map(d => {
+              const ifaceList = deviceIfaceLists[d.id] || [];
+              const selectedIface = deviceSelectedIfaces[d.id] || "";
+              const realBandwidthSamples = deviceBandwidthSamples[d.id] || [];
+              const isDown = d.status === "DOWN";
+              const isLoading = isLoadingIfaceMap[d.id] || false;
+
+              const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
+                ? realBandwidthSamples
+                : [{ time: "00:00", rx: 0, tx: 0 }];
+
+              const rxValues = bandwidthSamples.map((p) => p.rx);
+              const txValues = bandwidthSamples.map((p) => p.tx);
+
+              const sum = (values: number[]) => values.reduce((acc, val) => acc + val, 0);
+
+              const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
+              const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
+              const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
+              const txMax = txValues.length ? Math.max(...txValues) : 0;
+              const rxMin = rxValues.length ? Math.min(...rxValues) : 0;
+              const txMin = txValues.length ? Math.min(...txValues) : 0;
+
+              const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
+
+              return (
+                <div
+                  key={d.id}
+                  className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
+                  onClick={() => setSelectedDetailDeviceId(d.id)}
+                >
+                  <div className="absolute inset-0 bg-slate-50/0 group-hover:bg-slate-50/50 pointer-events-none rounded-2xl transition-colors"></div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                      <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
+                    </div>
+                    <select
+                      className="px-2 py-1 rounded-lg border border-slate-200 text-[11px] min-w-[120px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                      value={selectedIface}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const newIface = e.target.value;
+                        setDeviceSelectedIfaces(prev => ({ ...prev, [d.id]: newIface }));
+                        fetchTrafficForDevice(d.id, newIface); // Instant update
+                      }}
+                    >
+                      {ifaceList.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                      {ifaceList.length === 0 && <option value="">Tidak ada interface</option>}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <p className="m-0 text-[11px] text-slate-500">Grafik waktu nyata</p>
+                      {isLoading && realBandwidthSamples.length === 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-wider border border-amber-200">
+                          Loading...
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                      <div className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span>RX</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-sky-500" />
+                        <span>TX</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <BandwidthSparkline data={bandwidthSamples} />
+
+                  {ifaceList.length === 0 && !isLoading && (
+                    <div className="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] flex gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0 mt-0.5">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <div>
+                        <span className="font-bold uppercase tracking-wide">Data kosong.</span>
+                        <span className="ml-1 opacity-80">Pastikan SNMP aktif (IP {d.ip}) dan tidak ada gangguan.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
+                      <span>
+                        RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMin)} min, {formatBandwidth(rxMax)} max
+                      </span>
+                      <span>
+                        TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMin)} min, {formatBandwidth(txMax)} max
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>
+                        Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
+                      </span>
+                      {bandwidthSamples.length > 1 && (
+                        <span>
+                          {bandwidthSamples[0].time} - {bandwidthSamples[bandwidthSamples.length - 1].time}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          <BandwidthSparkline data={bandwidthSamples} />
-
-          {ifaceList.length === 0 && (
-            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex flex-col gap-1.5">
-              <span className="font-bold flex items-center gap-1.5 uppercase tracking-wide">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                  <line x1="12" y1="9" x2="12" y2="13"></line>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                Peringatan: Tidak Ada Interface Terdeteksi
-              </span>
-              <p className="m-0 leading-relaxed font-medium">
-                Sistem tidak menemukan data interface untuk perangkat ini. Hal ini biasanya terjadi karena:
-              </p>
-              <ul className="m-0 pl-4 list-disc space-y-0.5">
-                <li>Mode <span className="font-bold">SNMP</span> belum diaktifkan saat menambah perangkat.</li>
-                <li><span className="font-bold">Community String</span> (misal: "public") salah atau tidak cocok.</li>
-                <li>Fitur SNMP belum diaktifkan di sisi perangkat (misal: MikroTik IP &gt; SNMP).</li>
-                <li>Perangkat sedang dalam status <span className="font-bold font-mono">DOWN</span> sehingga data tidak dapat ditarik.</li>
-              </ul>
-            </div>
-          )}
-
-          <div className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-600">
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1">
-              <span>
-                RX: {formatBandwidth(rxAvg)} avg,
-                {" "}
-                {formatBandwidth(rxMin)} min,
-                {" "}
-                {formatBandwidth(rxMax)} max
-              </span>
-              <span>
-                TX: {formatBandwidth(txAvg)} avg,
-                {" "}
-                {formatBandwidth(txMin)} min,
-                {" "}
-                {formatBandwidth(txMax)} max
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-500">
-              <span>
-                current: RX {formatBandwidth(lastSample.rx)} / TX
-                {" "}
-                {formatBandwidth(lastSample.tx)}
-              </span>
-              {bandwidthSamples.length > 1 && (
-                <span>
-                  periode: {bandwidthSamples[0].time} -
-                  {" "}
-                  {bandwidthSamples[bandwidthSamples.length - 1].time}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        )}
       </section>
     );
   };
 
   const renderQueue = () => {
-    const queues = [
-      { name: "Queue-Office", usageMbps: 45 },
-      { name: "Queue-Home", usageMbps: 32 },
-      { name: "Queue-Business", usageMbps: 28 },
-    ];
-
     return (
       <section>
         <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
           Monitoring Bandwidth per Queue (Mikrotik)
         </h2>
         <p className="m-0 text-[12px] text-slate-500 mb-3.5">
-          List queue dan grafik usage. Data di bawah masih dummy dan akan diisi
-          dari API Mikrotik nanti.
+          Daftar grafik penggunaan bandwidth antrean (queue) Mikrotik secara paralel.
         </p>
 
-        <div className="rounded-2xl p-4 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5">
-          <ul className="list-none p-0 m-0 text-[12px] text-slate-600">
-            {queues.map((q) => (
-              <li
-                key={q.name}
-                className="flex justify-between py-1.5 border-b border-slate-200"
-              >
-                <span>{q.name}</span>
-                <span className="font-semibold text-slate-900">
-                  {q.usageMbps} Mbps
-                </span>
-              </li>
-            ))}
-          </ul>
+        {pingDevices.length === 0 ? (
+          <p className="text-[12px] text-slate-500">Belum ada perangkat yang ditambahkan.</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("api")).map(d => {
+              const qList = deviceQueueLists[d.id] || [];
+              const selectedQueue = deviceSelectedQueues[d.id] || "";
+              const realBandwidthSamples = deviceQueueBandwidthSamples[d.id] || [];
+              const isDown = d.status === "DOWN";
+              const isLoading = isLoadingQueueMap[d.id] || false;
 
-          <div className="mt-3 px-3 py-3 rounded-xl bg-slate-50 text-[11px] text-slate-400 text-center">
-            Placeholder grafik time-series usage queue.
+              const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
+                ? realBandwidthSamples
+                : [{ time: "00:00", rx: 0, tx: 0 }];
+
+              const rxValues = bandwidthSamples.map((p) => p.rx);
+              const txValues = bandwidthSamples.map((p) => p.tx);
+
+              const sum = (values: number[]) => values.reduce((acc, val) => acc + val, 0);
+
+              const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
+              const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
+              const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
+              const txMax = txValues.length ? Math.max(...txValues) : 0;
+              const rxMin = rxValues.length ? Math.min(...rxValues) : 0;
+              const txMin = txValues.length ? Math.min(...txValues) : 0;
+
+              const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
+
+              return (
+                <div
+                  key={d.id}
+                  className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
+                  onClick={() => setSelectedDetailDeviceId(d.id)}
+                >
+                  <div className="absolute inset-0 bg-slate-50/0 group-hover:bg-slate-50/50 pointer-events-none rounded-2xl transition-colors"></div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                      <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
+                    </div>
+                    <select
+                      className="px-2 py-1 rounded-lg border border-slate-200 text-[11px] min-w-[120px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                      value={selectedQueue}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const newQ = e.target.value;
+                        setDeviceSelectedQueues(prev => ({ ...prev, [d.id]: newQ }));
+                        fetchQueueTrafficForDevice(d.id, newQ);
+                      }}
+                    >
+                      {qList.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                      {qList.length === 0 && <option value="">Tidak ada queue</option>}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <p className="m-0 text-[11px] text-slate-500">Grafik waktu nyata</p>
+                      {isLoading && realBandwidthSamples.length === 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-wider border border-amber-200">
+                          Loading...
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                      <div className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span>RX</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-sky-500" />
+                        <span>TX</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <BandwidthSparkline data={bandwidthSamples} />
+
+                  {qList.length === 0 && !isLoading && (
+                    <div className="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] flex gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0 mt-0.5">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <div>
+                        <span className="font-bold uppercase tracking-wide">Data Queue Kosong.</span>
+                        <span className="ml-1 opacity-80">Pastikan MikroTik API (Port 8728) aktif dan terjangkau oleh server.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
+                      <span>
+                        RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMin)} min, {formatBandwidth(rxMax)} max
+                      </span>
+                      <span>
+                        TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMin)} min, {formatBandwidth(txMax)} max
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>
+                        Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
+                      </span>
+                      {bandwidthSamples.length > 1 && (
+                        <span>
+                          {bandwidthSamples[0].time} - {bandwidthSamples[bandwidthSamples.length - 1].time}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
       </section>
     );
   };
 
-  const renderContent = () => {
-    if (activeTab === "ping") return renderPing();
-    if (activeTab === "alerts") return renderAlerts();
-    if (activeTab === "interface") return renderInterface();
-    return renderQueue();
+
+
+  const renderDetailModal = () => {
+    if (!selectedDetailDeviceId) return null;
+
+    // find device
+    const d = pingDevices.find(x => x.id === selectedDetailDeviceId);
+    if (!d) return null;
+
+    const isDown = d.status === "DOWN";
+
+    // Choose which data source to use based on the current tab
+    const isQueueTab = initialTab === "queue";
+    const selectedItemName = isQueueTab
+      ? (deviceSelectedQueues[d.id] || "Unknown Queue")
+      : (deviceSelectedIfaces[d.id] || "Unknown Interface");
+
+    const realBandwidthSamples = isQueueTab
+      ? (deviceQueueBandwidthSamples[d.id] || [])
+      : (deviceBandwidthSamples[d.id] || []);
+
+    const isLoading = isQueueTab
+      ? (isLoadingQueueMap[d.id] || false)
+      : (isLoadingIfaceMap[d.id] || false);
+
+    const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
+      ? realBandwidthSamples
+      : [{ time: "00:00", rx: 0, tx: 0 }];
+
+    const rxValues = bandwidthSamples.map((p) => p.rx);
+    const txValues = bandwidthSamples.map((p) => p.tx);
+
+    const sum = (values: number[]) => values.reduce((acc, val) => acc + val, 0);
+
+    const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
+    const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
+    const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
+    const txMax = txValues.length ? Math.max(...txValues) : 0;
+
+    const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedDetailDeviceId(null)}>
+        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div>
+              <h3 className="m-0 text-[18px] font-bold text-slate-900 line-clamp-1">{d.name}</h3>
+              <p className="m-0 text-[12px] text-slate-500 mt-0.5">{isQueueTab ? 'Queue' : 'Interface'} <span className="font-semibold text-slate-700">{selectedItemName}</span></p>
+            </div>
+            <button
+              onClick={() => setSelectedDetailDeviceId(null)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div className="p-6">
+            <div className="flex flex-wrap items-center justify-between mb-5 gap-4">
+              <div className="flex items-center gap-5 text-[12px] text-slate-600 font-medium">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>RX Average</div>
+                  <span className="text-[18px] font-bold text-slate-900">{formatBandwidth(rxAvg)}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>TX Average</div>
+                  <span className="text-[18px] font-bold text-slate-900">{formatBandwidth(txAvg)}</span>
+                </div>
+                <div className="w-px h-10 bg-slate-200 mx-2 hidden sm:block"></div>
+                <div className="flex flex-col gap-1">
+                  <div className="text-slate-400">Current RX</div>
+                  <span className="text-[15px] font-semibold text-slate-700">{formatBandwidth(lastSample.rx)}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="text-slate-400">Current TX</div>
+                  <span className="text-[15px] font-semibold text-slate-700">{formatBandwidth(lastSample.tx)}</span>
+                </div>
+                <div className="w-px h-10 bg-slate-200 mx-2 hidden sm:block"></div>
+                <div className="flex flex-col gap-1">
+                  <div className="text-slate-400">Peak RX / TX</div>
+                  <span className="text-[13px] font-medium text-slate-600">{formatBandwidth(rxMax)} / {formatBandwidth(txMax)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-100 rounded-xl px-2 py-4 shadow-inner shadow-slate-100">
+              {isLoading && bandwidthSamples.length <= 1 ? (
+                <div className="flex items-center justify-center h-[300px] text-slate-400 font-medium text-[13px]">Memuat data seketika...</div>
+              ) : (
+                <BandwidthSparkline data={bandwidthSamples} showAxes={true} height={300} />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <section className="max-w-5xl mx-auto">
-      <header className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-900">
-            Monitoring Jaringan {workspaceName ? `- ${workspaceName}` : ""}
-          </h1>
-          <p className="m-0 text-[12px] text-slate-500">
-            Pantau ping, alert, dan penggunaan bandwidth per interface / queue
-            dalam satu halaman.
-          </p>
-        </div>
+      <header className="mb-8">
+        <h1 className="m-0 mb-1 text-[22px] font-bold text-slate-900">
+          Monitoring Jaringan {workspaceName ? `- ${workspaceName}` : ""}
+        </h1>
+        <p className="m-0 text-[13px] text-slate-500">
+          Pantau ping, peringatan (alerts), dan penggunaan bandwidth perangkat secara keseluruhan.
+        </p>
       </header>
 
-      {renderContent()}
+      <div className="mt-4">
+        {initialTab === "ping" && renderPing()}
+        {initialTab === "alerts" && renderAlerts()}
+        {initialTab === "interface" && renderInterface()}
+        {initialTab === "queue" && renderQueue()}
+        {/* Render nothing extra to prevent seeing everything at once */}
+      </div>
+      
+      {renderDetailModal()}
     </section>
   );
 };

@@ -61,11 +61,21 @@ CREATE TABLE IF NOT EXISTS devices (
 	snmp_version VARCHAR(10),
 	snmp_community VARCHAR(255),
 	api_user VARCHAR(255),
+	api_password VARCHAR(255),
 	api_port INT NOT NULL DEFAULT 0,
 	monitoring_enabled BOOLEAN NOT NULL DEFAULT TRUE,
 	ping_interval_ms INT NOT NULL DEFAULT 30000,
 	workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE,
 	created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS device_queue_logs (
+    id SERIAL PRIMARY KEY,
+    device_id INT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    queue_name VARCHAR(255) NOT NULL,
+    bytes_in BIGINT NOT NULL,
+    bytes_out BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS device_ping_logs (

@@ -23,7 +23,7 @@ func startPingWorker(state *appState) {
 
 		// Ambil semua device yang monitoringnya aktif
 		rows, err := state.db.Query(ctx, `
-			SELECT id, name, ip, integration_mode, api_port, ping_interval_ms, workspace_id 
+			SELECT id, name, ip, integration_mode, api_user, api_password, api_port, ping_interval_ms, workspace_id 
 			FROM devices 
 			WHERE monitoring_enabled = TRUE
 		`)
@@ -37,6 +37,8 @@ func startPingWorker(state *appState) {
 			Name            string
 			IP              string
 			IntegrationMode string
+			ApiUser         string
+			ApiPassword     string
 			ApiPort         int
 			PingIntervalMs  int
 			WorkspaceID     *int
@@ -45,7 +47,7 @@ func startPingWorker(state *appState) {
 		var devices []workerDevice
 		for rows.Next() {
 			var d workerDevice
-			if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.IntegrationMode, &d.ApiPort, &d.PingIntervalMs, &d.WorkspaceID); err != nil {
+			if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.IntegrationMode, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.PingIntervalMs, &d.WorkspaceID); err != nil {
 				continue
 			}
 			devices = append(devices, d)
@@ -68,7 +70,7 @@ func startPingWorker(state *appState) {
 					status := "UP"
 					latencyMs := int64(0)
 
-					latency, err := pingDevice(dev.IP, dev.IntegrationMode, dev.ApiPort)
+					latency, err := pingDevice(dev.IP, dev.IntegrationMode, dev.ApiPort, dev.ApiUser, dev.ApiPassword)
 					if err != nil {
 						status = "DOWN"
 					} else {
