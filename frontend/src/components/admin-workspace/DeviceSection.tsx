@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 export type DeviceType = "router" | "switch" | "ap" | "server" | "client";
 
-export type IntegrationMode = "ping" | "snmp" | "api" | "snmp+api";
+export type IntegrationMode = "ping" | "snmp";
 
 export type SnmpVersion = "v1" | "v2c" | "v3";
 
@@ -14,9 +14,6 @@ export type DeviceRecord = {
   integrationMode: IntegrationMode;
   snmpVersion: SnmpVersion | null;
   snmpCommunity: string;
-  apiUser: string;
-  apiPassword?: string;
-  apiPort: number;
   monitoringEnabled: boolean;
 };
 
@@ -71,12 +68,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [name, setName] = useState("");
   const [ip, setIp] = useState("");
   const [type, setType] = useState<DeviceType>("router");
-  const [integrationMode, setIntegrationMode] = useState<IntegrationMode>("snmp+api");
+  const [integrationMode, setIntegrationMode] = useState<IntegrationMode>("snmp");
     const [snmpVersion, setSnmpVersion] = useState<SnmpVersion>("v2c");
   const [snmpCommunity, setSnmpCommunity] = useState("public");
-  const [apiUser, setApiUser] = useState("api-user");
-  const [apiPassword, setApiPassword] = useState("");
-  const [apiPort, setApiPort] = useState(8728);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "success" | "failed">("idle");
@@ -86,12 +80,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<DeviceRecord | null>(null);
-  const [editIntegrationMode, setEditIntegrationMode] = useState<IntegrationMode>("snmp+api");
+  const [editIntegrationMode, setEditIntegrationMode] = useState<IntegrationMode>("snmp");
   const [editSnmpVersion, setEditSnmpVersion] = useState<SnmpVersion>("v2c");
   const [editSnmpCommunity, setEditSnmpCommunity] = useState("");
-  const [editApiUser, setEditApiUser] = useState("");
-  const [editApiPassword, setEditApiPassword] = useState("");
-  const [editApiPort, setEditApiPort] = useState(8728);
   const [editMonitoringEnabled, setEditMonitoringEnabled] = useState(true);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -132,25 +123,12 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     if (!name.trim() || !ip.trim()) return;
 
     const normalizedSnmp =
-      integrationMode === "snmp" || integrationMode === "snmp+api"
+      integrationMode === "snmp"
         ? snmpCommunity.trim() || "public"
         : "";
 
     const normalizedSnmpVersion: SnmpVersion | null =
-      integrationMode === "snmp" || integrationMode === "snmp+api" ? snmpVersion : null;
-
-    const normalizedApiUser =
-      integrationMode === "api" || integrationMode === "snmp+api"
-        ? apiUser.trim()
-        : "";
-
-    const normalizedApiPassword =
-      integrationMode === "api" || integrationMode === "snmp+api"
-        ? apiPassword.trim()
-        : "";
-
-    const normalizedApiPort =
-      integrationMode === "api" || integrationMode === "snmp+api" ? apiPort : 0;
+      integrationMode === "snmp" ? snmpVersion : null;
 
     const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
       name: name.trim(),
@@ -159,9 +137,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       integrationMode,
       snmpVersion: normalizedSnmpVersion,
       snmpCommunity: normalizedSnmp,
-      apiUser: normalizedApiUser,
-      apiPassword: normalizedApiPassword,
-      apiPort: normalizedApiPort,
       monitoringEnabled,
       workspaceId: workspaceId ?? null,
     };
@@ -208,12 +183,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
     setName("");
     setIp("");
-    setIntegrationMode("snmp+api");
+    setIntegrationMode("snmp");
     setSnmpVersion("v2c");
     setSnmpCommunity("public");
-    setApiUser("api-user");
-    setApiPassword("");
-    setApiPort(8728);
     setMonitoringEnabled(true);
     setIsTesting(false);
     setTestStatus("idle");
@@ -228,9 +200,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       return;
     }
 
-    const normalizedApiPortForTest =
-      integrationMode === "api" || integrationMode === "snmp+api" ? apiPort : 0;
-
     setIsTesting(true);
     setTestStatus("idle");
     setTestMessage("");
@@ -240,14 +209,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         name: "",
         ip: ipToTest,
         type,
-        // Gunakan mode yang dipilih saat ini supaya tes koneksi
-        // sesuai dengan jenis endpoint (Ping saja vs SNMP+API).
         integrationMode,
         snmpVersion: snmpVersion,
         snmpCommunity: snmpCommunity,
-        apiUser: apiUser,
-        apiPassword: apiPassword,
-        apiPort: normalizedApiPortForTest,
         monitoringEnabled: true,
         workspaceId: workspaceId ?? null,
       };
@@ -294,9 +258,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setEditIntegrationMode(device.integrationMode);
     setEditSnmpVersion(device.snmpVersion || "v2c");
     setEditSnmpCommunity(device.snmpCommunity || "public");
-    setEditApiUser(device.apiUser || "api-user");
-    setEditApiPassword(device.apiPassword || "");
-    setEditApiPort(device.apiPort || 8728);
     setEditMonitoringEnabled(device.monitoringEnabled);
     setIsEditModalOpen(true);
   };
@@ -308,25 +269,12 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     if (!name.trim() || !ip.trim()) return;
 
     const normalizedSnmp =
-      editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api"
+      editIntegrationMode === "snmp"
         ? editSnmpCommunity.trim() || "public"
         : "";
 
     const normalizedSnmpVersion: SnmpVersion | null =
-      editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api" ? editSnmpVersion : null;
-
-    const normalizedApiUser =
-      editIntegrationMode === "api" || editIntegrationMode === "snmp+api"
-        ? editApiUser.trim()
-        : "";
-
-    const normalizedApiPassword =
-      editIntegrationMode === "api" || editIntegrationMode === "snmp+api"
-        ? editApiPassword.trim()
-        : "";
-
-    const normalizedApiPort =
-      editIntegrationMode === "api" || editIntegrationMode === "snmp+api" ? editApiPort : 0;
+      editIntegrationMode === "snmp" ? editSnmpVersion : null;
 
     try {
       const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
@@ -336,9 +284,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         integrationMode: editIntegrationMode,
         snmpVersion: normalizedSnmpVersion,
         snmpCommunity: normalizedSnmp,
-        apiUser: normalizedApiUser,
-        apiPassword: normalizedApiPassword,
-        apiPort: normalizedApiPort,
         monitoringEnabled: editMonitoringEnabled,
         workspaceId: workspaceId ?? null,
       };
@@ -528,28 +473,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 <Switch
                   label="SNMP Monitoring"
                   description="Tarik data interface, traffic, & resource via SNMP"
-                  checked={integrationMode === "snmp" || integrationMode === "snmp+api"}
+                  checked={integrationMode === "snmp"}
                   onChange={(val) => {
-                    const isApiActive = integrationMode === "api" || integrationMode === "snmp+api";
-                    if (val) {
-                      setIntegrationMode(isApiActive ? "snmp+api" : "snmp");
-                    } else {
-                      setIntegrationMode(isApiActive ? "api" : "ping");
-                    }
-                  }}
-                />
-                <div className="h-px bg-slate-200/60 mx-1" />
-                <Switch
-                  label="Mikrotik API"
-                  description="Gunakan API untuk queue dan fitur spesifik lannya"
-                  checked={integrationMode === "api" || integrationMode === "snmp+api"}
-                  onChange={(val) => {
-                    const isSnmpActive = integrationMode === "snmp" || integrationMode === "snmp+api";
-                    if (val) {
-                      setIntegrationMode(isSnmpActive ? "snmp+api" : "api");
-                    } else {
-                      setIntegrationMode(isSnmpActive ? "snmp" : "ping");
-                    }
+                    setIntegrationMode(val ? "snmp" : "ping");
                   }}
                 />
               </div>
@@ -558,7 +484,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </p>
             </div>
 
-            {(integrationMode === "snmp" || integrationMode === "snmp+api") && (
+            {integrationMode === "snmp" && (
               <div className="flex gap-2">
                 <div className="w-28">
                   <label className="mb-1 block text-[11px] text-slate-600">
@@ -588,45 +514,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
             )}
 
-            {(integrationMode === "api" || integrationMode === "snmp+api") && (
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="mb-1 block text-[11px] text-slate-600">
-                    API user
-                  </label>
-                  <input
-                    value={apiUser}
-                    onChange={(e) => setApiUser(e.target.value)}
-                    placeholder="api-user"
-                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="mb-1 block text-[11px] text-slate-600">
-                    API password
-                  </label>
-                  <input
-                    type="password"
-                    value={apiPassword}
-                    onChange={(e) => setApiPassword(e.target.value)}
-                    placeholder="password"
-                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                  />
-                </div>
-                <div className="w-20">
-                  <label className="mb-1 block text-[11px] text-slate-600">
-                    Port
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={apiPort}
-                    onChange={(e) => setApiPort(Number(e.target.value))}
-                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                  />
-                </div>
-              </div>
-            )}
             <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
               <Switch
                 label="Aktifkan Monitoring"
@@ -663,8 +550,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   <th className="px-2.5 py-1.5 text-left">Tipe</th>
                   <th className="px-2.5 py-1.5 text-left">Mode</th>
                   <th className="px-2.5 py-1.5 text-left">SNMP</th>
-                  <th className="px-2.5 py-1.5 text-left">API user</th>
-                  <th className="px-2.5 py-1.5 text-left">API port</th>
+
                   <th className="px-2.5 py-1.5 text-left">Monitoring</th>
                   <th className="px-2.5 py-1.5 text-left">Aksi</th>
                 </tr>
@@ -683,16 +569,13 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     <td className="px-2.5 py-1.5 align-top text-slate-600">
                       {d.integrationMode === "ping" && "Ping"}
                       {d.integrationMode === "snmp" && "SNMP"}
-                      {d.integrationMode === "api" && "API"}
-                      {d.integrationMode === "snmp+api" && "SNMP + API"}
                     </td>
                     <td className="px-2.5 py-1.5 align-top text-slate-600">
                       {d.snmpVersion && d.snmpCommunity
                         ? `${d.snmpVersion} / ${d.snmpCommunity}`
                         : "-"}
                     </td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-600">{d.apiUser || "-"}</td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-600">{d.apiPort || "-"}</td>
+
                     <td className="px-2.5 py-1.5 align-top">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${
@@ -878,34 +761,15 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   <Switch
                     label="SNMP Monitoring"
                     description="Tarik data interface, traffic, & resource via SNMP"
-                    checked={editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api"}
+                    checked={editIntegrationMode === "snmp"}
                     onChange={(val) => {
-                      const isApiActive = editIntegrationMode === "api" || editIntegrationMode === "snmp+api";
-                      if (val) {
-                        setEditIntegrationMode(isApiActive ? "snmp+api" : "snmp");
-                      } else {
-                        setEditIntegrationMode(isApiActive ? "api" : "ping");
-                      }
-                    }}
-                  />
-                  <div className="h-px bg-slate-200/60 mx-1" />
-                  <Switch
-                    label="Mikrotik API"
-                    description="Gunakan API untuk queue dan fitur spesifik lannya"
-                    checked={editIntegrationMode === "api" || editIntegrationMode === "snmp+api"}
-                    onChange={(val) => {
-                      const isSnmpActive = editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api";
-                      if (val) {
-                        setEditIntegrationMode(isSnmpActive ? "snmp+api" : "api");
-                      } else {
-                        setEditIntegrationMode(isSnmpActive ? "snmp" : "ping");
-                      }
+                      setEditIntegrationMode(val ? "snmp" : "ping");
                     }}
                   />
                 </div>
               </div>
 
-              {(editIntegrationMode === "snmp" || editIntegrationMode === "snmp+api") && (
+              {editIntegrationMode === "snmp" && (
                 <div className="flex gap-2">
                   <div className="w-28">
                     <label className="mb-1 block text-[11px] text-slate-600">
@@ -934,43 +798,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 </div>
               )}
 
-              {(editIntegrationMode === "api" || editIntegrationMode === "snmp+api") && (
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="mb-1 block text-[11px] text-slate-600">
-                      API user
-                    </label>
-                    <input
-                      value={editApiUser}
-                      onChange={(e) => setEditApiUser(e.target.value)}
-                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="mb-1 block text-[11px] text-slate-600">
-                      API password
-                    </label>
-                    <input
-                      type="password"
-                      value={editApiPassword}
-                      onChange={(e) => setEditApiPassword(e.target.value)}
-                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                    />
-                  </div>
-                  <div className="w-20">
-                    <label className="mb-1 block text-[11px] text-slate-600">
-                      Port
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={editApiPort}
-                      onChange={(e) => setEditApiPort(Number(e.target.value))}
-                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                    />
-                  </div>
-                </div>
-              )}
 
               <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
                 <Switch

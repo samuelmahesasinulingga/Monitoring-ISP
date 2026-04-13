@@ -97,7 +97,6 @@ func main() {
 	// Background workers
 	go startPingWorker(state)
 	go startSnmpWorker(state)
-	go startMikrotikApiWorker(state)
 
 	log.Println("Backend running on :8080")
 	e.Logger.Fatal(e.Start(":8080"))

@@ -10,8 +10,10 @@ services:
       - "5432:5432"
     volumes:
       - ./../db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./../db_data:/var/lib/postgresql/data
     networks:
       - isp_net
+    restart: always
 
   backend:
     image: golang:1.22.12
@@ -32,6 +34,7 @@ services:
       - "8080:8080"
     networks:
       - isp_net
+    restart: always
 
   frontend:
     image: node:20

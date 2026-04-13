@@ -182,4 +182,65 @@ func pollDeviceSnmp(state *appState, d struct {
 			log.Printf("gagal simpan SNMP log untuk %s index %d: %v", d.Name, index, err)
 		}
 	}
+
+	// === MIKROTIK SIMPLE QUEUE POLLING ===
+	// 4) Ambil daftar nama queue
+	queueNames := make(map[int]string)
+	err = gs.Walk(".1.3.6.1.4.1.14988.1.1.2.1.1.2", func(p gosnmp.SnmpPDU) error {
+		index := getOidIndex(p.Name)
+		if index > 0 {
+			switch v := p.Value.(type) {
+			case []byte:
+				queueNames[index] = string(v)
+			case string:
+				queueNames[index] = v
+			default:
+				queueNames[index] = fmt.Sprintf("%v", v)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("SNMP walk queue names error for %s: %v", d.Name, err)
+	}
+
+	// 5) Ambil Bytes In
+	queueBytesIn := make(map[int]uint64)
+	err = gs.Walk(".1.3.6.1.4.1.14988.1.1.2.1.1.8", func(p gosnmp.SnmpPDU) error {
+		index := getOidIndex(p.Name)
+		if index > 0 {
+			queueBytesIn[index] = gosnmp.ToBigInt(p.Value).Uint64()
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("SNMP walk queue bytes in error for %s: %v", d.Name, err)
+	}
+
+	// 6) Ambil Bytes Out
+	queueBytesOut := make(map[int]uint64)
+	err = gs.Walk(".1.3.6.1.4.1.14988.1.1.2.1.1.9", func(p gosnmp.SnmpPDU) error {
+		index := getOidIndex(p.Name)
+		if index > 0 {
+			queueBytesOut[index] = gosnmp.ToBigInt(p.Value).Uint64()
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("SNMP walk queue bytes out error for %s: %v", d.Name, err)
+	}
+
+	for index, name := range queueNames {
+		in := queueBytesIn[index]
+		out := queueBytesOut[index]
+
+		_, err = state.db.Exec(context.Background(), `
+			INSERT INTO device_queue_logs (device_id, queue_name, bytes_in, bytes_out, created_at)
+			VALUES ($1, $2, $3, $4, $5)
+		`, d.ID, name, in, out, now)
+
+		if err != nil {
+			log.Printf("gagal simpan SNMP queue log untuk %s index %d: %v", d.Name, index, err)
+		}
+	}
 }

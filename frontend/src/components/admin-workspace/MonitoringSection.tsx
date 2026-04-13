@@ -115,6 +115,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
             setDeviceIfaceLists(prev => ({ ...prev, [device.id]: data }));
             if (data.length > 0) {
               setDeviceSelectedIfaces(prev => ({ ...prev, [device.id]: data[0] }));
+              fetchTrafficForDevice(device.id, data[0]);
             }
           })
           .catch(err => console.error("fetch interfaces error config", err));
@@ -160,40 +161,6 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
       });
   };
 
-  const fetchAllTraffic = () => {
-    if (initialTab === "interface") {
-      pingDevices.forEach(d => {
-        const iface = deviceSelectedIfacesRef.current[d.id];
-        if (iface) fetchTrafficForDevice(d.id, iface);
-      });
-    } else if (initialTab === "queue") {
-      pingDevices.forEach(d => {
-        const queue = deviceSelectedQueuesRef.current[d.id];
-        if (queue) fetchQueueTrafficForDevice(d.id, queue);
-      });
-    }
-  };
-
-  // Fetch queue lists for ALL API devices
-  useEffect(() => {
-    pingDevices.forEach(device => {
-      // Fetch only for Mikrotik API devices
-      if (device.integrationMode?.toLowerCase().includes("api") && deviceQueueLists[device.id] === undefined) {
-        fetch(`/api/monitoring/queues/${device.id}`)
-          .then(r => r.ok ? r.json() : [])
-          .then(data => {
-            setDeviceQueueLists(prev => ({ ...prev, [device.id]: data }));
-            if (data.length > 0) {
-              setDeviceSelectedQueues(prev => ({ ...prev, [device.id]: data[0] }));
-            }
-          })
-          .catch(err => console.error("fetch queues error config", err));
-      }
-    });
-  }, [pingDevices]);
-
-
-
   const fetchAlerts = () => {
     setIsLoadingAlerts(true);
     fetch(`/api/monitoring/alerts?workspace_id=${workspaceId || 0}&page=${alertPage}`)
@@ -214,6 +181,49 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
         setIsLoadingAlerts(false);
       });
   };
+
+  const fetchAllTraffic = () => {
+    if (initialTab === "interface") {
+      pingDevices.forEach(d => {
+        const mode = d.integrationMode?.toLowerCase() || "";
+        if (mode.includes("snmp")) {
+          const iface = deviceSelectedIfacesRef.current[d.id];
+          if (iface) fetchTrafficForDevice(d.id, iface);
+        }
+      });
+    } else if (initialTab === "queue") {
+      pingDevices.forEach(d => {
+        const mode = d.integrationMode?.toLowerCase() || "";
+        if (mode.includes("snmp")) {
+          const queue = deviceSelectedQueuesRef.current[d.id];
+          if (queue) fetchQueueTrafficForDevice(d.id, queue);
+        }
+      });
+    }
+  };
+
+  // Fetch queue lists for ALL API devices
+  useEffect(() => {
+    pingDevices.forEach(device => {
+      // Fetch only for Mikrotik devices (which now use SNMP for queues)
+      if (device.integrationMode?.toLowerCase().includes("snmp") && deviceQueueLists[device.id] === undefined) {
+        fetch(`/api/monitoring/queues/${device.id}`)
+          .then(r => r.ok ? r.json() : [])
+          .then(data => {
+            setDeviceQueueLists(prev => ({ ...prev, [device.id]: data }));
+            if (data.length > 0) {
+              setDeviceSelectedQueues(prev => ({ ...prev, [device.id]: data[0] }));
+              fetchQueueTrafficForDevice(device.id, data[0]);
+            }
+          })
+          .catch(err => console.error("fetch queues error config", err));
+      }
+    });
+  }, [pingDevices]);
+
+
+
+
 
 
 
@@ -290,7 +300,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
       const aInt = setInterval(fetchAlerts, 10000);
       return () => clearInterval(aInt);
     }
-  }, [initialTab, workspaceId, alertPage]);
+  }, [initialTab, workspaceId, alertPage, pingDevices]);
 
   useEffect(() => {
     if (!detailLogDeviceId) return;
@@ -1002,7 +1012,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
           <p className="text-[12px] text-slate-500">Belum ada perangkat yang ditambahkan.</p>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("api")).map(d => {
+            {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("snmp")).map(d => {
               const qList = deviceQueueLists[d.id] || [];
               const selectedQueue = deviceSelectedQueues[d.id] || "";
               const realBandwidthSamples = deviceQueueBandwidthSamples[d.id] || [];
@@ -1088,7 +1098,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                       </svg>
                       <div>
                         <span className="font-bold uppercase tracking-wide">Data Queue Kosong.</span>
-                        <span className="ml-1 opacity-80">Pastikan MikroTik API (Port 8728) aktif dan terjangkau oleh server.</span>
+                        <span className="ml-1 opacity-80">Pastikan SNMP aktif (IP {d.ip}) dan dapat diakses.</span>
                       </div>
                     </div>
                   )}
@@ -1239,7 +1249,6 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
         {initialTab === "alerts" && renderAlerts()}
         {initialTab === "interface" && renderInterface()}
         {initialTab === "queue" && renderQueue()}
-        {/* Render nothing extra to prevent seeing everything at once */}
       </div>
       
       {renderDetailModal()}

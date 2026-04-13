@@ -89,7 +89,6 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           workspaceName={workspaceName}
           workspaceId={workspaceId}
           initialTab={monitoringTab}
-          key={monitoringTab}
         />
       );
     }
