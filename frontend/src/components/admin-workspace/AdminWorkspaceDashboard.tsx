@@ -6,6 +6,7 @@ import BillingSection from "./BillingSection";
 import WorkspaceSettingsSection from "./WorkspaceSettingsSection";
 import DevicesSection from "./DeviceSection";
 import TopologySection from "./TopologySection";
+import CustomerSection from "./CustomerSection";
 
 type MenuKey = "dashboard" | "monitoring" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings";
 type MonitoringTabKey = "ping" | "alerts" | "interface" | "queue";
@@ -107,28 +108,13 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
 
     if (activeMenu === "customers") {
       return (
-        <section style={{ maxWidth: 960, margin: "0 auto" }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 20,
-              fontWeight: 700,
-              color: "#0f172a",
-              marginBottom: 8,
-            }}
-          >
-            Data Pelanggan
-          </h1>
-          <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
-            Halaman ini nantinya berisi daftar pelanggan untuk workspace ini.
-          </p>
-        </section>
+        <CustomerSection workspaceName={workspaceName} workspaceId={workspaceId} />
       );
     }
 
     if (activeMenu === "billing") {
       return (
-        <BillingSection workspaceName={workspaceName} />
+        <BillingSection workspaceName={workspaceName} workspaceId={workspaceId} />
       );
     }
 

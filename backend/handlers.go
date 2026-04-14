@@ -724,41 +724,6 @@ func (a *appState) handleMonitoringSummary(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-func (a *appState) handleListCustomers(c echo.Context) error {
-	ctx := c.Request().Context()
-	wsIDStr := c.QueryParam("workspaceId")
-
-	var rows pgx.Rows
-	var err error
-
-	if wsIDStr != "" {
-		wsID, convErr := strconv.Atoi(wsIDStr)
-		if convErr != nil || wsID <= 0 {
-			return c.String(http.StatusBadRequest, "invalid workspaceId")
-		}
-		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, created_at FROM customers WHERE workspace_id = $1 ORDER BY id LIMIT 100`, wsID)
-	} else {
-		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, created_at FROM customers ORDER BY id LIMIT 100`)
-	}
-	if err != nil {
-		log.Printf("list customers query error: %v", err)
-		return c.String(http.StatusInternalServerError, "failed to query customers")
-	}
-	defer rows.Close()
-
-	var customers []customer
-	for rows.Next() {
-		var cu customer
-		if err := rows.Scan(&cu.ID, &cu.Name, &cu.Email, &cu.Address, &cu.CreatedAt); err != nil {
-			log.Printf("scan customer error: %v", err)
-			continue
-		}
-		customers = append(customers, cu)
-	}
-
-	return c.JSON(http.StatusOK, customers)
-}
-
 // Auth: login admin/user
 
 func (a *appState) handleLogin(c echo.Context) error {

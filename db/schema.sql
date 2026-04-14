@@ -22,14 +22,6 @@ INSERT INTO admins (email, password, role)
 VALUES ('admin@isp.co.id', 'admin123', 'super_admin')
 ON CONFLICT (email) DO NOTHING;
 
-CREATE TABLE IF NOT EXISTS customers (
-	id SERIAL PRIMARY KEY,
-	name VARCHAR(255) NOT NULL,
-	email VARCHAR(255) UNIQUE,
-	address TEXT,
-	created_at TIMESTAMP DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS workspaces (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
@@ -38,6 +30,15 @@ CREATE TABLE IF NOT EXISTS workspaces (
 	telegram_bot_token VARCHAR(255),
 	telegram_chat_id VARCHAR(255),
 	alert_enabled BOOLEAN DEFAULT FALSE,
+	created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	email VARCHAR(255) UNIQUE,
+	address TEXT,
+	workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE,
 	created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -85,13 +86,22 @@ CREATE TABLE IF NOT EXISTS device_ping_logs (
     status VARCHAR(10) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE TABLE IF NOT EXISTS packages (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	bandwidth_mbps INT NOT NULL,
+	price NUMERIC(12,2) NOT NULL,
+	workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE,
+	created_at TIMESTAMP DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS services (
 	id SERIAL PRIMARY KEY,
-	customer_id INT NOT NULL REFERENCES customers(id),
+	customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
 	plan_name VARCHAR(255) NOT NULL,
 	bandwidth_mbps INT NOT NULL,
 	active BOOLEAN DEFAULT TRUE,
+	workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE,
 	created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -105,11 +115,12 @@ CREATE TABLE IF NOT EXISTS usage_logs (
 
 CREATE TABLE IF NOT EXISTS invoices (
 	id SERIAL PRIMARY KEY,
-	customer_id INT NOT NULL REFERENCES customers(id),
+	customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
 	period_start DATE NOT NULL,
 	period_end DATE NOT NULL,
 	amount NUMERIC(12,2) NOT NULL,
 	status VARCHAR(50) NOT NULL DEFAULT 'unpaid',
+	workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE,
 	created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS device_interface_logs (

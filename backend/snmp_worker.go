@@ -64,7 +64,7 @@ func pollDeviceSnmp(state *appState, d struct {
 		Target:    d.IP,
 		Port:      161,
 		Community: d.Community,
-		Version:   gosnmp.Version2c, // Default ke v2c untuk kemudahan
+		Version:   gosnmp.Version2c,
 		Timeout:   time.Duration(2) * time.Second,
 		Retries:   1,
 	}
@@ -72,7 +72,6 @@ func pollDeviceSnmp(state *appState, d struct {
 	if d.Version == "v1" {
 		gs.Version = gosnmp.Version1
 	} else if d.Version == "v3" {
-		// v3 butuh konfigurasi lebih lanjut (UsmStats, dll), kita skip dulu untuk kesederhanaan
 		log.Printf("SNMP v3 not yet supported for %s", d.Name)
 		return
 	}

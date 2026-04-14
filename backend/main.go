@@ -91,10 +91,27 @@ func main() {
 	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
 	e.GET("/api/monitoring/alerts", state.handleGetAlerts)
 
-	// Others
+	// Customers Component
 	e.GET("/api/customers", state.handleListCustomers)
+	e.POST("/api/customers", state.handleCreateCustomer)
+	e.PUT("/api/customers/:id", state.handleUpdateCustomer)
+	e.DELETE("/api/customers/:id", state.handleDeleteCustomer)
 
-	// Background workers
+	// Invoices Component
+	e.GET("/api/invoices", state.handleListInvoices)
+	e.POST("/api/invoices", state.handleCreateInvoice)
+	e.PUT("/api/invoices/:id/status", state.handleUpdateInvoiceStatus)
+	e.DELETE("/api/invoices/:id", state.handleDeleteInvoice)
+
+	// Packages Component
+	e.GET("/api/packages", state.handleListPackages)
+	e.POST("/api/packages", state.handleCreatePackage)
+	e.DELETE("/api/packages/:id", state.handleDeletePackage)
+
+	// Services Component
+	e.GET("/api/services", state.handleListServices)
+	e.POST("/api/services", state.handleCreateService)
+	e.DELETE("/api/services/:id", state.handleDeleteService)
 	go startPingWorker(state)
 	go startSnmpWorker(state)
 
