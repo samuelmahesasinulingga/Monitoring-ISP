@@ -15,6 +15,7 @@ type device struct {
 	ApiPort           int       `json:"apiPort"`
 	MonitoringEnabled bool      `json:"monitoringEnabled"`
 	PingIntervalMs    int       `json:"pingIntervalMs"`
+	MonitoredQueues   []string  `json:"monitoredQueues"`
 	WorkspaceID       *int      `json:"workspaceId,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 }
@@ -30,8 +31,9 @@ type createDeviceRequest struct {
 	ApiPassword       string  `json:"apiPassword"`
 	ApiPort           int     `json:"apiPort"`
 	MonitoringEnabled bool    `json:"monitoringEnabled"`
-	PingIntervalMs    int     `json:"pingIntervalMs"`
-	WorkspaceID       *int    `json:"workspaceId"`
+	PingIntervalMs    int       `json:"pingIntervalMs"`
+	MonitoredQueues   []string  `json:"monitoredQueues"`
+	WorkspaceID       *int      `json:"workspaceId"`
 }
 
 type HistoricalPing struct {
@@ -49,6 +51,7 @@ type devicePingResult struct {
 	Loss           float64          `json:"loss"`
 	Status         string           `json:"status"`
 	PingIntervalMs int              `json:"pingIntervalMs"`
+	MonitoredQueues []string        `json:"monitoredQueues"`
 	History        []HistoricalPing `json:"history"`
 }
 

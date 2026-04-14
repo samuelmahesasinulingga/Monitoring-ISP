@@ -81,7 +81,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   const handlePackageSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const pkgId = Number(e.target.value);
     setSelectedPackageId(pkgId);
-    
+
     // Auto fill price based on selected package
     const selectedPkg = packages.find(p => p.id === pkgId);
     if (selectedPkg) {
@@ -207,8 +207,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
   const handleSaveAutoBilling = () => {
     setAutoSaveResult(
-      `Pengaturan auto kirim tagihan disimpan (dummy): ${
-        autoSendEnabled ? "ON" : "OFF"
+      `Pengaturan auto kirim tagihan disimpan (dummy): ${autoSendEnabled ? "ON" : "OFF"
       }, jadwal tiap tanggal ${scheduleDay}.`
     );
   };
@@ -363,11 +362,10 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                         <button
                           type="button"
                           onClick={() => toggleInvoiceStatus(inv)}
-                          className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border cursor-pointer transition-colors ${
-                            inv.status === "paid" 
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" 
+                          className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border cursor-pointer transition-colors ${inv.status === "paid"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                               : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                          }`}
+                            }`}
                         >
                           {inv.status === "paid" ? "LUNAS" : "BELUM LUNAS"}
                         </button>
@@ -434,7 +432,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                 ✕
               </button>
             </div>
-            
+
             <p className="text-[12px] text-slate-500 mb-4 mt-0">
               Paket yang dibuat di sini akan muncul pada dropdown pembuatan Tagihan untuk kemudahan pengisian nominal.
             </p>
@@ -523,7 +521,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                 </tbody>
               </table>
             </div>
-            
+
             <div className="mt-4 text-right">
               <button
                 type="button"

@@ -35,6 +35,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     status: "UP" | "DOWN";
     pingIntervalMs?: number;
     integrationMode?: string;
+    monitoredQueues?: string[];
     history?: PingHistoryPoint[];
   };
 
@@ -79,14 +80,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
   // Queue Multi-device states
   const [deviceQueueLists, setDeviceQueueLists] = useState<Record<number, string[]>>({});
-  const [deviceSelectedQueues, setDeviceSelectedQueues] = useState<Record<number, string>>({});
-  const deviceSelectedQueuesRef = useRef<Record<number, string>>({});
-
-  useEffect(() => {
-    deviceSelectedQueuesRef.current = deviceSelectedQueues;
-  }, [deviceSelectedQueues]);
-
-  const [deviceQueueBandwidthSamples, setDeviceQueueBandwidthSamples] = useState<Record<number, BandwidthPoint[]>>({});
+  const [deviceQueueBandwidthSamples, setDeviceQueueBandwidthSamples] = useState<Record<number, Record<string, BandwidthPoint[]>>>({});
   const [isLoadingQueueMap, setIsLoadingQueueMap] = useState<Record<number, boolean>>({});
 
   type DeviceAlert = {
@@ -102,7 +96,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
   const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
 
   const [selectedDetailDeviceId, setSelectedDetailDeviceId] = useState<number | null>(null);
-
+  const [selectedDetailQueueName, setSelectedDetailQueueName] = useState<string | null>(null);
 
   // Fetch interface lists for ALL devices
   useEffect(() => {
@@ -151,10 +145,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
           ...point,
           time: formatTime(point.time)
         }));
-        setDeviceQueueBandwidthSamples(prev => ({ ...prev, [deviceId]: formatted }));
+        setDeviceQueueBandwidthSamples(prev => ({
+          ...prev,
+          [deviceId]: {
+            ...(prev[deviceId] || {}),
+            [queue]: formatted
+          }
+        }));
       })
       .catch(err => {
-        console.error("fetch queue traffic error for", deviceId, err);
+        console.error("fetch queue traffic error for", deviceId, queue, err);
       })
       .finally(() => {
         setIsLoadingQueueMap(prev => ({ ...prev, [deviceId]: false }));
@@ -195,31 +195,23 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
       pingDevices.forEach(d => {
         const mode = d.integrationMode?.toLowerCase() || "";
         if (mode.includes("snmp")) {
-          const queue = deviceSelectedQueuesRef.current[d.id];
-          if (queue) fetchQueueTrafficForDevice(d.id, queue);
+          const queues = d.monitoredQueues || [];
+          queues.forEach(q => fetchQueueTrafficForDevice(d.id, q));
         }
       });
     }
   };
 
-  // Fetch queue lists for ALL API devices
+  // Initial fetch for queues when pingDevices changes
   useEffect(() => {
     pingDevices.forEach(device => {
-      // Fetch only for Mikrotik devices (which now use SNMP for queues)
-      if (device.integrationMode?.toLowerCase().includes("snmp") && deviceQueueLists[device.id] === undefined) {
-        fetch(`/api/monitoring/queues/${device.id}`)
-          .then(r => r.ok ? r.json() : [])
-          .then(data => {
-            setDeviceQueueLists(prev => ({ ...prev, [device.id]: data }));
-            if (data.length > 0) {
-              setDeviceSelectedQueues(prev => ({ ...prev, [device.id]: data[0] }));
-              fetchQueueTrafficForDevice(device.id, data[0]);
-            }
-          })
-          .catch(err => console.error("fetch queues error config", err));
+      const mode = device.integrationMode?.toLowerCase() || "";
+      if (mode.includes("snmp") && initialTab === "queue") {
+        const queues = device.monitoredQueues || [];
+        queues.forEach(q => fetchQueueTrafficForDevice(device.id, q));
       }
     });
-  }, [pingDevices]);
+  }, [pingDevices, initialTab]);
 
 
 
@@ -907,7 +899,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                 <div
                   key={d.id}
                   className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
-                  onClick={() => setSelectedDetailDeviceId(d.id)}
+                  onClick={() => {
+                    setSelectedDetailDeviceId(d.id);
+                    setSelectedDetailQueueName(null);
+                  }}
                 >
                   <div className="absolute inset-0 bg-slate-50/0 group-hover:bg-slate-50/50 pointer-events-none rounded-2xl transition-colors"></div>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
@@ -1007,123 +1002,111 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
         <p className="m-0 text-[12px] text-slate-500 mb-3.5">
           Daftar grafik penggunaan bandwidth antrean (queue) Mikrotik secara paralel.
         </p>
-
         {pingDevices.length === 0 ? (
           <p className="text-[12px] text-slate-500">Belum ada perangkat yang ditambahkan.</p>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("snmp")).map(d => {
-              const qList = deviceQueueLists[d.id] || [];
-              const selectedQueue = deviceSelectedQueues[d.id] || "";
-              const realBandwidthSamples = deviceQueueBandwidthSamples[d.id] || [];
+              const queues = d.monitoredQueues || [];
               const isDown = d.status === "DOWN";
               const isLoading = isLoadingQueueMap[d.id] || false;
 
-              const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
-                ? realBandwidthSamples
-                : [{ time: "00:00", rx: 0, tx: 0 }];
-
-              const rxValues = bandwidthSamples.map((p) => p.rx);
-              const txValues = bandwidthSamples.map((p) => p.tx);
-
-              const sum = (values: number[]) => values.reduce((acc, val) => acc + val, 0);
-
-              const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
-              const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
-              const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
-              const txMax = txValues.length ? Math.max(...txValues) : 0;
-              const rxMin = rxValues.length ? Math.min(...rxValues) : 0;
-              const txMin = txValues.length ? Math.min(...txValues) : 0;
-
-              const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
+              if (queues.length === 0) {
+                 return (
+                   <div key={d.id} className="rounded-2xl px-4 py-6 bg-slate-50/50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
+                      <p className="m-0 text-[13px] font-semibold text-slate-400">{d.name}</p>
+                      <p className="m-0 text-[10px] text-slate-400">Tidak ada antrian yang dipilih untuk dimonitor.</p>
+                   </div>
+                 );
+              }
 
               return (
-                <div
-                  key={d.id}
-                  className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
-                  onClick={() => setSelectedDetailDeviceId(d.id)}
-                >
-                  <div className="absolute inset-0 bg-slate-50/0 group-hover:bg-slate-50/50 pointer-events-none rounded-2xl transition-colors"></div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                      <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
-                    </div>
-                    <select
-                      className="px-2 py-1 rounded-lg border border-slate-200 text-[11px] min-w-[120px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
-                      value={selectedQueue}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        const newQ = e.target.value;
-                        setDeviceSelectedQueues(prev => ({ ...prev, [d.id]: newQ }));
-                        fetchQueueTrafficForDevice(d.id, newQ);
-                      }}
-                    >
-                      {qList.map(name => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                      {qList.length === 0 && <option value="">Tidak ada queue</option>}
-                    </select>
-                  </div>
+                <React.Fragment key={d.id}>
+                  {queues.map(qName => {
+                    const queueSamplesMap = deviceQueueBandwidthSamples[d.id] || {};
+                    const realBandwidthSamples = queueSamplesMap[qName] || [];
+                    
+                    const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
+                      ? realBandwidthSamples
+                      : [{ time: "00:00", rx: 0, tx: 0 }];
 
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <p className="m-0 text-[11px] text-slate-500">Grafik waktu nyata</p>
-                      {isLoading && realBandwidthSamples.length === 0 && (
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-wider border border-amber-200">
-                          Loading...
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                        <span>RX</span>
+                    const rxValues = bandwidthSamples.map((p) => p.rx);
+                    const txValues = bandwidthSamples.map((p) => p.tx);
+                    const sum = (values: number[]) => values.reduce((acc, val) => acc + val, 0);
+
+                    const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
+                    const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
+                    const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
+                    const txMax = txValues.length ? Math.max(...txValues) : 0;
+                    const rxMin = rxValues.length ? Math.min(...rxValues) : 0;
+                    const txMin = txValues.length ? Math.min(...txValues) : 0;
+
+                    const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
+
+                    return (
+                      <div
+                        key={`${d.id}-${qName}`}
+                        className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
+                        onClick={() => {
+                          setSelectedDetailDeviceId(d.id);
+                          setSelectedDetailQueueName(qName);
+                        }}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                            <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
+                            <span className="text-slate-300">/</span>
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100">{qName}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                            <div className="flex items-center gap-1">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                              <span>RX</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="h-2 w-2 rounded-full bg-sky-500" />
+                              <span>TX</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="m-0 text-[11px] text-slate-500">Statistik bandwidth antrian</p>
+                          {isLoading && realBandwidthSamples.length === 0 && (
+                            <span className="animate-pulse text-[9px] text-blue-500 font-bold uppercase tracking-widest">
+                              Loading...
+                            </span>
+                          )}
+                        </div>
+
+                        <BandwidthSparkline data={bandwidthSamples} />
+
+                        <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
+                            <span>
+                              RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMax)} max
+                            </span>
+                            <span>
+                              TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMax)} max
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-slate-500">
+                            <span>
+                              Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
+                            </span>
+                            {bandwidthSamples.length > 1 && (
+                              <span>
+                                {bandwidthSamples[0].time} - {bandwidthSamples[bandwidthSamples.length - 1].time}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-sky-500" />
-                        <span>TX</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <BandwidthSparkline data={bandwidthSamples} />
-
-                  {qList.length === 0 && !isLoading && (
-                    <div className="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] flex gap-1.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0 mt-0.5">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                      </svg>
-                      <div>
-                        <span className="font-bold uppercase tracking-wide">Data Queue Kosong.</span>
-                        <span className="ml-1 opacity-80">Pastikan SNMP aktif (IP {d.ip}) dan dapat diakses.</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
-                      <span>
-                        RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMin)} min, {formatBandwidth(rxMax)} max
-                      </span>
-                      <span>
-                        TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMin)} min, {formatBandwidth(txMax)} max
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-slate-500">
-                      <span>
-                        Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
-                      </span>
-                      {bandwidthSamples.length > 1 && (
-                        <span>
-                          {bandwidthSamples[0].time} - {bandwidthSamples[bandwidthSamples.length - 1].time}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                    );
+                  })}
+                </React.Fragment>
               );
             })}
           </div>
@@ -1145,12 +1128,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
     // Choose which data source to use based on the current tab
     const isQueueTab = initialTab === "queue";
+    
+    // For Detail Modal in Queue tab, we show the specifically clicked queue, or default to the first one.
+    const primaryQueue = selectedDetailQueueName || ((d.monitoredQueues && d.monitoredQueues.length > 0) ? d.monitoredQueues[0] : "");
+
     const selectedItemName = isQueueTab
-      ? (deviceSelectedQueues[d.id] || "Unknown Queue")
+      ? primaryQueue
       : (deviceSelectedIfaces[d.id] || "Unknown Interface");
 
     const realBandwidthSamples = isQueueTab
-      ? (deviceQueueBandwidthSamples[d.id] || [])
+      ? (deviceQueueBandwidthSamples[d.id]?.[primaryQueue] || [])
       : (deviceBandwidthSamples[d.id] || []);
 
     const isLoading = isQueueTab
@@ -1174,7 +1161,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedDetailDeviceId(null)}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setSelectedDetailDeviceId(null); setSelectedDetailQueueName(null); }}>
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <div>
@@ -1182,7 +1169,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
               <p className="m-0 text-[12px] text-slate-500 mt-0.5">{isQueueTab ? 'Queue' : 'Interface'} <span className="font-semibold text-slate-700">{selectedItemName}</span></p>
             </div>
             <button
-              onClick={() => setSelectedDetailDeviceId(null)}
+              onClick={() => { setSelectedDetailDeviceId(null); setSelectedDetailQueueName(null); }}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

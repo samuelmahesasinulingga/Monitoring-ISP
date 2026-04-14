@@ -20,7 +20,7 @@ func startSnmpWorker(state *appState) {
 
 		// Ambil semua device yang monitoring SNMP-nya aktif
 		rows, err := state.db.Query(ctx, `
-			SELECT id, name, ip, snmp_version, snmp_community 
+			SELECT id, name, ip, snmp_version, snmp_community, monitored_queues 
 			FROM devices 
 			WHERE monitoring_enabled = TRUE AND integration_mode ILIKE '%snmp%'
 		`)
@@ -30,17 +30,19 @@ func startSnmpWorker(state *appState) {
 		}
 
 		type snmpDevice struct {
-			ID        int
-			Name      string
-			IP        string
-			Version   string
-			Community string
+			ID              int
+			Name            string
+			IP              string
+			Version         string
+			Community       string
+			MonitoredQueues []string
 		}
 
 		var devices []snmpDevice
 		for rows.Next() {
 			var d snmpDevice
-			if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Version, &d.Community); err != nil {
+			if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Version, &d.Community, &d.MonitoredQueues); err != nil {
+				log.Printf("error scanning device for snmp: %v", err)
 				continue
 			}
 			devices = append(devices, d)
@@ -54,11 +56,12 @@ func startSnmpWorker(state *appState) {
 }
 
 func pollDeviceSnmp(state *appState, d struct {
-	ID        int
-	Name      string
-	IP        string
-	Version   string
-	Community string
+	ID              int
+	Name            string
+	IP              string
+	Version         string
+	Community       string
+	MonitoredQueues []string
 }) {
 	gs := &gosnmp.GoSNMP{
 		Target:    d.IP,
@@ -230,6 +233,24 @@ func pollDeviceSnmp(state *appState, d struct {
 	}
 
 	for index, name := range queueNames {
+		// FILTER: Hanya simpan jika ada di list MonitoredQueues (atau monitoredQueues kosong = simpan semua?)
+		// User minta: "pilihan queue mana saja yang akan kita monitoring"
+		// Jadi kita filter hanya yang ada di list. Jika list kosong, anggap tidak ada yang dimonitor/semua? 
+		// Biasanya jika kosong berarti belum disetting, kita biarkan kosong saja atau simpan semua?
+		// Sesuai request, kalau sudah ada daftar pilihan, kita ikuti daftar itu.
+		if len(d.MonitoredQueues) > 0 {
+			found := false
+			for _, mq := range d.MonitoredQueues {
+				if mq == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
 		in := queueBytesIn[index]
 		out := queueBytesOut[index]
 

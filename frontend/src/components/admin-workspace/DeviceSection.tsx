@@ -15,6 +15,7 @@ export type DeviceRecord = {
   snmpVersion: SnmpVersion | null;
   snmpCommunity: string;
   monitoringEnabled: boolean;
+  monitoredQueues?: string[];
 };
 
 type DevicesSectionProps = {
@@ -77,13 +78,22 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [testMessage, setTestMessage] = useState<string>("");
   const [testIp, setTestIp] = useState("");
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
-
+  const [availableQueues, setAvailableQueues] = useState<string[]>([]);
+  const [monitoredQueues, setMonitoredQueues] = useState<string[]>([]);
+  const [queueMonitoringEnabled, setQueueMonitoringEnabled] = useState(false);
+  
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<DeviceRecord | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editIp, setEditIp] = useState("");
+  const [editType, setEditType] = useState<DeviceType>("router");
   const [editIntegrationMode, setEditIntegrationMode] = useState<IntegrationMode>("snmp");
   const [editSnmpVersion, setEditSnmpVersion] = useState<SnmpVersion>("v2c");
   const [editSnmpCommunity, setEditSnmpCommunity] = useState("");
   const [editMonitoringEnabled, setEditMonitoringEnabled] = useState(true);
+  const [editAvailableQueues, setEditAvailableQueues] = useState<string[]>([]);
+  const [editMonitoredQueues, setEditMonitoredQueues] = useState<string[]>([]);
+  const [editQueueMonitoringEnabled, setEditQueueMonitoringEnabled] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState<DeviceRecord | null>(null);
@@ -138,6 +148,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       snmpVersion: normalizedSnmpVersion,
       snmpCommunity: normalizedSnmp,
       monitoringEnabled,
+      monitoredQueues: queueMonitoringEnabled ? monitoredQueues : [],
       workspaceId: workspaceId ?? null,
     };
 
@@ -187,6 +198,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setSnmpVersion("v2c");
     setSnmpCommunity("public");
     setMonitoringEnabled(true);
+    setQueueMonitoringEnabled(false);
     setIsTesting(false);
     setTestStatus("idle");
     setTestMessage("");
@@ -240,6 +252,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         const data = await res.json().catch(() => null as any);
         setTestStatus("success");
         setTestMessage(data?.message || "Tes koneksi berhasil.");
+        if (data?.availableQueues) {
+          setAvailableQueues(data.availableQueues);
+        }
       }
     } catch (err) {
       console.error("test connection error", err);
@@ -250,16 +265,67 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     }
   };
 
+  const autoFetchQueues = async (
+    targetIp: string, 
+    targetCommunity: string, 
+    targetVersion: SnmpVersion, 
+    isEdit: boolean = false
+  ) => {
+    if (!targetIp.trim()) return;
+    setIsTesting(true);
+    if (isEdit) setEditAvailableQueues([]);
+    else setAvailableQueues([]);
+
+    try {
+      const payload = {
+        name: "",
+        ip: targetIp,
+        type: "router",
+        integrationMode: "snmp",
+        snmpVersion: targetVersion,
+        snmpCommunity: targetCommunity,
+        monitoringEnabled: true,
+        workspaceId: workspaceId ?? null,
+      };
+
+      const res = await fetch(`/api/devices/test-connection`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.availableQueues) {
+          if (isEdit) setEditAvailableQueues(data.availableQueues);
+          else setAvailableQueues(data.availableQueues);
+        }
+      }
+    } catch (err) {
+      console.error("auto fetch queues error", err);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const openEditDevice = (device: DeviceRecord) => {
     setEditingDevice(device);
-    setName(device.name);
-    setIp(device.ip);
-    setType(device.type);
+    setEditName(device.name);
+    setEditIp(device.ip);
+    setEditType(device.type);
     setEditIntegrationMode(device.integrationMode);
     setEditSnmpVersion(device.snmpVersion || "v2c");
     setEditSnmpCommunity(device.snmpCommunity || "public");
     setEditMonitoringEnabled(device.monitoringEnabled);
+    setEditMonitoredQueues(device.monitoredQueues || []);
+    setEditQueueMonitoringEnabled(device.monitoredQueues && device.monitoredQueues.length > 0 ? true : false);
+    setEditAvailableQueues([]); // Clear previous fetched queues
     setIsEditModalOpen(true);
+    
+    // Auto fetch if SNMP is active
+    if (device.integrationMode === "snmp") {
+      autoFetchQueues(device.ip, device.snmpCommunity || "public", device.snmpVersion || "v2c", true);
+    }
   };
 
   const handleUpdateDevice = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -278,13 +344,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
     try {
       const payload: Omit<DeviceRecord, "id"> & { workspaceId?: number | null } = {
-        name: name.trim(),
-        ip: ip.trim(),
-        type,
+        name: editName.trim(),
+        ip: editIp.trim(),
+        type: editType,
         integrationMode: editIntegrationMode,
         snmpVersion: normalizedSnmpVersion,
         snmpCommunity: normalizedSnmp,
         monitoringEnabled: editMonitoringEnabled,
+        monitoredQueues: editQueueMonitoringEnabled ? editMonitoredQueues : [],
         workspaceId: workspaceId ?? null,
       };
 
@@ -476,6 +543,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   checked={integrationMode === "snmp"}
                   onChange={(val) => {
                     setIntegrationMode(val ? "snmp" : "ping");
+                    if (val && ip.trim()) {
+                      autoFetchQueues(ip, snmpCommunity, snmpVersion);
+                    }
                   }}
                 />
               </div>
@@ -522,6 +592,58 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 onChange={setMonitoringEnabled}
               />
             </div>
+            
+            {integrationMode === "snmp" && (
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+                <Switch
+                  label="Aktifkan Monitoring Queue"
+                  description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
+                  checked={queueMonitoringEnabled}
+                  onChange={(val) => {
+                    setQueueMonitoringEnabled(val);
+                    if (val && ip.trim() && availableQueues.length === 0) {
+                      autoFetchQueues(ip, snmpCommunity, snmpVersion);
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {queueMonitoringEnabled && integrationMode === "snmp" && (
+              <div className="mt-2 p-3 rounded-xl border border-blue-100 bg-blue-50/30">
+                <label className="mb-2 block text-[11px] font-semibold text-blue-700">
+                  Pilih Antrian (Queues) untuk Dimonitor:
+                </label>
+                {availableQueues.length > 0 ? (
+                  <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                    {availableQueues.map((q) => (
+                      <label key={q} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={monitoredQueues.includes(q)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setMonitoredQueues([...monitoredQueues, q]);
+                            } else {
+                              setMonitoredQueues(monitoredQueues.filter((mq) => mq !== q));
+                            }
+                          }}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
+                        />
+                        <span>{q}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-500 italic leading-tight">
+                    Tes koneksi untuk memuat daftar antrian...
+                  </p>
+                )}
+                <p className="mt-2 text-[10px] text-slate-500 italic leading-tight">
+                   Hanya antrian yang dicentang yang akan direkam datanya ke database.
+                </p>
+              </div>
+            )}
             <button
               type="submit"
               className="mt-2 inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
@@ -722,8 +844,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   Nama perangkat
                 </label>
                 <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
                   className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
@@ -732,8 +854,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   IP address / hostname
                 </label>
                 <input
-                  value={ip}
-                  onChange={(e) => setIp(e.target.value)}
+                  value={editIp}
+                  onChange={(e) => setEditIp(e.target.value)}
                   className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
@@ -741,8 +863,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               <div>
                 <label className="mb-1 block text-[11px] text-slate-600">Tipe perangkat</label>
                 <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as DeviceType)}
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value as DeviceType)}
                   className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="router">Router</option>
@@ -807,6 +929,68 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   onChange={setEditMonitoringEnabled}
                 />
               </div>
+
+              {editIntegrationMode === "snmp" && (
+                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+                  <Switch
+                    label="Aktifkan Monitoring Queue"
+                    description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
+                    checked={editQueueMonitoringEnabled}
+                    onChange={(val) => {
+                      setEditQueueMonitoringEnabled(val);
+                      if (val && editIp.trim() && editAvailableQueues.length === 0) {
+                        autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              {editQueueMonitoringEnabled && editIntegrationMode === "snmp" && (
+                <div className="mt-2 p-3 rounded-xl border border-slate-200 bg-slate-50">
+                   <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-semibold text-slate-700">
+                      Target Antrian (Queues):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true)}
+                      disabled={isTesting}
+                      className="text-[10px] font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2"
+                    >
+                      {isTesting ? "Fetching..." : "Refresh Daftar Queue"}
+                    </button>
+                   </div>
+                  
+                  {editAvailableQueues.length > 0 ? (
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                      {editAvailableQueues.map((q) => (
+                        <label key={q} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editMonitoredQueues.includes(q)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditMonitoredQueues([...editMonitoredQueues, q]);
+                              } else {
+                                setEditMonitoredQueues(editMonitoredQueues.filter((mq) => mq !== q));
+                              }
+                            }}
+                            className="rounded border-slate-300 text-blue-600"
+                          />
+                          <span>{q}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 italic">
+                      {editMonitoredQueues.length > 0 
+                        ? `${editMonitoredQueues.length} queue terpilih. Klik refresh untuk melihat daftar lengkap.`
+                        : "Klik refresh atau tes koneksi untuk melihat daftar antrian dari perangkat."}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-3 flex justify-end gap-2">
                 <button
