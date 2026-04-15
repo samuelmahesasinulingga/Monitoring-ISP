@@ -16,6 +16,7 @@ type device struct {
 	MonitoringEnabled bool      `json:"monitoringEnabled"`
 	PingIntervalMs    int       `json:"pingIntervalMs"`
 	MonitoredQueues   []string  `json:"monitoredQueues"`
+	MonitoredInterfaces []string `json:"monitoredInterfaces"`
 	WorkspaceID       *int      `json:"workspaceId,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 }
@@ -33,6 +34,7 @@ type createDeviceRequest struct {
 	MonitoringEnabled bool    `json:"monitoringEnabled"`
 	PingIntervalMs    int       `json:"pingIntervalMs"`
 	MonitoredQueues   []string  `json:"monitoredQueues"`
+	MonitoredInterfaces []string `json:"monitoredInterfaces"`
 	WorkspaceID       *int      `json:"workspaceId"`
 }
 
@@ -52,6 +54,7 @@ type devicePingResult struct {
 	Status         string           `json:"status"`
 	PingIntervalMs int              `json:"pingIntervalMs"`
 	MonitoredQueues []string        `json:"monitoredQueues"`
+	MonitoredInterfaces []string     `json:"monitoredInterfaces"`
 	History        []HistoricalPing `json:"history"`
 }
 

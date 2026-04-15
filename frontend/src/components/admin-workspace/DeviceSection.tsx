@@ -16,6 +16,7 @@ export type DeviceRecord = {
   snmpCommunity: string;
   monitoringEnabled: boolean;
   monitoredQueues?: string[];
+  monitoredInterfaces?: string[];
 };
 
 type DevicesSectionProps = {
@@ -49,14 +50,12 @@ const Switch = ({
       </div>
       <button
         type="button"
-        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none ${
-          checked ? "bg-blue-600 shadow-sm shadow-blue-500/20" : "bg-slate-200"
-        }`}
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none ${checked ? "bg-blue-600 shadow-sm shadow-blue-500/20" : "bg-slate-200"
+          }`}
       >
         <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-all duration-200 ease-in-out ${
-            checked ? "translate-x-5" : "translate-x-0.5"
-          } shadow-sm`}
+          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-all duration-200 ease-in-out ${checked ? "translate-x-5" : "translate-x-0.5"
+            } shadow-sm`}
         />
       </button>
     </div>
@@ -70,7 +69,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [ip, setIp] = useState("");
   const [type, setType] = useState<DeviceType>("router");
   const [integrationMode, setIntegrationMode] = useState<IntegrationMode>("snmp");
-    const [snmpVersion, setSnmpVersion] = useState<SnmpVersion>("v2c");
+  const [snmpVersion, setSnmpVersion] = useState<SnmpVersion>("v2c");
   const [snmpCommunity, setSnmpCommunity] = useState("public");
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
@@ -81,7 +80,12 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [availableQueues, setAvailableQueues] = useState<string[]>([]);
   const [monitoredQueues, setMonitoredQueues] = useState<string[]>([]);
   const [queueMonitoringEnabled, setQueueMonitoringEnabled] = useState(false);
-  
+
+  // Interfaces selective monitoring
+  const [availableInterfaces, setAvailableInterfaces] = useState<string[]>([]);
+  const [monitoredInterfaces, setMonitoredInterfaces] = useState<string[]>([]);
+  const [interfaceMonitoringEnabled, setInterfaceMonitoringEnabled] = useState(false);
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<DeviceRecord | null>(null);
   const [editName, setEditName] = useState("");
@@ -95,6 +99,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [editMonitoredQueues, setEditMonitoredQueues] = useState<string[]>([]);
   const [editQueueMonitoringEnabled, setEditQueueMonitoringEnabled] = useState(false);
 
+  // Edit interfaces selective monitoring
+  const [editAvailableInterfaces, setEditAvailableInterfaces] = useState<string[]>([]);
+  const [editMonitoredInterfaces, setEditMonitoredInterfaces] = useState<string[]>([]);
+  const [editInterfaceMonitoringEnabled, setEditInterfaceMonitoringEnabled] = useState(false);
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState<DeviceRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -103,10 +112,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [feedbackModal, setFeedbackModal] = useState<
     | null
     | {
-        type: "success" | "error";
-        title: string;
-        message: string;
-      }
+      type: "success" | "error";
+      title: string;
+      message: string;
+    }
   >(null);
 
   useEffect(() => {
@@ -149,6 +158,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       snmpCommunity: normalizedSnmp,
       monitoringEnabled,
       monitoredQueues: queueMonitoringEnabled ? monitoredQueues : [],
+      monitoredInterfaces: interfaceMonitoringEnabled ? monitoredInterfaces : [],
       workspaceId: workspaceId ?? null,
     };
 
@@ -251,9 +261,20 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       } else {
         const data = await res.json().catch(() => null as any);
         setTestStatus("success");
-        setTestMessage(data?.message || "Tes koneksi berhasil.");
-        if (data?.availableQueues) {
+        setTestMessage(data?.message || "Koneksi ke perangkat berhasil.");
+        // Populate available queues if returned
+        if (data?.availableQueues && data.availableQueues.length > 0) {
           setAvailableQueues(data.availableQueues);
+          setQueueMonitoringEnabled(true);
+        }
+        // Populate available interfaces if returned
+        if (data?.availableInterfaces && data.availableInterfaces.length > 0) {
+          setAvailableInterfaces(data.availableInterfaces);
+          setInterfaceMonitoringEnabled(true);
+        }
+        // Apply tested IP to form if it's empty
+        if (!ip.trim()) {
+          setIp(ipToTest);
         }
       }
     } catch (err) {
@@ -266,15 +287,20 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   };
 
   const autoFetchQueues = async (
-    targetIp: string, 
-    targetCommunity: string, 
-    targetVersion: SnmpVersion, 
+    targetIp: string,
+    targetCommunity: string,
+    targetVersion: SnmpVersion,
     isEdit: boolean = false
   ) => {
     if (!targetIp.trim()) return;
     setIsTesting(true);
-    if (isEdit) setEditAvailableQueues([]);
-    else setAvailableQueues([]);
+    if (isEdit) {
+      setEditAvailableQueues([]);
+      setEditAvailableInterfaces([]);
+    } else {
+      setAvailableQueues([]);
+      setAvailableInterfaces([]);
+    }
 
     try {
       const payload = {
@@ -296,9 +322,12 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
       if (res.ok) {
         const data = await res.json();
-        if (data?.availableQueues) {
-          if (isEdit) setEditAvailableQueues(data.availableQueues);
-          else setAvailableQueues(data.availableQueues);
+        if (isEdit) {
+          if (data?.availableQueues) setEditAvailableQueues(data.availableQueues);
+          if (data?.availableInterfaces) setEditAvailableInterfaces(data.availableInterfaces);
+        } else {
+          if (data?.availableQueues) setAvailableQueues(data.availableQueues);
+          if (data?.availableInterfaces) setAvailableInterfaces(data.availableInterfaces);
         }
       }
     } catch (err) {
@@ -320,8 +349,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setEditMonitoredQueues(device.monitoredQueues || []);
     setEditQueueMonitoringEnabled(device.monitoredQueues && device.monitoredQueues.length > 0 ? true : false);
     setEditAvailableQueues([]); // Clear previous fetched queues
+    setEditMonitoredInterfaces(device.monitoredInterfaces || []);
+    setEditInterfaceMonitoringEnabled(device.monitoredInterfaces && device.monitoredInterfaces.length > 0 ? true : false);
+    setEditAvailableInterfaces([]); // Clear previous fetched interfaces
     setIsEditModalOpen(true);
-    
+
     // Auto fetch if SNMP is active
     if (device.integrationMode === "snmp") {
       autoFetchQueues(device.ip, device.snmpCommunity || "public", device.snmpVersion || "v2c", true);
@@ -332,7 +364,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     e.preventDefault();
     if (!editingDevice) return;
 
-    if (!name.trim() || !ip.trim()) return;
+    if (!editName.trim() || !editIp.trim()) return;
 
     const normalizedSnmp =
       editIntegrationMode === "snmp"
@@ -352,6 +384,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         snmpCommunity: normalizedSnmp,
         monitoringEnabled: editMonitoringEnabled,
         monitoredQueues: editQueueMonitoringEnabled ? editMonitoredQueues : [],
+        monitoredInterfaces: editInterfaceMonitoringEnabled ? editMonitoredInterfaces : [],
         workspaceId: workspaceId ?? null,
       };
 
@@ -592,9 +625,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 onChange={setMonitoringEnabled}
               />
             </div>
-            
+
             {integrationMode === "snmp" && (
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
                 <Switch
                   label="Aktifkan Monitoring Queue"
                   description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
@@ -640,7 +673,59 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   </p>
                 )}
                 <p className="mt-2 text-[10px] text-slate-500 italic leading-tight">
-                   Hanya antrian yang dicentang yang akan direkam datanya ke database.
+                  Hanya antrian yang dicentang yang akan direkam datanya ke database.
+                </p>
+              </div>
+            )}
+
+            {integrationMode === "snmp" && (
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+                <Switch
+                  label="Aktifkan Monitoring Interface"
+                  description="Monitor traffic dari Network Interface (WAN/Local/dll)"
+                  checked={interfaceMonitoringEnabled}
+                  onChange={(val) => {
+                    setInterfaceMonitoringEnabled(val);
+                    if (val && ip.trim() && availableInterfaces.length === 0) {
+                      autoFetchQueues(ip, snmpCommunity, snmpVersion);
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {interfaceMonitoringEnabled && integrationMode === "snmp" && (
+              <div className="mt-2 p-3 rounded-xl border border-blue-100 bg-blue-50/30">
+                <label className="mb-2 block text-[11px] font-semibold text-blue-700">
+                  Pilih Interface untuk Dimonitor:
+                </label>
+                {availableInterfaces.length > 0 ? (
+                  <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                    {availableInterfaces.map((iface) => (
+                      <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={monitoredInterfaces.includes(iface)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setMonitoredInterfaces([...monitoredInterfaces, iface]);
+                            } else {
+                              setMonitoredInterfaces(monitoredInterfaces.filter((mi) => mi !== iface));
+                            }
+                          }}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
+                        />
+                        <span>{iface}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-500 italic leading-tight">
+                    Tes koneksi untuk memuat daftar interface...
+                  </p>
+                )}
+                <p className="mt-2 text-[10px] text-slate-500 italic leading-tight">
+                  Hanya interface yang dicentang yang akan direkam datanya ke database.
                 </p>
               </div>
             )}
@@ -700,11 +785,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
                     <td className="px-2.5 py-1.5 align-top">
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${
-                          d.monitoringEnabled
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${d.monitoringEnabled
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : "bg-slate-50 text-slate-500 border-slate-200"
-                        }`}
+                          }`}
                       >
                         {d.monitoringEnabled ? "Aktif" : "Nonaktif"}
                       </span>
@@ -746,8 +830,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       </div>
 
       {isTestModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
+          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="m-0 text-[14px] font-semibold text-slate-900">
                 Tes koneksi perangkat
@@ -782,11 +866,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
             {testStatus !== "idle" && (
               <div
-                className={`mb-3 rounded-lg border px-3 py-2 text-[11px] ${
-                  testStatus === "success"
+                className={`mb-3 rounded-lg border px-3 py-2 text-[11px] ${testStatus === "success"
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : "border-red-200 bg-red-50 text-red-700"
-                }`}
+                  }`}
               >
                 {testMessage}
               </div>
@@ -817,8 +900,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       )}
 
       {isEditModalOpen && editingDevice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
+          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="m-0 text-[14px] font-semibold text-slate-900">
                 Edit perangkat
@@ -931,7 +1014,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
 
               {editIntegrationMode === "snmp" && (
-                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
                   <Switch
                     label="Aktifkan Monitoring Queue"
                     description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
@@ -947,25 +1030,25 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               )}
 
               {editQueueMonitoringEnabled && editIntegrationMode === "snmp" && (
-                <div className="mt-2 p-3 rounded-xl border border-slate-200 bg-slate-50">
-                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-[11px] font-semibold text-slate-700">
+                <div className="mt-2 p-3 rounded-xl border border-blue-100 bg-blue-50/30 mb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-semibold text-blue-700">
                       Target Antrian (Queues):
                     </label>
                     <button
                       type="button"
                       onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true)}
                       disabled={isTesting}
-                      className="text-[10px] font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2"
+                      className="bg-white border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
                     >
                       {isTesting ? "Fetching..." : "Refresh Daftar Queue"}
                     </button>
-                   </div>
-                  
+                  </div>
+
                   {editAvailableQueues.length > 0 ? (
                     <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                       {editAvailableQueues.map((q) => (
-                        <label key={q} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer">
+                        <label key={q} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
                           <input
                             type="checkbox"
                             checked={editMonitoredQueues.includes(q)}
@@ -976,17 +1059,78 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                                 setEditMonitoredQueues(editMonitoredQueues.filter((mq) => mq !== q));
                               }
                             }}
-                            className="rounded border-slate-300 text-blue-600"
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
                           />
                           <span>{q}</span>
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 italic">
-                      {editMonitoredQueues.length > 0 
+                    <p className="text-[10px] text-slate-500 italic leading-tight">
+                      {editMonitoredQueues.length > 0
                         ? `${editMonitoredQueues.length} queue terpilih. Klik refresh untuk melihat daftar lengkap.`
                         : "Klik refresh atau tes koneksi untuk melihat daftar antrian dari perangkat."}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {editIntegrationMode === "snmp" && (
+                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
+                  <Switch
+                    label="Aktifkan Monitoring Interface"
+                    description="Monitor traffic dari Network Interface"
+                    checked={editInterfaceMonitoringEnabled}
+                    onChange={(val) => {
+                      setEditInterfaceMonitoringEnabled(val);
+                      if (val && editIp.trim() && editAvailableInterfaces.length === 0) {
+                        autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              {editInterfaceMonitoringEnabled && editIntegrationMode === "snmp" && (
+                <div className="mt-2 p-3 rounded-xl border border-blue-100 bg-blue-50/30 mb-2">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <label className="block text-[11px] font-semibold text-blue-700">
+                      Pilih Interface untuk Dimonitor:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true)}
+                      disabled={isTesting}
+                      className="bg-white border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
+                    >
+                      {isTesting ? "Memuat..." : "Refresh Interface"}
+                    </button>
+                  </div>
+                  {editAvailableInterfaces.length > 0 ? (
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                      {editAvailableInterfaces.map((iface) => (
+                        <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={editMonitoredInterfaces.includes(iface)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditMonitoredInterfaces([...editMonitoredInterfaces, iface]);
+                              } else {
+                                setEditMonitoredInterfaces(editMonitoredInterfaces.filter((mi) => mi !== iface));
+                              }
+                            }}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
+                          />
+                          <span>{iface}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 italic leading-tight">
+                      {editMonitoredInterfaces.length > 0
+                        ? `${editMonitoredInterfaces.length} interface terpilih. Klik refresh untuk melihat daftar lengkap.`
+                        : "Klik refresh atau tes koneksi untuk melihat daftar interface dari perangkat."}
                     </p>
                   )}
                 </div>
@@ -1016,8 +1160,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       )}
 
       {isDeleteModalOpen && deviceToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
+          <div className="w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="m-0 text-[14px] font-semibold text-slate-900">
                 Konfirmasi hapus perangkat
@@ -1077,21 +1221,19 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       )}
 
       {feedbackModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div
-            className={`w-full max-w-sm rounded-2xl border px-4 py-4 text-[12px] shadow-2xl transform transition-all duration-150 ${
-              feedbackModal.type === "success"
+            className={`w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border px-4 py-4 text-[12px] shadow-2xl transform transition-all duration-150 ${feedbackModal.type === "success"
                 ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
                 : "bg-red-50/95 border-red-200 text-red-700"
-            }`}
+              }`}
           >
             <div className="flex items-start gap-2 mb-2">
               <div
-                className={`mt-0.5 h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold ${
-                  feedbackModal.type === "success"
+                className={`mt-0.5 h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold ${feedbackModal.type === "success"
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-red-100 text-red-700"
-                }`}
+                  }`}
               >
                 {feedbackModal.type === "success" ? "✔" : "!"}
               </div>

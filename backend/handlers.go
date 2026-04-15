@@ -322,14 +322,14 @@ func (a *appState) handleListDevices(c echo.Context) error {
 			return c.String(http.StatusBadRequest, "invalid workspaceId")
 		}
 		rows, err = a.db.Query(ctx, `
-			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, workspace_id, created_at
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at
 			FROM devices
 			WHERE workspace_id = $1
 			ORDER BY id
 		`, wsID)
 	} else {
 		rows, err = a.db.Query(ctx, `
-			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, workspace_id, created_at
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at
 			FROM devices
 			ORDER BY id
 		`)
@@ -344,7 +344,7 @@ func (a *appState) handleListDevices(c echo.Context) error {
 	devices := make([]device, 0)
 	for rows.Next() {
 		var d device
-		if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.WorkspaceID, &d.CreatedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.MonitoredInterfaces, &d.WorkspaceID, &d.CreatedAt); err != nil {
 			log.Printf("scan device error: %v", err)
 			continue
 		}
@@ -515,14 +515,14 @@ func (a *appState) handlePingDevices(c echo.Context) error {
 			return c.String(http.StatusBadRequest, "invalid workspaceId")
 		}
 		rows, err = a.db.Query(ctx, `
-			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, workspace_id, created_at
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at
 			FROM devices
 			WHERE workspace_id = $1 AND monitoring_enabled = TRUE
 			ORDER BY id
 		`, wsID)
 	} else {
 		rows, err = a.db.Query(ctx, `
-			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, workspace_id, created_at
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at
 			FROM devices
 			WHERE monitoring_enabled = TRUE
 			ORDER BY id
@@ -539,7 +539,7 @@ func (a *appState) handlePingDevices(c echo.Context) error {
 
 	for rows.Next() {
 		var d device
-		if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.WorkspaceID, &d.CreatedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.MonitoredInterfaces, &d.WorkspaceID, &d.CreatedAt); err != nil {
 			log.Printf("scan device for ping error: %v", err)
 			continue
 		}
@@ -602,6 +602,7 @@ func (a *appState) handlePingDevices(c echo.Context) error {
 			Status:         status,
 			PingIntervalMs: d.PingIntervalMs,
 			MonitoredQueues: d.MonitoredQueues,
+			MonitoredInterfaces: d.MonitoredInterfaces,
 			History:        history,
 		})
 	}
@@ -629,6 +630,7 @@ func (a *appState) handleTestDeviceConnection(c echo.Context) error {
 	}
 
 	var queues []string
+	var interfaces []string
 	if req.IntegrationMode == "snmp" || req.IntegrationMode == "snmp+api" {
 		q, err := fetchAvailableQueues(req)
 		if err == nil {
@@ -636,12 +638,20 @@ func (a *appState) handleTestDeviceConnection(c echo.Context) error {
 		} else {
 			log.Printf("fetchAvailableQueues failed during test: %v", err)
 		}
+
+		ifaces, err := fetchAvailableInterfaces(req)
+		if err == nil {
+			interfaces = ifaces
+		} else {
+			log.Printf("fetchAvailableInterfaces failed during test: %v", err)
+		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
 		"status":          "ok",
 		"message":         "koneksi ke perangkat berhasil",
 		"availableQueues": queues,
+		"availableInterfaces": interfaces,
 	})
 }
 
@@ -687,6 +697,48 @@ func fetchAvailableQueues(req createDeviceRequest) ([]string, error) {
 	return queues, nil
 }
 
+func fetchAvailableInterfaces(req createDeviceRequest) ([]string, error) {
+	gs := &gosnmp.GoSNMP{
+		Target:    req.IP,
+		Port:      161,
+		Community: req.SnmpCommunity,
+		Version:   gosnmp.Version2c,
+		Timeout:   time.Duration(5) * time.Second,
+		Retries:   1,
+	}
+	if req.SnmpVersion != nil && *req.SnmpVersion == "v1" {
+		gs.Version = gosnmp.Version1
+	}
+
+	err := gs.Connect()
+	if err != nil {
+		return nil, err
+	}
+	defer gs.Conn.Close()
+
+	ifaces := make([]string, 0)
+	err = gs.Walk(".1.3.6.1.2.1.2.2.1.2", func(p gosnmp.SnmpPDU) error {
+		var name string
+		switch v := p.Value.(type) {
+		case []byte:
+			name = string(v)
+		case string:
+			name = v
+		default:
+			name = fmt.Sprintf("%v", v)
+		}
+		if name != "" {
+			ifaces = append(ifaces, name)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ifaces, nil
+}
+
 func (a *appState) handleCreateDevice(c echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -711,9 +763,9 @@ func (a *appState) handleCreateDevice(c echo.Context) error {
 
 	var d device
 	query := `
-		INSERT INTO devices (name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, workspace_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-		RETURNING id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, workspace_id, created_at
+		INSERT INTO devices (name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		RETURNING id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at
 	`
 	if err := a.db.QueryRow(ctx, query,
 		req.Name,
@@ -728,9 +780,10 @@ func (a *appState) handleCreateDevice(c echo.Context) error {
 		req.MonitoringEnabled,
 		req.PingIntervalMs,
 		req.MonitoredQueues,
+		req.MonitoredInterfaces,
 		req.WorkspaceID,
 	).
-		Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.WorkspaceID, &d.CreatedAt); err != nil {
+		Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.MonitoredInterfaces, &d.WorkspaceID, &d.CreatedAt); err != nil {
 		log.Printf("create device insert error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to create device")
 	}
@@ -780,9 +833,10 @@ func (a *appState) handleUpdateDevice(c echo.Context) error {
 		    monitoring_enabled = $10,
 		    ping_interval_ms = $11,
 			monitored_queues = $12,
-		    workspace_id = $13
-		WHERE id = $14
-		RETURNING id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, workspace_id, created_at
+			monitored_interfaces = $13,
+		    workspace_id = $14
+		WHERE id = $15
+		RETURNING id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at
 	`
 	if err := a.db.QueryRow(ctx, query,
 		req.Name,
@@ -797,10 +851,11 @@ func (a *appState) handleUpdateDevice(c echo.Context) error {
 		req.MonitoringEnabled,
 		req.PingIntervalMs,
 		req.MonitoredQueues,
+		req.MonitoredInterfaces,
 		req.WorkspaceID,
 		id,
 	).
-		Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.WorkspaceID, &d.CreatedAt); err != nil {
+		Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.MonitoredInterfaces, &d.WorkspaceID, &d.CreatedAt); err != nil {
 		if err == pgx.ErrNoRows {
 			return c.String(http.StatusNotFound, "device not found")
 		}

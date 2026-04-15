@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS devices (
 	monitoring_enabled BOOLEAN NOT NULL DEFAULT TRUE,
 	ping_interval_ms INT NOT NULL DEFAULT 30000,
 	monitored_queues JSONB DEFAULT '[]'::jsonb,
+	monitored_interfaces JSONB DEFAULT '[]'::jsonb,
 	workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE,
 	created_at TIMESTAMP DEFAULT NOW()
 );

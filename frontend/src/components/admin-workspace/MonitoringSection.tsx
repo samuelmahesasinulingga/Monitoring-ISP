@@ -36,6 +36,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     pingIntervalMs?: number;
     integrationMode?: string;
     monitoredQueues?: string[];
+    monitoredInterfaces?: string[];
     history?: PingHistoryPoint[];
   };
 
@@ -67,15 +68,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
 
   // Interface Multi-device states
-  const [deviceIfaceLists, setDeviceIfaceLists] = useState<Record<number, string[]>>({});
-  const [deviceSelectedIfaces, setDeviceSelectedIfaces] = useState<Record<number, string>>({});
-  const deviceSelectedIfacesRef = useRef<Record<number, string>>({});
-
-  useEffect(() => {
-    deviceSelectedIfacesRef.current = deviceSelectedIfaces;
-  }, [deviceSelectedIfaces]);
-
-  const [deviceBandwidthSamples, setDeviceBandwidthSamples] = useState<Record<number, BandwidthPoint[]>>({});
+  const [deviceInterfaceBandwidthSamples, setDeviceInterfaceBandwidthSamples] = useState<Record<number, Record<string, BandwidthPoint[]>>>({});
   const [isLoadingIfaceMap, setIsLoadingIfaceMap] = useState<Record<number, boolean>>({});
 
   // Queue Multi-device states
@@ -98,25 +91,6 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
   const [selectedDetailDeviceId, setSelectedDetailDeviceId] = useState<number | null>(null);
   const [selectedDetailQueueName, setSelectedDetailQueueName] = useState<string | null>(null);
 
-  // Fetch interface lists for ALL devices
-  useEffect(() => {
-    pingDevices.forEach(device => {
-      // Fetch only if not fetched yet
-      if (deviceIfaceLists[device.id] === undefined) {
-        fetch(`/api/monitoring/interfaces/${device.id}`)
-          .then(r => r.ok ? r.json() : [])
-          .then(data => {
-            setDeviceIfaceLists(prev => ({ ...prev, [device.id]: data }));
-            if (data.length > 0) {
-              setDeviceSelectedIfaces(prev => ({ ...prev, [device.id]: data[0] }));
-              fetchTrafficForDevice(device.id, data[0]);
-            }
-          })
-          .catch(err => console.error("fetch interfaces error config", err));
-      }
-    });
-  }, [pingDevices]);
-
   const fetchTrafficForDevice = (deviceId: number, iface: string) => {
     setIsLoadingIfaceMap(prev => ({ ...prev, [deviceId]: true }));
     fetch(`/api/monitoring/traffic/${deviceId}?interface=${encodeURIComponent(iface)}`)
@@ -126,10 +100,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
           ...point,
           time: formatTime(point.time)
         }));
-        setDeviceBandwidthSamples(prev => ({ ...prev, [deviceId]: formatted }));
+        setDeviceInterfaceBandwidthSamples(prev => ({
+          ...prev,
+          [deviceId]: {
+            ...(prev[deviceId] || {}),
+            [iface]: formatted
+          }
+        }));
       })
       .catch(err => {
-        console.error("fetch traffic error for", deviceId, err);
+        console.error("fetch traffic error for", deviceId, iface, err);
       })
       .finally(() => {
         setIsLoadingIfaceMap(prev => ({ ...prev, [deviceId]: false }));
@@ -187,8 +167,8 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
       pingDevices.forEach(d => {
         const mode = d.integrationMode?.toLowerCase() || "";
         if (mode.includes("snmp")) {
-          const iface = deviceSelectedIfacesRef.current[d.id];
-          if (iface) fetchTrafficForDevice(d.id, iface);
+          const ifaces = d.monitoredInterfaces || [];
+          ifaces.forEach(i => fetchTrafficForDevice(d.id, i));
         }
       });
     } else if (initialTab === "queue") {
@@ -202,11 +182,14 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     }
   };
 
-  // Initial fetch for queues when pingDevices changes
+  // Initial fetch for interfaces and queues when pingDevices changes
   useEffect(() => {
     pingDevices.forEach(device => {
       const mode = device.integrationMode?.toLowerCase() || "";
-      if (mode.includes("snmp") && initialTab === "queue") {
+      if (mode.includes("snmp") && initialTab === "interface") {
+        const ifaces = device.monitoredInterfaces || [];
+        ifaces.forEach(i => fetchTrafficForDevice(device.id, i));
+      } else if (mode.includes("snmp") && initialTab === "queue") {
         const queues = device.monitoredQueues || [];
         queues.forEach(q => fetchQueueTrafficForDevice(device.id, q));
       }
@@ -871,120 +854,104 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("snmp")).map(d => {
-              const ifaceList = deviceIfaceLists[d.id] || [];
-              const selectedIface = deviceSelectedIfaces[d.id] || "";
-              const realBandwidthSamples = deviceBandwidthSamples[d.id] || [];
+              const interfaces = d.monitoredInterfaces || [];
               const isDown = d.status === "DOWN";
               const isLoading = isLoadingIfaceMap[d.id] || false;
 
-              const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
-                ? realBandwidthSamples
-                : [{ time: "00:00", rx: 0, tx: 0 }];
-
-              const rxValues = bandwidthSamples.map((p) => p.rx);
-              const txValues = bandwidthSamples.map((p) => p.tx);
-
-              const sum = (values: number[]) => values.reduce((acc, val) => acc + val, 0);
-
-              const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
-              const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
-              const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
-              const txMax = txValues.length ? Math.max(...txValues) : 0;
-              const rxMin = rxValues.length ? Math.min(...rxValues) : 0;
-              const txMin = txValues.length ? Math.min(...txValues) : 0;
-
-              const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
+              if (interfaces.length === 0) {
+                 return (
+                   <div key={d.id} className="rounded-2xl px-4 py-6 bg-slate-50/50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
+                      <p className="m-0 text-[13px] font-semibold text-slate-400">{d.name}</p>
+                      <p className="m-0 text-[10px] text-slate-400">Tidak ada interface yang dipilih untuk dimonitor.</p>
+                   </div>
+                 );
+              }
 
               return (
-                <div
-                  key={d.id}
-                  className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
-                  onClick={() => {
-                    setSelectedDetailDeviceId(d.id);
-                    setSelectedDetailQueueName(null);
-                  }}
-                >
-                  <div className="absolute inset-0 bg-slate-50/0 group-hover:bg-slate-50/50 pointer-events-none rounded-2xl transition-colors"></div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                      <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
-                    </div>
-                    <select
-                      className="px-2 py-1 rounded-lg border border-slate-200 text-[11px] min-w-[120px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
-                      value={selectedIface}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        const newIface = e.target.value;
-                        setDeviceSelectedIfaces(prev => ({ ...prev, [d.id]: newIface }));
-                        fetchTrafficForDevice(d.id, newIface); // Instant update
-                      }}
-                    >
-                      {ifaceList.map(name => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                      {ifaceList.length === 0 && <option value="">Tidak ada interface</option>}
-                    </select>
-                  </div>
+                <React.Fragment key={d.id}>
+                  {interfaces.map(ifaceName => {
+                    const interfaceSamplesMap = deviceInterfaceBandwidthSamples[d.id] || {};
+                    const realBandwidthSamples = interfaceSamplesMap[ifaceName] || [];
+                    
+                    const bandwidthSamples: BandwidthPoint[] = realBandwidthSamples.length > 0 && !isDown
+                      ? realBandwidthSamples
+                      : [{ time: "00:00", rx: 0, tx: 0 }];
 
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <p className="m-0 text-[11px] text-slate-500">Grafik waktu nyata</p>
-                      {isLoading && realBandwidthSamples.length === 0 && (
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-wider border border-amber-200">
-                          Loading...
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                        <span>RX</span>
+                    const rxValues = bandwidthSamples.map((p) => p.rx);
+                    const txValues = bandwidthSamples.map((p) => p.tx);
+                    const sum = (values: number[]) => values.reduce((acc, val) => acc + val, 0);
+
+                    const rxAvg = rxValues.length ? sum(rxValues) / rxValues.length : 0;
+                    const txAvg = txValues.length ? sum(txValues) / txValues.length : 0;
+                    const rxMax = rxValues.length ? Math.max(...rxValues) : 0;
+                    const txMax = txValues.length ? Math.max(...txValues) : 0;
+
+                    const lastSample = bandwidthSamples[bandwidthSamples.length - 1] || { rx: 0, tx: 0 };
+
+                    return (
+                      <div
+                        key={`${d.id}-${ifaceName}`}
+                        className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
+                        onClick={() => {
+                          setSelectedDetailDeviceId(d.id);
+                          setSelectedDetailQueueName(ifaceName);
+                        }}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                            <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
+                            <span className="text-slate-300">/</span>
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100">{ifaceName}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                            <div className="flex items-center gap-1">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                              <span>RX</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="h-2 w-2 rounded-full bg-sky-500" />
+                              <span>TX</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="m-0 text-[11px] text-slate-500">Statistik bandwidth interface</p>
+                          {isLoading && realBandwidthSamples.length === 0 && (
+                            <span className="animate-pulse text-[9px] text-blue-500 font-bold uppercase tracking-widest">
+                              Loading...
+                            </span>
+                          )}
+                        </div>
+
+                        <BandwidthSparkline data={bandwidthSamples} />
+
+                        <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
+                            <span>
+                              RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMax)} max
+                            </span>
+                            <span>
+                              TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMax)} max
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-slate-500">
+                            <span>
+                              Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
+                            </span>
+                            {bandwidthSamples.length > 1 && (
+                              <span>
+                                {bandwidthSamples[0].time} - {bandwidthSamples[bandwidthSamples.length - 1].time}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-sky-500" />
-                        <span>TX</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <BandwidthSparkline data={bandwidthSamples} />
-
-                  {ifaceList.length === 0 && !isLoading && (
-                    <div className="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] flex gap-1.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0 mt-0.5">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                      </svg>
-                      <div>
-                        <span className="font-bold uppercase tracking-wide">Data kosong.</span>
-                        <span className="ml-1 opacity-80">Pastikan SNMP aktif (IP {d.ip}) dan tidak ada gangguan.</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
-                      <span>
-                        RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMin)} min, {formatBandwidth(rxMax)} max
-                      </span>
-                      <span>
-                        TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMin)} min, {formatBandwidth(txMax)} max
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-slate-500">
-                      <span>
-                        Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
-                      </span>
-                      {bandwidthSamples.length > 1 && (
-                        <span>
-                          {bandwidthSamples[0].time} - {bandwidthSamples[bandwidthSamples.length - 1].time}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                    );
+                  })}
+                </React.Fragment>
               );
             })}
           </div>
@@ -1129,16 +1096,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     // Choose which data source to use based on the current tab
     const isQueueTab = initialTab === "queue";
     
-    // For Detail Modal in Queue tab, we show the specifically clicked queue, or default to the first one.
-    const primaryQueue = selectedDetailQueueName || ((d.monitoredQueues && d.monitoredQueues.length > 0) ? d.monitoredQueues[0] : "");
+    // For Detail Modal in Queue or Interface tab, we show the specifically clicked item, or default to the first one.
+    const autoFallbackName = isQueueTab 
+      ? ((d.monitoredQueues && d.monitoredQueues.length > 0) ? d.monitoredQueues[0] : "")
+      : ((d.monitoredInterfaces && d.monitoredInterfaces.length > 0) ? d.monitoredInterfaces[0] : "");
 
-    const selectedItemName = isQueueTab
-      ? primaryQueue
-      : (deviceSelectedIfaces[d.id] || "Unknown Interface");
+    const selectedItemName = selectedDetailQueueName || autoFallbackName || "Unknown";
 
     const realBandwidthSamples = isQueueTab
-      ? (deviceQueueBandwidthSamples[d.id]?.[primaryQueue] || [])
-      : (deviceBandwidthSamples[d.id] || []);
+      ? (deviceQueueBandwidthSamples[d.id]?.[selectedItemName] || [])
+      : (deviceInterfaceBandwidthSamples[d.id]?.[selectedItemName] || []);
 
     const isLoading = isQueueTab
       ? (isLoadingQueueMap[d.id] || false)

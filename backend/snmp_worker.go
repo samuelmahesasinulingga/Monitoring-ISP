@@ -20,7 +20,7 @@ func startSnmpWorker(state *appState) {
 
 		// Ambil semua device yang monitoring SNMP-nya aktif
 		rows, err := state.db.Query(ctx, `
-			SELECT id, name, ip, snmp_version, snmp_community, monitored_queues 
+			SELECT id, name, ip, snmp_version, snmp_community, monitored_queues, monitored_interfaces 
 			FROM devices 
 			WHERE monitoring_enabled = TRUE AND integration_mode ILIKE '%snmp%'
 		`)
@@ -30,18 +30,19 @@ func startSnmpWorker(state *appState) {
 		}
 
 		type snmpDevice struct {
-			ID              int
-			Name            string
-			IP              string
-			Version         string
-			Community       string
-			MonitoredQueues []string
+			ID                  int
+			Name                string
+			IP                  string
+			Version             string
+			Community           string
+			MonitoredQueues     []string
+			MonitoredInterfaces []string
 		}
 
 		var devices []snmpDevice
 		for rows.Next() {
 			var d snmpDevice
-			if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Version, &d.Community, &d.MonitoredQueues); err != nil {
+			if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Version, &d.Community, &d.MonitoredQueues, &d.MonitoredInterfaces); err != nil {
 				log.Printf("error scanning device for snmp: %v", err)
 				continue
 			}
@@ -56,12 +57,13 @@ func startSnmpWorker(state *appState) {
 }
 
 func pollDeviceSnmp(state *appState, d struct {
-	ID              int
-	Name            string
-	IP              string
-	Version         string
-	Community       string
-	MonitoredQueues []string
+	ID                  int
+	Name                string
+	IP                  string
+	Version             string
+	Community           string
+	MonitoredQueues     []string
+	MonitoredInterfaces []string
 }) {
 	gs := &gosnmp.GoSNMP{
 		Target:    d.IP,
@@ -168,6 +170,24 @@ func pollDeviceSnmp(state *appState, d struct {
 	// Simpan ke database
 	now := time.Now()
 	for index, name := range ifNames {
+		// FILTER: Hanya simpan jika ada di list MonitoredInterfaces
+		if len(d.MonitoredInterfaces) > 0 {
+			found := false
+			for _, mi := range d.MonitoredInterfaces {
+				if mi == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		} else {
+			// Jika MonitoredInterfaces kosong, kita asumsikan tidak ada interface yang dimonitor
+			// (Sesuai perilaku selective monitoring baru)
+			continue
+		}
+
 		in := inOctets[index]
 		out := outOctets[index]
 
