@@ -1,13 +1,33 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"net/url"
+	"strings"
+	"sync"
 	"time"
 )
+
+var (
+	// Mutex untuk melindungi akses concurrent ke map status
+	statusMu sync.RWMutex
+)
+
+// escapeMarkdown membersihkan karakter khusus Markdown agar tidak error saat dikirim ke Telegram
+func escapeMarkdown(text string) string {
+	replacer := strings.NewReplacer(
+		"_", "\\_",
+		"*", "\\*",
+		"[", "\\[",
+		"`", "\\`",
+	)
+	return replacer.Replace(text)
+}
 
 func startPingWorker(state *appState) {
 	ticker := time.NewTicker(10 * time.Second)
@@ -62,7 +82,10 @@ func startPingWorker(state *appState) {
 				interval = 30 * time.Second
 			}
 
+			statusMu.RLock()
 			lastTime := lastPingTimes[d.ID]
+			statusMu.RUnlock()
+
 			// Tambahkan buffer ~3 detik agar tidak loss gara gara eksekusi tick
 			if now.Sub(lastTime) >= interval-(3*time.Second) || lastTime.IsZero() {
 				// Waktunya mencatat log
@@ -87,7 +110,9 @@ func startPingWorker(state *appState) {
 						log.Printf("gagal insert log ping untuk device %d: %v", dev.ID, err)
 					}
 					// Deteksi perubahan status untuk Alert
+					statusMu.RLock()
 					prevStatus, exists := lastDeviceStatus[dev.ID]
+					statusMu.RUnlock()
 					
 					// Alert dikirim jika status berubah (berpindah)
 					// ATAU jika ini deteksi pertama kali (server baru nyala) dan statusnya sudah DOWN
@@ -107,11 +132,15 @@ func startPingWorker(state *appState) {
 							}
 						}(dev.ID, status)
 					}
+					statusMu.Lock()
 					lastDeviceStatus[dev.ID] = status
+					statusMu.Unlock()
 				}(d, now)
 
 				// Update memory cache
+				statusMu.Lock()
 				lastPingTimes[d.ID] = now
+				statusMu.Unlock()
 			}
 		}
 	}
@@ -145,12 +174,18 @@ func sendStatusAlert(state *appState, workspaceID int, deviceName string, newSta
 
 	loc := time.FixedZone("WIB", 7*3600)
 	msg := fmt.Sprintf("%s *DEVICE ALERT*\n\nDevice: %s\nStatus: %s\nTime: %s", 
-		emoji, deviceName, statusText, time.Now().In(loc).Format("15:04:05 02-01-2006"))
+		emoji, escapeMarkdown(deviceName), statusText, time.Now().In(loc).Format("15:04:05 02-01-2006"))
 
-	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s&parse_mode=Markdown", 
-		*botToken, *chatID, url.QueryEscape(msg))
+	payload := map[string]string{
+		"chat_id":    *chatID,
+		"text":       msg,
+		"parse_mode": "Markdown",
+	}
+	body, _ := json.Marshal(payload)
 
-	resp, err := http.Get(apiURL)
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", *botToken)
+
+	resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		log.Printf("Failed to send telegram alert for device %s: %v", deviceName, err)
 		return
@@ -158,8 +193,8 @@ func sendStatusAlert(state *appState, workspaceID int, deviceName string, newSta
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Baca sedikit info error dari body jika bukan 200 OK
-		log.Printf("Telegram API ERROR for device %s! Status: %d, URL: %s", deviceName, resp.StatusCode, apiURL)
+		respBody, _ := io.ReadAll(resp.Body)
+		log.Printf("Telegram API ERROR for device %s! Status: %d, Response: %s", deviceName, resp.StatusCode, string(respBody))
 	} else {
 		log.Printf("Telegram Alert SUCCESS for device %s (Status: %s)", deviceName, newStatus)
 	}

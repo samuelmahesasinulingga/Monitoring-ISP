@@ -11,5 +11,8 @@ type invoice struct {
 	Amount       float64   `json:"amount"`
 	Status       string    `json:"status"` // paid, unpaid
 	WorkspaceID  *int      `json:"workspaceId,omitempty"`
+	PaymentDate   *time.Time `json:"paymentDate,omitempty"`
+	PaymentMethod *string    `json:"paymentMethod,omitempty"`
+	Notes         *string    `json:"notes,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 }

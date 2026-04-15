@@ -66,7 +66,9 @@ func main() {
 	e.GET("/api/workspaces", state.handleListWorkspaces)
 	e.PUT("/api/workspaces/:id", state.handleUpdateWorkspace)
 	e.PUT("/api/workspaces/:id/settings", state.handleUpdateWorkspaceSettings)
+	e.PUT("/api/workspaces/:id/smtp", state.handleUpdateWorkspaceSmtpSettings)
 	e.DELETE("/api/workspaces/:id", state.handleDeleteWorkspace)
+	e.POST("/api/settings/test-smtp", state.handleTestSMTP)
 
 	// Users management
 	e.POST("/api/users", state.handleCreateUser)
@@ -101,6 +103,7 @@ func main() {
 	e.GET("/api/invoices", state.handleListInvoices)
 	e.POST("/api/invoices", state.handleCreateInvoice)
 	e.PUT("/api/invoices/:id/status", state.handleUpdateInvoiceStatus)
+	e.POST("/api/invoices/:id/send-email", state.handleSendInvoiceEmail)
 	e.DELETE("/api/invoices/:id", state.handleDeleteInvoice)
 
 	// Packages Component

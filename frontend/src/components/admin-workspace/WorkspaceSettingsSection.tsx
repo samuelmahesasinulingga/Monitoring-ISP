@@ -15,6 +15,7 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   const [smtpPort, setSmtpPort] = useState(587);
   const [smtpUseTLS, setSmtpUseTLS] = useState(true);
   const [smtpUser, setSmtpUser] = useState("no-reply@contoso-isp.id");
+  const [smtpPass, setSmtpPass] = useState("");
   const [smtpFromName, setSmtpFromName] = useState("Billing ISP");
   const [smtpFromEmail, setSmtpFromEmail] = useState("billing@contoso-isp.id");
   const [invoiceSubjectTemplate, setInvoiceSubjectTemplate] = useState(
@@ -24,6 +25,8 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
     "Yth. {{customer_name}},\n\nBerikut kami sampaikan tagihan layanan internet untuk periode {{period_label}} dengan nilai {{invoice_amount}}.\nLampiran SLA dan report penggunaan bandwidth tertera pada dokumen terlampir.\n\nTerima kasih,\n{{isp_name}}"
   );
   const [emailSaveMessage, setEmailSaveMessage] = useState<string | null>(null);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [testEmailMessage, setTestEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // SLA target & thresholds
   const [defaultSlaTarget, setDefaultSlaTarget] = useState(99.5);
@@ -52,6 +55,17 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
             setTelegramBotToken(thisWs.telegramBotToken || "");
             setTelegramChatId(thisWs.telegramChatId || "");
             setAlertEnabled(thisWs.alertEnabled || false);
+
+            if (thisWs.smtpProvider) setSmtpProvider(thisWs.smtpProvider);
+            if (thisWs.smtpHost) setSmtpHost(thisWs.smtpHost);
+            if (thisWs.smtpPort) setSmtpPort(thisWs.smtpPort);
+            if (thisWs.smtpUseTls !== undefined) setSmtpUseTLS(thisWs.smtpUseTls);
+            if (thisWs.smtpUser) setSmtpUser(thisWs.smtpUser);
+            if (thisWs.smtpPass) setSmtpPass(thisWs.smtpPass);
+            if (thisWs.smtpFromName) setSmtpFromName(thisWs.smtpFromName);
+            if (thisWs.smtpFromEmail) setSmtpFromEmail(thisWs.smtpFromEmail);
+            if (thisWs.invoiceSubjectTemplate) setInvoiceSubjectTemplate(thisWs.invoiceSubjectTemplate);
+            if (thisWs.invoiceBodyTemplate) setInvoiceBodyTemplate(thisWs.invoiceBodyTemplate);
           }
         }
       } catch (err) {
@@ -88,11 +102,67 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
     }
   };
 
-  const handleSaveEmail = () => {
-    // Nanti diintegrasikan ke backend untuk menyimpan SMTP & template email
-    setEmailSaveMessage(
-      `Pengaturan email & template invoice disimpan (dummy) untuk provider ${smtpProvider.toUpperCase()}.`
-    );
+  const handleSaveEmail = async () => {
+    if (!workspaceId) return;
+
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/smtp`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          smtpProvider,
+          smtpHost,
+          smtpPort,
+          smtpUseTls: smtpUseTLS,
+          smtpUser,
+          smtpPass,
+          smtpFromName,
+          smtpFromEmail,
+          invoiceSubjectTemplate,
+          invoiceBodyTemplate,
+        }),
+      });
+
+      if (res.ok) {
+        setEmailSaveMessage("Pengaturan SMTP dan template email berhasil disimpan!");
+        setTimeout(() => setEmailSaveMessage(null), 3000);
+      } else {
+        setEmailSaveMessage("Gagal menyimpan pengaturan email.");
+      }
+    } catch (err) {
+      console.error(err);
+      setEmailSaveMessage("Terjadi kesalahan saat menyimpan pengaturan.");
+    }
+  };
+
+  const handleTestEmailConnection = async () => {
+    setIsTestingEmail(true);
+    setTestEmailMessage(null);
+    try {
+      const res = await fetch("/api/settings/test-smtp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: smtpHost,
+          port: smtpPort,
+          user: smtpUser,
+          pass: smtpPass,
+          from: smtpFromEmail,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.status === "ok") {
+        setTestEmailMessage({ type: "success", text: data.message || "Koneksi berhasil dan email test terkirim!" });
+      } else {
+        setTestEmailMessage({ type: "error", text: data.error || "Gagal menghubungi SMTP Server." });
+      }
+    } catch (err) {
+      console.error(err);
+      setTestEmailMessage({ type: "error", text: "Terjadi kesalahan sistem saat mencoba koneksi." });
+    } finally {
+      setIsTestingEmail(false);
+    }
   };
 
   const handleSaveSla = () => {
@@ -185,7 +255,7 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
               </label>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               <div>
                 <div className="mb-1 text-[12px] text-slate-600">
                   User / credential
@@ -199,6 +269,17 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
               </div>
               <div>
                 <div className="mb-1 text-[12px] text-slate-600">
+                  Password SMTP
+                </div>
+                <input
+                  type="password"
+                  value={smtpPass}
+                  onChange={(e) => setSmtpPass(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-[12px] text-slate-600">
                   From name & email
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -207,14 +288,14 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                     value={smtpFromName}
                     onChange={(e) => setSmtpFromName(e.target.value)}
                     placeholder="Nama pengirim"
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none min-w-0 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                   />
                   <input
                     type="email"
                     value={smtpFromEmail}
                     onChange={(e) => setSmtpFromEmail(e.target.value)}
                     placeholder="email@isp.id"
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none min-w-0 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                   />
                 </div>
               </div>
@@ -250,13 +331,29 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSaveEmail}
-            className="px-3 py-1.5 rounded-full border border-emerald-500 bg-emerald-500 text-[12px] font-semibold text-white hover:bg-emerald-600 hover:border-emerald-600 transition-colors mb-2"
-          >
-            Simpan pengaturan email
-          </button>
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleTestEmailConnection}
+              disabled={isTestingEmail}
+              className="px-3 py-1.5 rounded-full border border-amber-500 bg-amber-500 text-[12px] font-semibold text-white hover:bg-amber-600 hover:border-amber-600 transition-colors disabled:opacity-50"
+            >
+              {isTestingEmail ? "Mencoba Koneksi..." : "Test Koneksi SMTP"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveEmail}
+              className="px-3 py-1.5 rounded-full border border-emerald-500 bg-emerald-500 text-[12px] font-semibold text-white hover:bg-emerald-600 hover:border-emerald-600 transition-colors"
+            >
+              Simpan pengaturan email
+            </button>
+          </div>
+
+          {testEmailMessage && (
+            <div className={`mb-2 text-[11px] font-medium ${testEmailMessage.type === "success" ? "text-emerald-600" : "text-rose-600"}`}>
+              {testEmailMessage.text}
+            </div>
+          )}
 
           {emailSaveMessage && (
             <div className="mb-2 text-[11px] text-slate-500">

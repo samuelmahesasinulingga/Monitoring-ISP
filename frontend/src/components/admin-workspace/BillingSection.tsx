@@ -15,6 +15,9 @@ interface Invoice {
   amount: number;
   status: string;
   workspaceId?: number;
+  paymentDate?: string;
+  paymentMethod?: string;
+  notes?: string;
   created_at: string;
 }
 
@@ -44,11 +47,21 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   const [scheduleDay, setScheduleDay] = useState(1);
   const [autoSaveResult, setAutoSaveResult] = useState<string | null>(null);
 
-  // Packages Management State
+  // Invoice Management Modal State
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [modalStatus, setModalStatus] = useState<string>("unpaid");
+  const [modalPaymentDate, setModalPaymentDate] = useState<string>("");
+  const [modalPaymentMethod, setModalPaymentMethod] = useState<string>("");
+  const [modalNotes, setModalNotes] = useState<string>("");
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [newPkgName, setNewPkgName] = useState("");
   const [newPkgBandwidth, setNewPkgBandwidth] = useState(50);
   const [newPkgPrice, setNewPkgPrice] = useState(350000);
+
+  // Animation State
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -145,20 +158,69 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     }
   };
 
-  const toggleInvoiceStatus = async (inv: Invoice) => {
-    const newStatus = inv.status === "paid" ? "unpaid" : "paid";
+  const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
+
+  const handleSendInvoiceEmail = async (id: number) => {
+    if (!confirm("Apakah Anda yakin ingin mengirim invoice ini ke email pelanggan?")) return;
+    
+    setSendingEmailId(id);
     try {
-      const res = await fetch(`/api/invoices/${inv.id}/status`, {
+      const res = await fetch(`/api/invoices/${id}/send-email`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        alert("Gagal kirim email: " + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan sistem saat menghubungi backend.");
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
+  const handleOpenStatusModal = (inv: Invoice) => {
+    setEditingInvoice(inv);
+    setModalStatus(inv.status);
+    setModalPaymentDate(inv.paymentDate ? inv.paymentDate.split("T")[0] : new Date().toISOString().split("T")[0]);
+    setModalPaymentMethod(inv.paymentMethod || "");
+    setModalNotes(inv.notes || "");
+  };
+
+  const handleSaveInvoiceStatus = async () => {
+    if (!editingInvoice) return;
+    setIsSavingStatus(true);
+    try {
+      const payload: any = { status: modalStatus };
+      if (modalStatus === "paid") {
+        payload.paymentDate = modalPaymentDate ? new Date(modalPaymentDate).toISOString() : new Date().toISOString();
+        payload.paymentMethod = modalPaymentMethod;
+        payload.notes = modalNotes;
+      } else {
+        payload.paymentDate = null;
+        payload.paymentMethod = "";
+        payload.notes = "";
+      }
+
+      const res = await fetch(`/api/invoices/${editingInvoice.id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const updated = await res.json();
         setInvoices((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+        setEditingInvoice(null);
+      } else {
+        alert("Gagal memperbarui status tagihan.");
       }
     } catch (err) {
       console.error(err);
+      alert("Terjadi kesalahan sistem.");
+    } finally {
+      setIsSavingStatus(false);
     }
   };
 
@@ -359,18 +421,37 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                         Rp {inv.amount.toLocaleString("id-ID")}
                       </td>
                       <td className="px-3 py-2.5">
+                        <div className="flex flex-col gap-1 items-start">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenStatusModal(inv)}
+                            className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border cursor-pointer transition-colors ${inv.status === "paid"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                              }`}
+                          >
+                            {inv.status === "paid" ? "LUNAS" : "BELUM LUNAS"} ⚙️
+                          </button>
+                          {inv.status === "paid" && (inv.paymentMethod || inv.notes) && (
+                            <span className="text-[9px] text-slate-500 truncate max-w-[120px]" title={`${inv.paymentMethod || ""} - ${inv.notes || ""}`}>
+                              {inv.paymentMethod ? `via ${inv.paymentMethod}` : "Ada catatan"}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-right flex gap-2 justify-end">
                         <button
                           type="button"
-                          onClick={() => toggleInvoiceStatus(inv)}
-                          className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border cursor-pointer transition-colors ${inv.status === "paid"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                              : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                            }`}
+                          disabled={sendingEmailId === inv.id || inv.status === "paid"}
+                          onClick={() => handleSendInvoiceEmail(inv.id)}
+                          className={`inline-flex items-center justify-center rounded-lg border px-2 py-1 text-[10px] font-semibold cursor-pointer disabled:opacity-50 ${
+                            inv.status === "paid" 
+                            ? "border-slate-200 bg-slate-50 text-slate-300" 
+                            : "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
+                          }`}
                         >
-                          {inv.status === "paid" ? "LUNAS" : "BELUM LUNAS"}
+                          {sendingEmailId === inv.id ? "⏳..." : "📧 Kirim"}
                         </button>
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
                         <button
                           type="button"
                           onClick={() => handleDeleteInvoice(inv.id)}
@@ -534,6 +615,137 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
           </div>
         </div>
       )}
+
+      {/* MODAL KELOLA STATUS TAGIHAN */}
+      {editingInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="m-0 text-[16px] font-bold text-slate-900">Kelola Tagihan</h3>
+              <button
+                type="button"
+                onClick={() => setEditingInvoice(null)}
+                className="w-7 h-7 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mb-4 bg-slate-50 border border-slate-100 rounded-lg p-3 text-[12px]">
+              <div className="flex justify-between mb-1">
+                <span className="text-slate-500">Klien</span>
+                <span className="font-semibold text-slate-800">{editingInvoice.customerName}</span>
+              </div>
+              <div className="flex justify-between mb-1">
+                <span className="text-slate-500">Nominal</span>
+                <span className="font-semibold text-slate-800">Rp {editingInvoice.amount.toLocaleString("id-ID")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Periode</span>
+                <span className="font-semibold text-slate-800">{editingInvoice.periodStart.slice(0, 7)}</span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 mb-5">
+              <div>
+                <label className="block text-[12px] font-medium text-slate-700 mb-1">Status Pembayaran</label>
+                <select
+                  value={modalStatus}
+                  onChange={(e) => setModalStatus(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                  <option value="unpaid">BELUM LUNAS</option>
+                  <option value="paid">SUDAH LUNAS</option>
+                </select>
+              </div>
+
+              {modalStatus === "paid" && (
+                <div className="border border-emerald-100 bg-emerald-50/30 rounded-lg p-3 grid gap-3 animate-fade-in">
+                  <div>
+                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Tanggal Pembayaran</label>
+                    <input
+                      type="date"
+                      value={modalPaymentDate}
+                      onChange={(e) => setModalPaymentDate(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-white outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Metode Bayar (Bebas)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Transfer BCA / Tunai / OVO"
+                      value={modalPaymentMethod}
+                      onChange={(e) => setModalPaymentMethod(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-white outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Catatan</label>
+                    <textarea
+                      placeholder="Catatan tambahan (opsional)"
+                      value={modalNotes}
+                      onChange={(e) => setModalNotes(e.target.value)}
+                      rows={2}
+                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-white outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setEditingInvoice(null)}
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-[12px] font-medium hover:bg-slate-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveInvoiceStatus}
+                disabled={isSavingStatus}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 shadow-sm disabled:opacity-50"
+              >
+                {isSavingStatus ? "Menyimpan..." : "Simpan Status"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* NOTIFIKASI ANIMASI SUKSES KIRIM EMAIL */}
+      {showSuccessToast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-bounce-in">
+          <div className="flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-700/50">
+            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[18px]">
+              ✓
+            </div>
+            <div>
+              <div className="text-[14px] font-bold">Email Terkirim!</div>
+              <div className="text-[11px] text-slate-400">Invoice telah berhasil dikirim ke pelanggan.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes bounce-in {
+          0% { transform: translate(-50%, 20px); opacity: 0; }
+          60% { transform: translate(-50%, -5px); opacity: 1; }
+          100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .animate-bounce-in {
+          animation: bounce-in 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out forwards;
+        }
+      `}} />
     </section>
   );
 };
