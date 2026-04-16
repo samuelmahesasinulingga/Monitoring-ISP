@@ -330,22 +330,27 @@ func (a *appState) processSendInvoiceEmail(ctx context.Context, invoiceID int) e
 	}
 
 	d := gomail.NewDialer(*ws.SmtpHost, port, *ws.SmtpUser, *ws.SmtpPass)
-	return d.DialAndSend(m)
+	if err := d.DialAndSend(m); err != nil {
+		return err
+	}
+
+	// Update is_sent status in DB
+	_, err = a.db.Exec(ctx, "UPDATE invoices SET is_sent = TRUE WHERE id = $1", invoiceID)
+	return err
 }
 
 // generateInvoicesForWorkspace adalah helper untuk membuat invoice otomatis setiap bulan
 func (a *appState) generateInvoicesForWorkspace(ctx context.Context, wsID int) ([]int, error) {
-	// 1. Ambil semua pelanggan dengan layanan aktif di workspace ini
+	// 1. Ambil nominal dari tagihan terakhir untuk setiap pelanggan di workspace ini
 	query := `
-		SELECT c.id, p.price
-		FROM customers c
-		JOIN services s ON c.id = s.customer_id
-		JOIN packages p ON s.plan_name = p.name AND s.workspace_id = p.workspace_id
-		WHERE c.workspace_id = $1 AND s.active = TRUE
+		SELECT DISTINCT ON (customer_id) customer_id, amount
+		FROM invoices
+		WHERE workspace_id = $1
+		ORDER BY customer_id, period_start DESC
 	`
 	rows, err := a.db.Query(ctx, query, wsID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query active services: %w", err)
+		return nil, fmt.Errorf("failed to query invoice history: %w", err)
 	}
 	defer rows.Close()
 
@@ -359,7 +364,7 @@ func (a *appState) generateInvoicesForWorkspace(ctx context.Context, wsID int) (
 		var custID int
 		var amount float64
 		if err := rows.Scan(&custID, &amount); err != nil {
-			log.Printf("Error scanning customer for auto-billing: %v", err)
+			log.Printf("Error scanning invoice history for auto-billing: %v", err)
 			continue
 		}
 
@@ -390,3 +395,4 @@ func (a *appState) generateInvoicesForWorkspace(ctx context.Context, wsID int) (
 
 	return createdIDs, nil
 }
+

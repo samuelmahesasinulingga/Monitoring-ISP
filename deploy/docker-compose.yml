@@ -6,6 +6,7 @@ services:
       POSTGRES_USER: isp_user
       POSTGRES_PASSWORD: isp_password
       POSTGRES_DB: isp_monitoring
+      TZ: Asia/Jakarta
     ports:
       - "5432:5432"
     volumes:
@@ -28,6 +29,7 @@ services:
       POSTGRES_USER: isp_user
       POSTGRES_PASSWORD: isp_password
       POSTGRES_DB: isp_monitoring
+      TZ: Asia/Jakarta
     depends_on:
       - db
     ports:

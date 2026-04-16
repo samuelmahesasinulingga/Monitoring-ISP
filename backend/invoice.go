@@ -15,5 +15,6 @@ type invoice struct {
 	PaymentMethod *string    `json:"paymentMethod,omitempty"`
 	Notes         *string    `json:"notes,omitempty"`
 	ProofOfTransferURL *string `json:"proofOfTransferUrl,omitempty"`
+	IsSent             bool      `json:"isSent"`
 	CreatedAt    time.Time `json:"created_at"`
 }

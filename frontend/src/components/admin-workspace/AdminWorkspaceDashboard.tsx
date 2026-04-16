@@ -99,7 +99,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
     }
 
     if (activeMenu === "topology") {
-      return <TopologySection workspaceName={workspaceName} />;
+      return <TopologySection workspaceName={workspaceName} workspaceId={workspaceId} />;
     }
 
     if (activeMenu === "slaReport") {

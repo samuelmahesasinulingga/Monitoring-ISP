@@ -46,6 +46,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   // Auto Billing Dummy State
   const [autoSendEnabled, setAutoSendEnabled] = useState(false);
   const [scheduleDay, setScheduleDay] = useState(1);
+  const [scheduleHour, setScheduleHour] = useState(8);
   const [autoSaveResult, setAutoSaveResult] = useState<string | null>(null);
 
   // Invoice Management Modal State
@@ -91,6 +92,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         if (currentWs) {
           setAutoSendEnabled(currentWs.autoBillingEnabled);
           setScheduleDay(currentWs.billingIssueDay || 10);
+          setScheduleHour(currentWs.billingIssueHour || 8);
         }
       }
     } catch (err) {
@@ -296,7 +298,8 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           autoBillingEnabled: autoSendEnabled,
-          billingIssueDay: Number(scheduleDay)
+          billingIssueDay: Number(scheduleDay),
+          billingIssueHour: Number(scheduleHour)
         })
       });
 
@@ -542,6 +545,22 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
             >
               {days.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] text-slate-600">Jam Terbit:</span>
+            <select
+              value={scheduleHour}
+              onChange={(e) => setScheduleHour(Number(e.target.value))}
+              className="px-2 py-1 rounded border border-slate-200 text-[12px] outline-none"
+            >
+              {Array.from({ length: 24 }, (_, i) => (
+                <option key={i} value={i}>
+                  {i.toString().padStart(2, '0')}:00
+                </option>
+              ))}
+            </select>
+            <span className="text-[10px] text-slate-400">(WIB)</span>
           </div>
         </div>
 

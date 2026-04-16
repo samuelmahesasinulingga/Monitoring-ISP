@@ -98,6 +98,10 @@ func main() {
 	e.GET("/api/monitoring/queue-traffic/:id", state.handleGetQueueTraffic)
 	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
 	e.GET("/api/monitoring/alerts", state.handleGetAlerts)
+	
+	// Topology Component
+	e.GET("/api/workspaces/:id/topology", state.handleGetTopology)
+	e.POST("/api/workspaces/:id/topology", state.handleSaveTopology)
 
 	// Customers Component
 	e.GET("/api/customers", state.handleListCustomers)
