@@ -40,8 +40,14 @@ func main() {
 	}
 
 	state := &appState{db: pool}
+	
+	// Create uploads directory if it doesn't exist
+	os.MkdirAll("uploads/proofs", 0755)
 
 	e := echo.New()
+	
+	// Static files
+	e.Static("/uploads", "uploads")
 
 	// Middleware
 	e.Use(middleware.Logger())
@@ -117,6 +123,7 @@ func main() {
 	e.DELETE("/api/services/:id", state.handleDeleteService)
 	go startPingWorker(state)
 	go startSnmpWorker(state)
+	go startBillingAutomationWorker(state)
 
 	log.Println("Backend running on :8080")
 	e.Logger.Fatal(e.Start(":8080"))

@@ -18,6 +18,7 @@ interface Invoice {
   paymentDate?: string;
   paymentMethod?: string;
   notes?: string;
+  proofOfTransferUrl?: string;
   created_at: string;
 }
 
@@ -53,7 +54,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   const [modalPaymentDate, setModalPaymentDate] = useState<string>("");
   const [modalPaymentMethod, setModalPaymentMethod] = useState<string>("");
   const [modalNotes, setModalNotes] = useState<string>("");
+  const [modalFile, setModalFile] = useState<File | null>(null);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [newPkgName, setNewPkgName] = useState("");
@@ -67,10 +70,11 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     setIsLoading(true);
     try {
       const wsQuery = workspaceId ? `?workspaceId=${workspaceId}` : "";
-      const [custRes, invRes, pkgRes] = await Promise.all([
+      const [custRes, invRes, pkgRes, wsRes] = await Promise.all([
         fetch(`/api/customers${wsQuery}`),
         fetch(`/api/invoices${wsQuery}`),
-        fetch(`/api/packages${wsQuery}`)
+        fetch(`/api/packages${wsQuery}`),
+        workspaceId ? fetch(`/api/workspaces`) : Promise.resolve(null)
       ]);
 
       if (custRes.ok) {
@@ -80,6 +84,15 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       }
       if (invRes.ok) setInvoices(await invRes.json());
       if (pkgRes.ok) setPackages(await pkgRes.json());
+      
+      if (wsRes && wsRes.ok) {
+        const workspaces = await wsRes.json();
+        const currentWs = workspaces.find((w: any) => w.id === workspaceId);
+        if (currentWs) {
+          setAutoSendEnabled(currentWs.autoBillingEnabled);
+          setScheduleDay(currentWs.billingIssueDay || 10);
+        }
+      }
     } catch (err) {
       console.error("fetch billing data err", err);
     } finally {
@@ -187,27 +200,33 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     setModalPaymentDate(inv.paymentDate ? inv.paymentDate.split("T")[0] : new Date().toISOString().split("T")[0]);
     setModalPaymentMethod(inv.paymentMethod || "");
     setModalNotes(inv.notes || "");
+    setModalFile(null);
   };
 
   const handleSaveInvoiceStatus = async () => {
     if (!editingInvoice) return;
     setIsSavingStatus(true);
     try {
-      const payload: any = { status: modalStatus };
+      const formData = new FormData();
+      formData.append("status", modalStatus);
+      
       if (modalStatus === "paid") {
-        payload.paymentDate = modalPaymentDate ? new Date(modalPaymentDate).toISOString() : new Date().toISOString();
-        payload.paymentMethod = modalPaymentMethod;
-        payload.notes = modalNotes;
+        const pDate = modalPaymentDate ? new Date(modalPaymentDate).toISOString() : new Date().toISOString();
+        formData.append("paymentDate", pDate);
+        formData.append("paymentMethod", modalPaymentMethod);
+        formData.append("notes", modalNotes);
+        if (modalFile) {
+          formData.append("proofOfTransfer", modalFile);
+        }
       } else {
-        payload.paymentDate = null;
-        payload.paymentMethod = "";
-        payload.notes = "";
+        formData.append("paymentDate", "");
+        formData.append("paymentMethod", "");
+        formData.append("notes", "");
       }
 
       const res = await fetch(`/api/invoices/${editingInvoice.id}/status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: formData
       });
       if (res.ok) {
         const updated = await res.json();
@@ -267,11 +286,32 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     }
   };
 
-  const handleSaveAutoBilling = () => {
-    setAutoSaveResult(
-      `Pengaturan auto kirim tagihan disimpan (dummy): ${autoSendEnabled ? "ON" : "OFF"
-      }, jadwal tiap tanggal ${scheduleDay}.`
-    );
+  const handleSaveAutoBilling = async () => {
+    if (!workspaceId) return;
+    
+    setIsSavingStatus(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          autoBillingEnabled: autoSendEnabled,
+          billingIssueDay: Number(scheduleDay)
+        })
+      });
+
+      if (res.ok) {
+        setAutoSaveResult("Pengaturan auto billing berhasil disimpan.");
+        setTimeout(() => setAutoSaveResult(null), 3000);
+      } else {
+        alert("Gagal menyimpan pengaturan auto billing.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan.");
+    } finally {
+      setIsSavingStatus(false);
+    }
   };
 
   const days = Array.from({ length: 28 }, (_, i) => i + 1);
@@ -432,11 +472,6 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                           >
                             {inv.status === "paid" ? "LUNAS" : "BELUM LUNAS"} ⚙️
                           </button>
-                          {inv.status === "paid" && (inv.paymentMethod || inv.notes) && (
-                            <span className="text-[9px] text-slate-500 truncate max-w-[120px]" title={`${inv.paymentMethod || ""} - ${inv.notes || ""}`}>
-                              {inv.paymentMethod ? `via ${inv.paymentMethod}` : "Ada catatan"}
-                            </span>
-                          )}
                         </div>
                       </td>
                       <td className="px-3 py-2.5 text-right flex gap-2 justify-end">
@@ -452,10 +487,19 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                         >
                           {sendingEmailId === inv.id ? "⏳..." : "📧 Kirim"}
                         </button>
+                        {inv.status === "paid" && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingInvoice(inv)}
+                            className="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100 cursor-pointer transition-colors"
+                          >
+                            ℹ️ Detail
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleDeleteInvoice(inv.id)}
-                          className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-100 cursor-pointer"
+                          className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-100 cursor-pointer transition-colors"
                         >
                           Hapus
                         </button>
@@ -475,7 +519,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
           Auto Kirim Email Tagihan
         </h2>
         <p className="m-0 text-[12px] text-slate-500 mb-3">
-          Atur agar invoice dikirim otomatis ke email pelanggan berdasarkan jadwal (Dummy UI).
+          Atur agar invoice dikirim otomatis ke email pelanggan berdasarkan jadwal yang ditentukan.
         </p>
 
         <div className="flex flex-wrap gap-4 items-center mb-3">
@@ -486,23 +530,38 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               onChange={(e) => setAutoSendEnabled(e.target.checked)}
               className="rounded border-slate-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             />
-            <span>Aktifkan auto billing otomatis</span>
+            <span>Aktifkan auto billing otomatis (Terbit & Kirim Email)</span>
           </label>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] text-slate-600">Terbit tiap tanggal:</span>
+            <select
+              value={scheduleDay}
+              onChange={(e) => setScheduleDay(Number(e.target.value))}
+              className="px-2 py-1 rounded border border-slate-200 text-[12px] outline-none"
+            >
+              {days.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={handleSaveAutoBilling}
-          className="px-3 py-1.5 rounded-lg border-0 bg-slate-800 text-slate-100 text-[12px] font-medium hover:bg-slate-700 cursor-pointer transition-colors"
+          disabled={isSavingStatus}
+          className="px-3 py-1.5 rounded-lg border-0 bg-slate-800 text-slate-100 text-[12px] font-medium hover:bg-slate-700 cursor-pointer transition-colors disabled:opacity-50"
         >
-          Simpan Preferensi
+          {isSavingStatus ? "Menyimpan..." : "Simpan Pengaturan"}
         </button>
+        {autoSaveResult && (
+          <span className="ml-3 text-[12px] text-emerald-600 font-medium animate-fade-in">{autoSaveResult}</span>
+        )}
       </div>
 
       {/* MODAL KELOLA PAKET */}
       {isPackageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="m-0 text-[16px] font-bold text-slate-900">Master Data Paket Layanan</h3>
               <button
@@ -618,8 +677,8 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
       {/* MODAL KELOLA STATUS TAGIHAN */}
       {editingInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="m-0 text-[16px] font-bold text-slate-900">Kelola Tagihan</h3>
               <button
@@ -690,6 +749,21 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-white outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
                     />
                   </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Upload Bukti Bayar</label>
+                    {editingInvoice.proofOfTransferUrl && (
+                      <div className="mb-2 p-2 bg-white rounded border border-emerald-100 flex items-center justify-between">
+                        <span className="text-[10px] text-emerald-600 font-semibold">Sudah ada bukti</span>
+                        <a href={editingInvoice.proofOfTransferUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline">Lihat</a>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setModalFile(e.target.files?.[0] || null)}
+                      className="w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -714,6 +788,98 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
           </div>
         </div>
       )}
+
+      {/* MODAL DETAIL PEMBAYARAN */}
+      {viewingInvoice && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-white/20 bg-white p-6 shadow-2xl animate-fade-in">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="m-0 text-[18px] font-bold text-slate-900">Detail Pembayaran</h3>
+              <button
+                type="button"
+                onClick={() => setViewingInvoice(null)}
+                className="w-8 h-8 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-inner">
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Klien</span>
+                    <span className="text-[13px] font-bold text-slate-900">{viewingInvoice.customerName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Nominal</span>
+                    <span className="text-[13px] font-bold text-emerald-600">Rp {viewingInvoice.amount.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Periode</span>
+                    <span className="text-[13px] font-bold text-slate-700">{viewingInvoice.periodStart.slice(0, 7)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu Bayar</label>
+                  <div className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-[12px] font-medium text-slate-700">
+                    📅 {viewingInvoice.paymentDate ? new Date(viewingInvoice.paymentDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode Pembayaran</label>
+                  <div className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-100 text-[12px] font-bold text-blue-700">
+                    💳 {viewingInvoice.paymentMethod || "Tidak disebutkan"}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Catatan Tambahan</label>
+                  <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[12px] text-slate-600 italic">
+                    "{viewingInvoice.notes || "Tidak ada catatan untuk pembayaran ini."}"
+                  </div>
+                </div>
+
+                {viewingInvoice.proofOfTransferUrl && (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bukti Transfer</label>
+                    <a 
+                      href={viewingInvoice.proofOfTransferUrl} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="group relative overflow-hidden rounded-2xl border border-slate-200 aspect-video bg-slate-100 flex items-center justify-center hover:border-blue-400 transition-all shadow-sm"
+                    >
+                      <img 
+                        src={viewingInvoice.proofOfTransferUrl} 
+                        alt="Bukti Bayar" 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="text-white text-[12px] font-bold bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30">
+                          🔍 Klik untuk Memperbesar
+                        </span>
+                      </div>
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setViewingInvoice(null)}
+              className="w-full mt-6 py-3 rounded-2xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98]"
+            >
+              Tutup Detail
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* NOTIFIKASI ANIMASI SUKSES KIRIM EMAIL */}
       {showSuccessToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-bounce-in">

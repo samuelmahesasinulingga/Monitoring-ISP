@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
@@ -27,13 +32,13 @@ func (a *appState) handleListInvoices(c echo.Context) error {
 		}
 		// join with customers to get customer name
 		rows, err = a.db.Query(ctx, `
-			SELECT i.id, i.customer_id, c.name, i.period_start::text, i.period_end::text, i.amount, i.status, i.workspace_id, i.payment_date, i.payment_method, i.notes, i.created_at 
+			SELECT i.id, i.customer_id, c.name, i.period_start::text, i.period_end::text, i.amount, i.status, i.workspace_id, i.payment_date, i.payment_method, i.notes, i.proof_of_transfer_url, i.created_at 
 			FROM invoices i
 			JOIN customers c ON i.customer_id = c.id
 			WHERE i.workspace_id = $1 ORDER BY i.created_at DESC`, wsID)
 	} else {
 		rows, err = a.db.Query(ctx, `
-			SELECT i.id, i.customer_id, c.name, i.period_start::text, i.period_end::text, i.amount, i.status, i.workspace_id, i.payment_date, i.payment_method, i.notes, i.created_at 
+			SELECT i.id, i.customer_id, c.name, i.period_start::text, i.period_end::text, i.amount, i.status, i.workspace_id, i.payment_date, i.payment_method, i.notes, i.proof_of_transfer_url, i.created_at 
 			FROM invoices i
 			JOIN customers c ON i.customer_id = c.id
 			ORDER BY i.created_at DESC`)
@@ -52,7 +57,7 @@ func (a *appState) handleListInvoices(c echo.Context) error {
 		// Better approach: cast directly in SQL or use time.Time in struct.
 		// Let's scan into string if it works, or we must scan to time.Time and format.
 		// PostgreSQL returns DATE as string by default to string receivers in pgx.
-		if err := rows.Scan(&inv.ID, &inv.CustomerID, &inv.CustomerName, &inv.PeriodStart, &inv.PeriodEnd, &inv.Amount, &inv.Status, &inv.WorkspaceID, &inv.PaymentDate, &inv.PaymentMethod, &inv.Notes, &inv.CreatedAt); err != nil {
+		if err := rows.Scan(&inv.ID, &inv.CustomerID, &inv.CustomerName, &inv.PeriodStart, &inv.PeriodEnd, &inv.Amount, &inv.Status, &inv.WorkspaceID, &inv.PaymentDate, &inv.PaymentMethod, &inv.Notes, &inv.ProofOfTransferURL, &inv.CreatedAt); err != nil {
 			log.Printf("scan invoice error: %v", err)
 			continue
 		}
@@ -87,7 +92,7 @@ func (a *appState) handleCreateInvoice(c echo.Context) error {
 	query := `
 		INSERT INTO invoices (customer_id, period_start, period_end, amount, status, workspace_id)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, customer_id, period_start::text, period_end::text, amount, status, workspace_id, payment_date, payment_method, notes, created_at
+		RETURNING id, customer_id, period_start::text, period_end::text, amount, status, workspace_id, payment_date, payment_method, notes, proof_of_transfer_url, created_at
 	`
 	status := "unpaid"
 	if req.Status != "" {
@@ -96,7 +101,7 @@ func (a *appState) handleCreateInvoice(c echo.Context) error {
 
 	var inv invoice
 	err := a.db.QueryRow(ctx, query, req.CustomerID, req.PeriodStart, req.PeriodEnd, req.Amount, status, req.WorkspaceID).
-		Scan(&inv.ID, &inv.CustomerID, &inv.PeriodStart, &inv.PeriodEnd, &inv.Amount, &inv.Status, &inv.WorkspaceID, &inv.PaymentDate, &inv.PaymentMethod, &inv.Notes, &inv.CreatedAt)
+		Scan(&inv.ID, &inv.CustomerID, &inv.PeriodStart, &inv.PeriodEnd, &inv.Amount, &inv.Status, &inv.WorkspaceID, &inv.PaymentDate, &inv.PaymentMethod, &inv.Notes, &inv.ProofOfTransferURL, &inv.CreatedAt)
 	if err != nil {
 		log.Printf("create invoice error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to create invoice")
@@ -124,29 +129,61 @@ func (a *appState) handleUpdateInvoiceStatus(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "invalid invoice id")
 	}
 
-	var req struct {
-		Status        string  `json:"status"`
-		PaymentDate   *string `json:"paymentDate"`
-		PaymentMethod *string `json:"paymentMethod"`
-		Notes         *string `json:"notes"`
-	}
-	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
-		return c.String(http.StatusBadRequest, "invalid request body")
+	status := c.FormValue("status")
+	if status == "" {
+		return c.String(http.StatusBadRequest, "status is required")
 	}
 
-	if req.Status == "" {
-		return c.String(http.StatusBadRequest, "status is required")
+	paymentDateStr := c.FormValue("paymentDate")
+	paymentMethod := c.FormValue("paymentMethod")
+	notes := c.FormValue("notes")
+
+	var proofURL *string
+	
+	// Handle File Upload
+	file, err := c.FormFile("proofOfTransfer")
+	if err == nil {
+		src, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+
+		// Create unique filename
+		filename := fmt.Sprintf("inv_%d_%d%s", id, time.Now().Unix(), filepath.Ext(file.Filename))
+		dstPath := filepath.Join("uploads", "proofs", filename)
+		
+		dst, err := os.Create(dstPath)
+		if err != nil {
+			return err
+		}
+		defer dst.Close()
+
+		if _, err = io.Copy(dst, src); err != nil {
+			return err
+		}
+		url := "/uploads/proofs/" + filename
+		proofURL = &url
 	}
 
 	query := `
 		UPDATE invoices 
-		SET status = $1, payment_date = $2, payment_method = $3, notes = $4
-		WHERE id = $5
-		RETURNING id, customer_id, period_start::text, period_end::text, amount, status, workspace_id, payment_date, payment_method, notes, created_at
+		SET status = $1, payment_date = $2, payment_method = $3, notes = $4, proof_of_transfer_url = COALESCE($5, proof_of_transfer_url)
+		WHERE id = $6
+		RETURNING id, customer_id, period_start::text, period_end::text, amount, status, workspace_id, payment_date, payment_method, notes, proof_of_transfer_url, created_at
 	`
+	
+	var paymentDate *time.Time
+	if paymentDateStr != "" {
+		t, err := time.Parse(time.RFC3339, paymentDateStr)
+		if err == nil {
+			paymentDate = &t
+		}
+	}
+
 	var inv invoice
-	err = a.db.QueryRow(ctx, query, req.Status, req.PaymentDate, req.PaymentMethod, req.Notes, id).
-		Scan(&inv.ID, &inv.CustomerID, &inv.PeriodStart, &inv.PeriodEnd, &inv.Amount, &inv.Status, &inv.WorkspaceID, &inv.PaymentDate, &inv.PaymentMethod, &inv.Notes, &inv.CreatedAt)
+	err = a.db.QueryRow(ctx, query, status, paymentDate, paymentMethod, notes, proofURL, id).
+		Scan(&inv.ID, &inv.CustomerID, &inv.PeriodStart, &inv.PeriodEnd, &inv.Amount, &inv.Status, &inv.WorkspaceID, &inv.PaymentDate, &inv.PaymentMethod, &inv.Notes, &inv.ProofOfTransferURL, &inv.CreatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return c.String(http.StatusNotFound, "invoice not found")
@@ -193,13 +230,23 @@ func (a *appState) handleSendInvoiceEmail(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "invalid invoice id")
 	}
 
+	if err := a.processSendInvoiceEmail(ctx, id); err != nil {
+		log.Printf("Send invoice email error: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal mengirim email: " + err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok", "message": "Email tagihan berhasil dikirim!"})
+}
+
+// processSendInvoiceEmail adalah helper internal untuk mengirim email invoice
+func (a *appState) processSendInvoiceEmail(ctx context.Context, invoiceID int) error {
 	// 1. Ambil data Invoice & Customer Email
 	var inv struct {
-		Amount float64
-		Period string // Format for template
-		CustName string
+		Amount    float64
+		Period    string
+		CustName  string
 		CustEmail *string
-		WsID *int
+		WsID      *int
 	}
 	queryInv := `
 		SELECT i.amount, to_char(i.period_start, 'FMMonth YYYY'), c.name, c.email, i.workspace_id
@@ -207,96 +254,139 @@ func (a *appState) handleSendInvoiceEmail(c echo.Context) error {
 		JOIN customers c ON i.customer_id = c.id
 		WHERE i.id = $1
 	`
-	err = a.db.QueryRow(ctx, queryInv, id).Scan(&inv.Amount, &inv.Period, &inv.CustName, &inv.CustEmail, &inv.WsID)
+	err := a.db.QueryRow(ctx, queryInv, invoiceID).Scan(&inv.Amount, &inv.Period, &inv.CustName, &inv.CustEmail, &inv.WsID)
 	if err != nil {
-		log.Printf("invoice email fetch error: %v", err)
-		return c.String(http.StatusInternalServerError, "failed to fetch invoice data")
+		return fmt.Errorf("failed to fetch invoice data: %w", err)
 	}
 
 	if inv.CustEmail == nil || *inv.CustEmail == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Pelanggan belum mengatur alamat email."})
+		return fmt.Errorf("Pelanggan belum mengatur alamat email")
 	}
 
 	// 2. Ambil pengaturan SMTP Workspace
 	var ws struct {
-		Name string
-		SmtpHost *string
-		SmtpPort *int
-		SmtpUser *string
-		SmtpPass *string
-		SmtpFromName *string
-		SmtpFromEmail *string
+		Name                   string
+		SmtpHost               *string
+		SmtpPort               *int
+		SmtpUser               *string
+		SmtpPass               *string
+		SmtpFromEmail          *string
+		SmtpFromName           *string
 		InvoiceSubjectTemplate *string
-		InvoiceBodyTemplate *string
+		InvoiceBodyTemplate    *string
 	}
 
 	if inv.WsID == nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Tagihan ini tidak terkait dengan Workspace manapun."})
+		return fmt.Errorf("Tagihan ini tidak terkait dengan Workspace manapun")
 	}
 
 	queryWs := `
-		SELECT name, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template
+		SELECT name, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from_email, smtp_from_name, invoice_subject_template, invoice_body_template
 		FROM workspaces
 		WHERE id = $1
 	`
-	err = a.db.QueryRow(ctx, queryWs, *inv.WsID).Scan(&ws.Name, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate)
+	err = a.db.QueryRow(ctx, queryWs, *inv.WsID).Scan(&ws.Name, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromEmail, &ws.SmtpFromName, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate)
 	if err != nil {
-		log.Printf("workspace smtp fetch error: %v", err)
-		return c.String(http.StatusInternalServerError, "failed to fetch workspace settings")
+		return fmt.Errorf("failed to fetch workspace settings: %w", err)
 	}
 
 	if ws.SmtpHost == nil || ws.SmtpUser == nil || ws.SmtpPass == nil || ws.SmtpFromEmail == nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Pengaturan SMTP Workspace belum lengkap. Silakan atur di menu Pengaturan."})
+		return fmt.Errorf("Pengaturan SMTP Workspace belum lengkap")
 	}
 
 	// 3. Render Template
 	amountStr := fmt.Sprintf("Rp %.0f", inv.Amount)
-	
 	subject := "Tagihan Layanan Internet"
 	if ws.InvoiceSubjectTemplate != nil && *ws.InvoiceSubjectTemplate != "" {
 		subject = strings.ReplaceAll(*ws.InvoiceSubjectTemplate, "{{customer_name}}", inv.CustName)
 		subject = strings.ReplaceAll(subject, "{{period_label}}", inv.Period)
 	}
 
-	body := "Ini adalah tagihan Anda."
+	body := ""
 	if ws.InvoiceBodyTemplate != nil && *ws.InvoiceBodyTemplate != "" {
 		body = strings.ReplaceAll(*ws.InvoiceBodyTemplate, "{{customer_name}}", inv.CustName)
 		body = strings.ReplaceAll(body, "{{period_label}}", inv.Period)
 		body = strings.ReplaceAll(body, "{{invoice_amount}}", amountStr)
 		body = strings.ReplaceAll(body, "{{isp_name}}", ws.Name)
+	} else {
+		// Default body if template is empty
+		body = fmt.Sprintf("Halo %s,\n\nTerimakasih telah menggunakan layanan %s.\nIni adalah tagihan Anda untuk periode %s sebesar %s.\n\nTagihan Anda jatuh tempo tanggal 10. Mohon lakukan pembayaran sebelum tanggal 25 untuk menghindari penonaktifan layanan sementara.\n\nTerimakasih.", inv.CustName, ws.Name, inv.Period, amountStr)
 	}
-	
-	// Convert newline to <br> for HTML email
-	htmlBody := strings.ReplaceAll(body, "\n", "<br>")
 
 	// 4. Kirim Email
-	importGomail := false
 	m := gomail.NewMessage()
-	
-	fromLine := *ws.SmtpFromEmail
 	if ws.SmtpFromName != nil && *ws.SmtpFromName != "" {
 		m.SetHeader("From", m.FormatAddress(*ws.SmtpFromEmail, *ws.SmtpFromName))
 	} else {
-		m.SetHeader("From", fromLine)
+		m.SetHeader("From", *ws.SmtpFromEmail)
 	}
-	
 	m.SetHeader("To", *inv.CustEmail)
 	m.SetHeader("Subject", subject)
-	m.SetBody("text/html", htmlBody)
+	m.SetBody("text/html", strings.ReplaceAll(body, "\n", "<br>"))
 
-	// Fallback port 587
 	port := 587
 	if ws.SmtpPort != nil {
 		port = *ws.SmtpPort
 	}
 
 	d := gomail.NewDialer(*ws.SmtpHost, port, *ws.SmtpUser, *ws.SmtpPass)
-	if importGomail { /* used to bypass unused error if not already imported */ }
+	return d.DialAndSend(m)
+}
 
-	if err := d.DialAndSend(m); err != nil {
-		log.Printf("Failed to send invoice email: %v", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Gagal mengirim email: %v", err)})
+// generateInvoicesForWorkspace adalah helper untuk membuat invoice otomatis setiap bulan
+func (a *appState) generateInvoicesForWorkspace(ctx context.Context, wsID int) ([]int, error) {
+	// 1. Ambil semua pelanggan dengan layanan aktif di workspace ini
+	query := `
+		SELECT c.id, p.price
+		FROM customers c
+		JOIN services s ON c.id = s.customer_id
+		JOIN packages p ON s.plan_name = p.name AND s.workspace_id = p.workspace_id
+		WHERE c.workspace_id = $1 AND s.active = TRUE
+	`
+	rows, err := a.db.Query(ctx, query, wsID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query active services: %w", err)
+	}
+	defer rows.Close()
+
+	now := time.Now()
+	// Periode adalah bulan ini (misal 1 April - 30 April)
+	periodStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	periodEnd := periodStart.AddDate(0, 1, -1)
+
+	var createdIDs []int
+	for rows.Next() {
+		var custID int
+		var amount float64
+		if err := rows.Scan(&custID, &amount); err != nil {
+			log.Printf("Error scanning customer for auto-billing: %v", err)
+			continue
+		}
+
+		// Check if invoice already exists for this month to avoid duplicates
+		var exists bool
+		err := a.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM invoices WHERE customer_id = $1 AND workspace_id = $2 AND period_start = $3)", custID, wsID, periodStart).Scan(&exists)
+		if err != nil {
+			log.Printf("Error checking existing invoice: %v", err)
+			continue
+		}
+		if exists {
+			continue
+		}
+
+		var invID int
+		insertQuery := `
+			INSERT INTO invoices (customer_id, period_start, period_end, amount, status, workspace_id)
+			VALUES ($1, $2, $3, $4, 'unpaid', $5)
+			RETURNING id
+		`
+		err = a.db.QueryRow(ctx, insertQuery, custID, periodStart, periodEnd, amount, wsID).Scan(&invID)
+		if err == nil {
+			createdIDs = append(createdIDs, invID)
+		} else {
+			log.Printf("Error inserting auto-invoice for cust %d: %v", custID, err)
+		}
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"status": "ok", "message": "Email tagihan berhasil dikirim!"})
+	return createdIDs, nil
 }

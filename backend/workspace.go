@@ -10,6 +10,9 @@ type workspace struct {
 	TelegramBotToken *string   `json:"telegramBotToken,omitempty"`
 	TelegramChatID   *string   `json:"telegramChatId,omitempty"`
 	AlertEnabled     bool      `json:"alertEnabled"`
+	AutoBillingEnabled bool    `json:"autoBillingEnabled"`
+	BillingIssueDay    int     `json:"billingIssueDay"`
+	LastBillingRunMonth int    `json:"lastBillingRunMonth"`
 	
 	// SMTP Settings
 	SmtpProvider          *string `json:"smtpProvider,omitempty"`
@@ -36,6 +39,8 @@ type updateWorkspaceSettingsRequest struct {
 	TelegramBotToken *string `json:"telegramBotToken"`
 	TelegramChatID   *string `json:"telegramChatId"`
 	AlertEnabled     bool    `json:"alertEnabled"`
+	AutoBillingEnabled bool  `json:"autoBillingEnabled"`
+	BillingIssueDay    int   `json:"billingIssueDay"`
 }
 
 type updateWorkspaceSmtpRequest struct {

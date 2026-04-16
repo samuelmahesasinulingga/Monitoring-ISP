@@ -14,5 +14,6 @@ type invoice struct {
 	PaymentDate   *time.Time `json:"paymentDate,omitempty"`
 	PaymentMethod *string    `json:"paymentMethod,omitempty"`
 	Notes         *string    `json:"notes,omitempty"`
+	ProofOfTransferURL *string `json:"proofOfTransferUrl,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 }

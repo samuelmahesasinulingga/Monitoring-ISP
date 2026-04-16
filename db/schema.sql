@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS invoices (
 	amount NUMERIC(12,2) NOT NULL,
 	status VARCHAR(50) NOT NULL DEFAULT 'unpaid',
 	workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE,
+	proof_of_transfer_url TEXT,
 	created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS device_interface_logs (
