@@ -218,7 +218,7 @@ func (a *appState) handleTestSMTP(c echo.Context) error {
 	m.SetBody("text/plain", "Koneksi SMTP berhasil! Ini adalah pesan ujicoba.")
 
 	d := gomail.NewDialer(req.Host, req.Port, req.User, req.Pass)
-	
+
 	// Tambahkan TLS config untuk keamanan standard
 	// d.TLSConfig = &tls.Config{InsecureSkipVerify: false, ServerName: req.Host}
 
@@ -593,17 +593,17 @@ func (a *appState) handlePingDevices(c echo.Context) error {
 		}
 
 		results = append(results, devicePingResult{
-			ID:             d.ID,
-			Name:           d.Name,
-			IP:             d.IP,
-			IntegrationMode: d.IntegrationMode,
-			LatencyMs:      latencyMs,
-			Loss:           0.0,
-			Status:         status,
-			PingIntervalMs: d.PingIntervalMs,
-			MonitoredQueues: d.MonitoredQueues,
+			ID:                  d.ID,
+			Name:                d.Name,
+			IP:                  d.IP,
+			IntegrationMode:     d.IntegrationMode,
+			LatencyMs:           latencyMs,
+			Loss:                0.0,
+			Status:              status,
+			PingIntervalMs:      d.PingIntervalMs,
+			MonitoredQueues:     d.MonitoredQueues,
 			MonitoredInterfaces: d.MonitoredInterfaces,
-			History:        history,
+			History:             history,
 		})
 	}
 
@@ -648,9 +648,9 @@ func (a *appState) handleTestDeviceConnection(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
-		"status":          "ok",
-		"message":         "koneksi ke perangkat berhasil",
-		"availableQueues": queues,
+		"status":              "ok",
+		"message":             "koneksi ke perangkat berhasil",
+		"availableQueues":     queues,
 		"availableInterfaces": interfaces,
 	})
 }
