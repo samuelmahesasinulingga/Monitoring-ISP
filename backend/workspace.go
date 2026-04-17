@@ -39,10 +39,10 @@ type createWorkspaceRequest struct {
 type updateWorkspaceSettingsRequest struct {
 	TelegramBotToken *string `json:"telegramBotToken"`
 	TelegramChatID   *string `json:"telegramChatId"`
-	AlertEnabled     bool    `json:"alertEnabled"`
-	AutoBillingEnabled bool  `json:"autoBillingEnabled"`
-	BillingIssueDay    int   `json:"billingIssueDay"`
-	BillingIssueHour   int   `json:"billingIssueHour"`
+	AlertEnabled     *bool   `json:"alertEnabled"`
+	AutoBillingEnabled *bool `json:"autoBillingEnabled"`
+	BillingIssueDay    *int  `json:"billingIssueDay"`
+	BillingIssueHour   *int  `json:"billingIssueHour"`
 }
 
 type updateWorkspaceSmtpRequest struct {

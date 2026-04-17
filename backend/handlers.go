@@ -150,7 +150,13 @@ func (a *appState) handleUpdateWorkspaceSettings(c echo.Context) error {
 	var ws workspace
 	query := `
 		UPDATE workspaces
-		SET telegram_bot_token = $1, telegram_chat_id = $2, alert_enabled = $3, auto_billing_enabled = $4, billing_issue_day = $5, billing_issue_hour = $6
+		SET 
+			telegram_bot_token = COALESCE($1, telegram_bot_token), 
+			telegram_chat_id = COALESCE($2, telegram_chat_id), 
+			alert_enabled = COALESCE($3, alert_enabled), 
+			auto_billing_enabled = COALESCE($4, auto_billing_enabled), 
+			billing_issue_day = COALESCE($5, billing_issue_day), 
+			billing_issue_hour = COALESCE($6, billing_issue_hour)
 		WHERE id = $7
 		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
 	`
@@ -182,10 +188,10 @@ func (a *appState) handleUpdateWorkspaceSmtpSettings(c echo.Context) error {
 		UPDATE workspaces
 		SET smtp_provider = $1, smtp_host = $2, smtp_port = $3, smtp_use_tls = $4, smtp_user = $5, smtp_pass = $6, smtp_from_name = $7, smtp_from_email = $8, invoice_subject_template = $9, invoice_body_template = $10
 		WHERE id = $11
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
+		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
 	`
 	if err := a.db.QueryRow(ctx, query, req.SmtpProvider, req.SmtpHost, req.SmtpPort, req.SmtpUseTls, req.SmtpUser, req.SmtpPass, req.SmtpFromName, req.SmtpFromEmail, req.InvoiceSubjectTemplate, req.InvoiceBodyTemplate, id).
-		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
+		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
 		log.Printf("update workspace smtp error (id=%d): %v", id, err)
 		return c.String(http.StatusInternalServerError, "failed to update workspace smtp settings")
 	}
