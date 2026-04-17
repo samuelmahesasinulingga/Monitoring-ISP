@@ -39,13 +39,21 @@ func main() {
 		log.Fatalf("cannot connect to database: %v", err)
 	}
 
+	// Run migrations
+	if err := runMigrations(dsn); err != nil {
+		log.Printf("Migration error: %v", err)
+		// We don't necessarily want to fatal if migrations fail during dev,
+		// but in production it's safer. Let's fatal to ensure consistency.
+		log.Fatalf("migrations failed: %v", err)
+	}
+
 	state := &appState{db: pool}
-	
+
 	// Create uploads directory if it doesn't exist
 	os.MkdirAll("uploads/proofs", 0755)
 
 	e := echo.New()
-	
+
 	// Static files
 	e.Static("/uploads", "uploads")
 
@@ -98,10 +106,13 @@ func main() {
 	e.GET("/api/monitoring/queue-traffic/:id", state.handleGetQueueTraffic)
 	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
 	e.GET("/api/monitoring/alerts", state.handleGetAlerts)
-	
+
 	// Topology Component
-	e.GET("/api/workspaces/:id/topology", state.handleGetTopology)
-	e.POST("/api/workspaces/:id/topology", state.handleSaveTopology)
+	e.GET("/api/workspaces/:id/topology-layouts", state.handleGetTopologyLayouts)
+	e.POST("/api/workspaces/:id/topology-layouts", state.handleCreateTopologyLayout)
+	e.DELETE("/api/workspaces/:id/topology-layouts/:layoutId", state.handleDeleteTopologyLayout)
+	e.GET("/api/workspaces/:id/topology-layouts/:layoutId/data", state.handleGetTopology)
+	e.POST("/api/workspaces/:id/topology-layouts/:layoutId/data", state.handleSaveTopology)
 
 	// Customers Component
 	e.GET("/api/customers", state.handleListCustomers)
