@@ -242,19 +242,22 @@ func (a *appState) handleSendInvoiceEmail(c echo.Context) error {
 func (a *appState) processSendInvoiceEmail(ctx context.Context, invoiceID int) error {
 	// 1. Ambil data Invoice & Customer Email
 	var inv struct {
+		ID        int
 		Amount    float64
 		Period    string
+		FullDate  string
 		CustName  string
 		CustEmail *string
+		CustAddr  *string
 		WsID      *int
 	}
 	queryInv := `
-		SELECT i.amount, to_char(i.period_start, 'FMMonth YYYY'), c.name, c.email, i.workspace_id
+		SELECT i.id, i.amount, to_char(i.period_start, 'FMMonth YYYY'), to_char(i.period_start, 'DD/MM/YYYY'), c.name, c.email, c.address, i.workspace_id
 		FROM invoices i
 		JOIN customers c ON i.customer_id = c.id
 		WHERE i.id = $1
 	`
-	err := a.db.QueryRow(ctx, queryInv, invoiceID).Scan(&inv.Amount, &inv.Period, &inv.CustName, &inv.CustEmail, &inv.WsID)
+	err := a.db.QueryRow(ctx, queryInv, invoiceID).Scan(&inv.ID, &inv.Amount, &inv.Period, &inv.FullDate, &inv.CustName, &inv.CustEmail, &inv.CustAddr, &inv.WsID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch invoice data: %w", err)
 	}
@@ -330,6 +333,24 @@ func (a *appState) processSendInvoiceEmail(ctx context.Context, invoiceID int) e
 	}
 
 	d := gomail.NewDialer(*ws.SmtpHost, port, *ws.SmtpUser, *ws.SmtpPass)
+	
+	// 5. Generate Professional PDF Attachment
+	invoiceNo := fmt.Sprintf("INV/%s/%07d", strings.ReplaceAll(time.Now().Format("2006/01"), " ", ""), inv.ID)
+	custAddress := ""
+	if inv.CustAddr != nil {
+		custAddress = *inv.CustAddr
+	}
+
+	pdfData, err := generateInvoicePDF(ws.Name, inv.CustName, inv.Period, amountStr, invoiceNo, inv.FullDate, custAddress)
+	if err != nil {
+		log.Printf("Warning: Failed to generate PDF for invoice %d: %v", invoiceID, err)
+	} else {
+		m.Attach("Invoice.pdf", gomail.SetCopyFunc(func(w io.Writer) error {
+			_, err := w.Write(pdfData)
+			return err
+		}))
+	}
+
 	if err := d.DialAndSend(m); err != nil {
 		return err
 	}

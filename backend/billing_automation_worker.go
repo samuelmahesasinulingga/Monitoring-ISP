@@ -11,10 +11,10 @@ func startBillingAutomationWorker(a *appState) {
 	log.Println("Billing automation worker started")
 	
 	for {
-		// Jalankan pengecekan setiap 1 jam
+		// Jalankan pengecekan setiap 1 menit (agar akurat tidak perlu menunggu 1 jam bila baru di-setting)
 		ctx := context.Background()
 		checkAndProcessAutoBilling(ctx, a)
-		time.Sleep(1 * time.Hour)
+		time.Sleep(1 * time.Minute)
 	}
 }
 
