@@ -13,6 +13,7 @@ type workspace struct {
 	AutoBillingEnabled bool    `json:"autoBillingEnabled"`
 	BillingIssueDay    int     `json:"billingIssueDay"`
 	BillingIssueHour   int     `json:"billingIssueHour"`
+	BillingIssueMinute int     `json:"billingIssueMinute"`
 	LastBillingRunMonth int    `json:"lastBillingRunMonth"`
 	
 	// SMTP Settings
@@ -43,6 +44,7 @@ type updateWorkspaceSettingsRequest struct {
 	AutoBillingEnabled *bool `json:"autoBillingEnabled"`
 	BillingIssueDay    *int  `json:"billingIssueDay"`
 	BillingIssueHour   *int  `json:"billingIssueHour"`
+	BillingIssueMinute *int  `json:"billingIssueMinute"`
 }
 
 type updateWorkspaceSmtpRequest struct {

@@ -46,10 +46,10 @@ func (a *appState) handleUpdateWorkspace(c echo.Context) error {
 		UPDATE workspaces
 		SET name = $1, address = $2, icon_url = $3
 		WHERE id = $4
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
+		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
 	`
 	if err := a.db.QueryRow(ctx, query, req.Name, req.Address, req.IconURL, id).
-		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
+		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
 		log.Printf("update workspace error (id=%d): %v", id, err)
 		return c.String(http.StatusInternalServerError, "failed to update workspace")
 	}
@@ -85,7 +85,7 @@ func (a *appState) handleDeleteWorkspace(c echo.Context) error {
 
 func (a *appState) handleListWorkspaces(c echo.Context) error {
 	ctx := c.Request().Context()
-	rows, err := a.db.Query(ctx, `SELECT id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at FROM workspaces ORDER BY id`)
+	rows, err := a.db.Query(ctx, `SELECT id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at FROM workspaces ORDER BY id`)
 	if err != nil {
 		log.Printf("list workspaces query error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to query workspaces")
@@ -95,7 +95,7 @@ func (a *appState) handleListWorkspaces(c echo.Context) error {
 	var workspaces []workspace
 	for rows.Next() {
 		var ws workspace
-		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
+		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
 			log.Printf("scan workspace error: %v", err)
 			continue
 		}
@@ -122,10 +122,10 @@ func (a *appState) handleCreateWorkspace(c echo.Context) error {
 	query := `
 		INSERT INTO workspaces (name, address, icon_url)
 		VALUES ($1, $2, $3)
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
+		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
 	`
 	if err := a.db.QueryRow(ctx, query, req.Name, req.Address, req.IconURL).
-		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
+		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
 		log.Printf("create workspace insert error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to create workspace")
 	}
@@ -156,12 +156,13 @@ func (a *appState) handleUpdateWorkspaceSettings(c echo.Context) error {
 			alert_enabled = COALESCE($3, alert_enabled), 
 			auto_billing_enabled = COALESCE($4, auto_billing_enabled), 
 			billing_issue_day = COALESCE($5, billing_issue_day), 
-			billing_issue_hour = COALESCE($6, billing_issue_hour)
-		WHERE id = $7
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
+			billing_issue_hour = COALESCE($6, billing_issue_hour),
+			billing_issue_minute = COALESCE($7, billing_issue_minute)
+		WHERE id = $8
+		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at
 	`
-	if err := a.db.QueryRow(ctx, query, req.TelegramBotToken, req.TelegramChatID, req.AlertEnabled, req.AutoBillingEnabled, req.BillingIssueDay, req.BillingIssueHour, id).
-		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
+	if err := a.db.QueryRow(ctx, query, req.TelegramBotToken, req.TelegramChatID, req.AlertEnabled, req.AutoBillingEnabled, req.BillingIssueDay, req.BillingIssueHour, req.BillingIssueMinute, id).
+		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt); err != nil {
 		log.Printf("update workspace settings error (id=%d): %v", id, err)
 		return c.String(http.StatusInternalServerError, "failed to update workspace settings")
 	}

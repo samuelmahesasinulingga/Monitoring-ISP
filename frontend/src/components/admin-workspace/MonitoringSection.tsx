@@ -19,7 +19,8 @@ type MonitoringSectionProps = {
 };
 
 const formatTime = (isoString: string) => {
-  const d = new Date(isoString);
+  const cleanIso = isoString.endsWith('Z') ? isoString.slice(0, -1) : isoString;
+  const d = new Date(cleanIso);
   if (isNaN(d.getTime())) return isoString;
   return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
 };
@@ -684,7 +685,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                       detailLogs.map((log: any) => (
                         <tr key={log.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition">
                           <td className="px-5 py-2.5 text-slate-600 font-medium">
-                            {new Date(log.created_at).toLocaleString('id-ID')}
+                            {new Date(log.created_at.endsWith('Z') ? log.created_at.slice(0, -1) : log.created_at).toLocaleString('id-ID')}
                           </td>
                           <td className="px-5 py-2.5">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${log.status === "UP" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
@@ -779,7 +780,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                       className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                     >
                       <td className="px-4 py-3 text-[12px] text-slate-600">
-                        {new Date(alert.createdAt).toLocaleString("id-ID", {
+                        {new Date(alert.createdAt.endsWith('Z') ? alert.createdAt.slice(0, -1) : alert.createdAt).toLocaleString("id-ID", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",

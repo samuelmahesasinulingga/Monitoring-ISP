@@ -47,6 +47,8 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   const [autoSendEnabled, setAutoSendEnabled] = useState(false);
   const [scheduleDay, setScheduleDay] = useState(1);
   const [scheduleHour, setScheduleHour] = useState(8);
+  const [scheduleMinute, setScheduleMinute] = useState(0);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [autoSaveResult, setAutoSaveResult] = useState<string | null>(null);
 
   // Invoice Management Modal State
@@ -93,6 +95,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
           setAutoSendEnabled(currentWs.autoBillingEnabled);
           setScheduleDay(currentWs.billingIssueDay || 10);
           setScheduleHour(currentWs.billingIssueHour || 8);
+          setScheduleMinute(currentWs.billingIssueMinute || 0);
         }
       }
     } catch (err) {
@@ -299,7 +302,8 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         body: JSON.stringify({
           autoBillingEnabled: autoSendEnabled,
           billingIssueDay: Number(scheduleDay),
-          billingIssueHour: Number(scheduleHour)
+          billingIssueHour: Number(scheduleHour),
+          billingIssueMinute: Number(scheduleMinute)
         })
       });
 
@@ -547,20 +551,87 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
             <span className="text-[12px] text-slate-600">Jam Terbit:</span>
-            <select
-              value={scheduleHour}
-              onChange={(e) => setScheduleHour(Number(e.target.value))}
-              className="px-2 py-1 rounded border border-slate-200 text-[12px] outline-none"
-            >
-              {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={i}>
-                  {i.toString().padStart(2, '0')}:00
-                </option>
-              ))}
-            </select>
-            <span className="text-[10px] text-slate-400">(WIB)</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-medium text-slate-700 hover:border-blue-400 hover:bg-white transition-all shadow-sm min-w-[80px] justify-between"
+              >
+                <span>{scheduleHour.toString().padStart(2, '0')}:{scheduleMinute.toString().padStart(2, '0')}</span>
+                <span className="text-[10px] text-slate-400">▼</span>
+              </button>
+
+              {isTimePickerOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-[60]" 
+                    onClick={() => setIsTimePickerOpen(false)}
+                  />
+                  <div className="absolute bottom-full left-0 mb-2 z-[70] w-[260px] bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Pilih Waktu (WIB)</h4>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          maxLength={5}
+                          placeholder="00:00"
+                          className="w-14 px-1.5 py-0.5 border border-slate-200 rounded text-[11px] text-center outline-none focus:border-blue-500"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const val = (e.target as HTMLInputElement).value;
+                              if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val)) {
+                                const [h, m] = val.split(':').map(Number);
+                                setScheduleHour(h);
+                                setScheduleMinute(m);
+                                setIsTimePickerOpen(false);
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                      {Array.from({ length: 48 }, (_, i) => {
+                        const h = Math.floor(i / 2);
+                        const m = (i % 2) * 30;
+                        const isSelected = h === scheduleHour && m === scheduleMinute;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setScheduleHour(h);
+                              setScheduleMinute(m);
+                              setIsTimePickerOpen(false);
+                            }}
+                            className={`py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                              isSelected 
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-200" 
+                                : "text-slate-600 hover:bg-slate-100"
+                            }`}
+                          >
+                            {h.toString().padStart(2, '0')}:{m.toString().padStart(2, '0')}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-400">Tap jam untuk memilih</span>
+                      <button 
+                        type="button"
+                        onClick={() => setIsTimePickerOpen(false)}
+                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700"
+                      >
+                        TUTUP
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

@@ -7,8 +7,9 @@ import WorkspaceSettingsSection from "./WorkspaceSettingsSection";
 import DevicesSection from "./DeviceSection";
 import TopologySection from "./TopologySection";
 import CustomerSection from "./CustomerSection";
+import TrafficAnalyticsSection from "./TrafficAnalyticsSection";
 
-type MenuKey = "dashboard" | "monitoring" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings";
+type MenuKey = "dashboard" | "monitoring" | "analytics" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings";
 type MonitoringTabKey = "ping" | "alerts" | "interface" | "queue";
 
 type Workspace = {
@@ -90,6 +91,15 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           workspaceName={workspaceName}
           workspaceId={workspaceId}
           initialTab={monitoringTab}
+        />
+      );
+    }
+
+    if (activeMenu === "analytics") {
+      return (
+        <TrafficAnalyticsSection
+          workspaceName={workspaceName}
+          workspaceId={workspaceId}
         />
       );
     }
@@ -326,6 +336,17 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
               </div>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setActiveMenu("analytics")}
+            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
+              activeMenu === "analytics"
+                ? "bg-slate-950 text-slate-50 shadow-lg shadow-blue-900/20"
+                : "bg-transparent text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
+            }`}
+          >
+            🔥 Traffic Analytics
+          </button>
           <button
             type="button"
             onClick={() => setActiveMenu("devices")}

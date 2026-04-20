@@ -125,12 +125,12 @@ func startPingWorker(state *appState) {
 						}
 
 						// Simpan ke tabel device_alerts untuk riwayat di dashboard
-						go func(id int, s string) {
-							_, err := state.db.Exec(context.Background(), "INSERT INTO device_alerts (device_id, status) VALUES ($1, $2)", id, s)
+						go func(id int, s string, t time.Time) {
+							_, err := state.db.Exec(context.Background(), "INSERT INTO device_alerts (device_id, status, created_at) VALUES ($1, $2, $3)", id, s, t)
 							if err != nil {
 								log.Printf("Gagal mencatat Alert ke database untuk device %d: %v", id, err)
 							}
-						}(dev.ID, status)
+						}(dev.ID, status, executeTime)
 					}
 					statusMu.Lock()
 					lastDeviceStatus[dev.ID] = status

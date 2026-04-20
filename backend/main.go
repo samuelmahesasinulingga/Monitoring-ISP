@@ -132,13 +132,18 @@ func main() {
 	e.POST("/api/packages", state.handleCreatePackage)
 	e.DELETE("/api/packages/:id", state.handleDeletePackage)
 
-	// Services Component
-	e.GET("/api/services", state.handleListServices)
 	e.POST("/api/services", state.handleCreateService)
 	e.DELETE("/api/services/:id", state.handleDeleteService)
+
+	e.GET("/api/analytics/top-talkers", state.handleGetTopTalkers)
+	e.GET("/api/analytics/top-protocols", state.handleGetProtocolBreakdown)
+	e.GET("/api/analytics/flow-logs", state.handleGetFlowLogs)
+	e.GET("/api/analytics/active-devices", state.handleGetActiveAnalyticsDevices)
+
 	go startPingWorker(state)
 	go startSnmpWorker(state)
 	go startBillingAutomationWorker(state)
+	go startSFlowCollector(state)
 
 	log.Println("Backend running on :8080")
 	e.Logger.Fatal(e.Start(":8080"))
