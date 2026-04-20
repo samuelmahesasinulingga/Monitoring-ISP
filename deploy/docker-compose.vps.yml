@@ -1,3 +1,19 @@
+# =====================================================================
+# docker-compose.vps.yml
+# Konfigurasi PRODUCTION untuk VPS Linux.
+#
+# Perbedaan dari docker-compose.yml (Windows localhost):
+# - Backend: network_mode: host → IP asli router terdeteksi (tanpa NAT)
+# - Backend: POSTGRES_HOST: 127.0.0.1 → koneksi DB via localhost
+# - DB: port bind ke 127.0.0.1 → tidak terekspos ke internet
+#
+# Di VPS, semua router cukup pakai port 2055 yang sama.
+# Tidak perlu konfigurasi port berbeda per router baru.
+#
+# CARA DEPLOY:
+#   docker-compose -f docker-compose.vps.yml up -d
+# =====================================================================
+
 services:
   db:
     image: postgres:16
@@ -8,7 +24,7 @@ services:
       POSTGRES_DB: isp_monitoring
       TZ: Asia/Jakarta
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./../db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
       - ./../db_data:/var/lib/postgresql/data
@@ -24,7 +40,7 @@ services:
       - ./../backend:/app
     command: ["sh", "-c", "go mod download && go run ."]
     environment:
-      POSTGRES_HOST: db
+      POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
       POSTGRES_USER: isp_user
       POSTGRES_PASSWORD: isp_password
@@ -32,12 +48,7 @@ services:
       TZ: Asia/Jakarta
     depends_on:
       - db
-    ports:
-      - "8080:8080"
-      - "6343:6343/udp"
-      - "2055:2055/udp"
-    networks:
-      - isp_net
+    network_mode: host
     restart: always
 
   frontend:
