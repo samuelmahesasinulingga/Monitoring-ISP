@@ -1,0 +1,8 @@
+# Tidak perlu dimasukkan ke build context
+node_modules/
+dist/
+.git
+.gitignore
+
+# Nginx config hanya untuk VPS, tidak butuh di semua stage
+# (di-copy manual di Dockerfile)

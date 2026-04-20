@@ -6,12 +6,13 @@
 # - Backend: network_mode: host → IP asli router terdeteksi (tanpa NAT)
 # - Backend: POSTGRES_HOST: 127.0.0.1 → koneksi DB via localhost
 # - DB: port bind ke 127.0.0.1 → tidak terekspos ke internet
+# - Backend & Frontend: pakai Dockerfile (binary/build), bukan go run / npm run dev
 #
-# Di VPS, semua router cukup pakai port 2055 yang sama.
-# Tidak perlu konfigurasi port berbeda per router baru.
+# CARA DEPLOY (pertama kali atau setelah ada perubahan kode):
+#   docker compose -f docker-compose.vps.yml up -d --build
 #
-# CARA DEPLOY:
-#   docker-compose -f docker-compose.vps.yml up -d
+# Update tanpa rebuild (restart saja):
+#   docker compose -f docker-compose.vps.yml up -d
 # =====================================================================
 
 services:
@@ -31,14 +32,18 @@ services:
     networks:
       - isp_net
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U isp_user -d isp_monitoring"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    image: golang:1.24
+    build:
+      context: ./../backend
+      dockerfile: Dockerfile
+    image: isp_monitoring_backend:latest
     container_name: isp_monitoring_backend
-    working_dir: /app
-    volumes:
-      - ./../backend:/app
-    command: ["sh", "-c", "go mod download && go run ."]
     environment:
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
@@ -46,25 +51,31 @@ services:
       POSTGRES_PASSWORD: isp_password
       POSTGRES_DB: isp_monitoring
       TZ: Asia/Jakarta
+    volumes:
+      # Persist folder uploads (logo, invoice, dll) agar tidak hilang saat rebuild
+      - ./../backend/uploads:/app/uploads
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     network_mode: host
     restart: always
 
   frontend:
-    image: node:20
+    build:
+      context: ./../frontend
+      dockerfile: Dockerfile
+    image: isp_monitoring_frontend:latest
     container_name: isp_monitoring_frontend
-    working_dir: /app
-    volumes:
-      - ./../frontend:/app
-      - /app/node_modules
-    command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0"]
     ports:
       - "5173:5173"
+    extra_hosts:
+      # Mapping host.docker.internal → host machine agar nginx bisa proxy ke backend
+      - "host.docker.internal:host-gateway"
     depends_on:
       - backend
     networks:
       - isp_net
+    restart: always
 
 networks:
   isp_net:

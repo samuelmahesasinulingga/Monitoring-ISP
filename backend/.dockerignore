@@ -1,0 +1,19 @@
+# Binary hasil build lokal - tidak perlu di-copy ke Docker image
+*.exe
+*.dll
+*.so
+
+# Git
+.git
+.gitignore
+
+# Environment file lokal (env akan di-inject via docker-compose)
+.env
+
+# Folder uploads (di-mount via volume)
+uploads/
+
+# Temp files
+tmp_*
+test*_build*
+check_build*
