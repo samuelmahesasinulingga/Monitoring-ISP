@@ -14,7 +14,7 @@ services:
       - ./../db_data:/var/lib/postgresql/data
     networks:
       - isp_net
-    restart: always
+    restart: unless-stopped
 
   backend:
     image: golang:1.24
@@ -34,11 +34,10 @@ services:
       - db
     ports:
       - "8080:8080"
-      - "6343:6343/udp"
-      - "2055:2055/udp"
+      - "2055-2060:2055-2060/udp"
     networks:
       - isp_net
-    restart: always
+    restart: unless-stopped
 
   frontend:
     image: node:20

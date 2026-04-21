@@ -32,7 +32,7 @@ type TrafficAnalyticsSectionProps = {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#6366f1", "#ef4444", "#8b5cf6"];
 
 const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ workspaceId }) => {
-  const [allDevices, setAllDevices] = useState<{ip: string, name: string}[]>([]);
+  const [allDevices, setAllDevices] = useState<{ip: string, name: string, netflowPort: number}[]>([]);
   const [activeDevices, setActiveDevices] = useState<string[]>([]);
   const [deviceMap, setDeviceMap] = useState<DeviceMap>({});
   const [selectedDevice, setSelectedDevice] = useState<string>(""); // empty = all
@@ -40,6 +40,8 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
   const [topTalkers, setTopTalkers] = useState<Talker[]>([]);
   const [protoBreakdown, setProtoBreakdown] = useState<ProtoData[]>([]);
   const [flowLogs, setFlowLogs] = useState<FlowLog[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDeviceMetadata = async () => {
@@ -54,15 +56,23 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
       const allDevicesData = await allDevicesRes.json();
       
       const mapping: DeviceMap = {};
-      const devList: {ip: string, name: string}[] = [];
+      const devList: {ip: string, name: string, netflowPort: number}[] = [];
       allDevicesData.forEach((d: any) => {
         mapping[d.ip] = d.name;
-        devList.push({ ip: d.ip, name: d.name });
+        devList.push({ ip: d.ip, name: d.name, netflowPort: d.netflowPort || 2055 });
       });
       
       setAllDevices(devList);
       setActiveDevices(exporters || []);
       setDeviceMap(mapping);
+      
+      setAllDevices(devList => {
+        if (devList.length > 0) {
+          // Default to the first device since 'All Routers' option is removed
+          setSelectedDevice(prev => prev === "" ? devList[0].ip : prev);
+        }
+        return devList;
+      });
     } catch (err) {
       console.error("Metadata fetch error", err);
     }
@@ -76,7 +86,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
       const [topRes, protoRes, logsRes] = await Promise.all([
         fetch(`/api/analytics/top-talkers?workspaceId=${workspaceId}&limit=5${deviceParam}`),
         fetch(`/api/analytics/top-protocols?workspaceId=${workspaceId}${deviceParam}`),
-        fetch(`/api/analytics/flow-logs?workspaceId=${workspaceId}${deviceParam}`)
+        fetch(`/api/analytics/flow-logs?workspaceId=${workspaceId}${deviceParam}&page=${currentPage}&limit=30`)
       ]);
 
       const topData = await topRes.json();
@@ -85,7 +95,12 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
       setTopTalkers(topData || []);
       setProtoBreakdown(protoData || []);
-      setFlowLogs(logsData || []);
+      if (logsData) {
+        setFlowLogs(logsData.logs || []);
+        setTotalPages(logsData.totalPages || 1);
+      } else {
+        setFlowLogs([]);
+      }
     } catch (err) {
       console.error("Traffic Analytics fetch error", err);
     } finally {
@@ -103,7 +118,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
     fetchData();
     const interval = setInterval(fetchData, 10000); // Update every 10s
     return () => clearInterval(interval);
-  }, [workspaceId, selectedDevice]);
+  }, [workspaceId, selectedDevice, currentPage]);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -137,11 +152,11 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                     value={selectedDevice}
                     onChange={(e) => {
                         setIsLoading(true);
+                        setCurrentPage(1);
                         setSelectedDevice(e.target.value);
                     }}
                     className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
                 >
-                    <option value="">All Routers (Combined)</option>
                     {allDevices.map(dev => (
                         <option key={dev.ip} value={dev.ip}>
                           {dev.name} {activeDevices.includes(dev.ip) ? "●" : ""}
@@ -150,10 +165,17 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 </select>
             </div>
 
-            <div className="px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-full border border-green-100 flex items-center gap-1.5 h-full">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                ACTIVE
-            </div>
+            {selectedDevice && activeDevices.includes(selectedDevice) ? (
+                <div className="px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-full border border-green-100 flex items-center gap-1.5 h-full">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    ACTIVE
+                </div>
+            ) : (
+                <div className="px-3 py-1 bg-slate-50 text-slate-500 text-[11px] font-bold rounded-full border border-slate-200 flex items-center gap-1.5 h-full">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                    NO TRAFFIC
+                </div>
+            )}
             <button onClick={fetchData} className="p-2 bg-slate-50 text-slate-700 text-[11px] font-bold rounded-xl border border-slate-200 hover:bg-white transition-all">
                🔄
             </button>
@@ -188,7 +210,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
             }) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400">
                 <span className="text-4xl mb-2">📉</span>
-                <p className="text-[12px]">Belum ada data sFlow terdeteksi.</p>
+                <p className="text-[12px]">Belum ada data Trafik terdeteksi.</p>
               </div>
             )}
           </div>
@@ -269,13 +291,35 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               )) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                    Menunggu trafik masuk... (Pastikan Traffic Flow di Router diarahkan ke Port 2055 atau sFlow ke Port 6343)
+                    Menunggu trafik masuk... (Pastikan Traffic Flow di Router diarahkan ke Port {allDevices.find(d => d.ip === selectedDevice)?.netflowPort || 2055})
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-[12px]">
+            <span className="text-slate-500 font-medium">Halaman <strong className="text-slate-700">{currentPage}</strong> dari <strong className="text-slate-700">{totalPages}</strong></span>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                Sebelumnya
+              </button>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

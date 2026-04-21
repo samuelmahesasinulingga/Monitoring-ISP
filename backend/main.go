@@ -143,7 +143,7 @@ func main() {
 	go startPingWorker(state)
 	go startSnmpWorker(state)
 	go startBillingAutomationWorker(state)
-	go startSFlowCollector(state)
+	go startNetFlowCollector(state)
 
 	log.Println("Backend running on :8080")
 	e.Logger.Fatal(e.Start(":8080"))

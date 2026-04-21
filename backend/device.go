@@ -17,6 +17,7 @@ type device struct {
 	PingIntervalMs    int       `json:"pingIntervalMs"`
 	MonitoredQueues   []string  `json:"monitoredQueues"`
 	MonitoredInterfaces []string `json:"monitoredInterfaces"`
+	NetFlowPort       int       `json:"netflowPort"`
 	WorkspaceID       *int      `json:"workspaceId,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 }
@@ -35,7 +36,8 @@ type createDeviceRequest struct {
 	PingIntervalMs    int       `json:"pingIntervalMs"`
 	MonitoredQueues   []string  `json:"monitoredQueues"`
 	MonitoredInterfaces []string `json:"monitoredInterfaces"`
-	WorkspaceID       *int      `json:"workspaceId"`
+	NetFlowPort       int      `json:"netflowPort"`
+	WorkspaceID       *int     `json:"workspaceId"`
 }
 
 type HistoricalPing struct {

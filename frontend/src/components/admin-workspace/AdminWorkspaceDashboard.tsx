@@ -48,6 +48,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
   const [monitoringTab, setMonitoringTab] = useState<MonitoringTabKey>(() => {
     return (localStorage.getItem("adminMonitoringTab") as MonitoringTabKey) || "ping";
   });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [fetchedWorkspaces, setFetchedWorkspaces] = useState<Workspace[]>([]);
   const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(false);
@@ -146,7 +147,43 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-100 via-slate-50 to-sky-100 text-slate-900">
-      <aside className="fixed top-0 left-0 z-20 h-screen w-64 px-4 py-5 bg-slate-950 text-slate-100 shadow-[4px_0_20px_rgba(15,23,42,0.4)] flex flex-col">
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-slate-950 z-20 flex items-center justify-between px-4 shadow-[0_4px_20px_rgba(15,23,42,0.4)]">
+        <div className="font-bold text-slate-100 text-[14px] flex items-center gap-2">
+          <span className="w-6 h-6 rounded bg-gradient-to-br from-blue-600 to-indigo-600 inline-flex items-center justify-center text-white text-[10px] font-bold">
+            {(workspaceName || "W")[0].toUpperCase()}
+          </span>
+          {workspaceName ?? "Dashboard"}
+        </div>
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-1.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 z-20 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`fixed top-0 left-0 z-30 h-screen w-64 px-4 py-5 bg-slate-950 text-slate-100 shadow-[4px_0_20px_rgba(15,23,42,0.4)] flex flex-col transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+        <div className="lg:hidden absolute top-3 right-3 z-40">
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
         <div className="mb-5 relative">
           {canSwitchWorkspace ? (
             <>
@@ -242,10 +279,10 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
         )}
 
-        <nav className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80">
+        <nav className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80 mt-2 lg:mt-0">
           <button
             type="button"
-            onClick={() => setActiveMenu("dashboard")}
+            onClick={() => { setActiveMenu("dashboard"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "dashboard"
                 ? "bg-slate-950 text-slate-50"
@@ -282,6 +319,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                   onClick={() => {
                     setActiveMenu("monitoring");
                     setMonitoringTab("ping");
+                    setIsSidebarOpen(false);
                   }}
                   className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
                     monitoringTab === "ping"
@@ -296,6 +334,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                   onClick={() => {
                     setActiveMenu("monitoring");
                     setMonitoringTab("alerts");
+                    setIsSidebarOpen(false);
                   }}
                   className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
                     monitoringTab === "alerts"
@@ -310,6 +349,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                   onClick={() => {
                     setActiveMenu("monitoring");
                     setMonitoringTab("interface");
+                    setIsSidebarOpen(false);
                   }}
                   className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
                     monitoringTab === "interface"
@@ -324,6 +364,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
                   onClick={() => {
                     setActiveMenu("monitoring");
                     setMonitoringTab("queue");
+                    setIsSidebarOpen(false);
                   }}
                   className={`text-left px-2.5 py-1.5 rounded-full border-0 cursor-pointer text-[12px] ${
                     monitoringTab === "queue"
@@ -338,7 +379,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </div>
           <button
             type="button"
-            onClick={() => setActiveMenu("analytics")}
+            onClick={() => { setActiveMenu("analytics"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "analytics"
                 ? "bg-slate-950 text-slate-50 shadow-lg shadow-blue-900/20"
@@ -349,7 +390,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveMenu("devices")}
+            onClick={() => { setActiveMenu("devices"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "devices"
                 ? "bg-slate-950 text-slate-50"
@@ -360,7 +401,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveMenu("topology")}
+            onClick={() => { setActiveMenu("topology"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "topology"
                 ? "bg-slate-950 text-slate-50"
@@ -371,7 +412,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveMenu("slaReport")}
+            onClick={() => { setActiveMenu("slaReport"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "slaReport"
                 ? "bg-slate-950 text-slate-50"
@@ -382,7 +423,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveMenu("customers")}
+            onClick={() => { setActiveMenu("customers"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "customers"
                 ? "bg-slate-950 text-slate-50"
@@ -393,7 +434,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveMenu("billing")}
+            onClick={() => { setActiveMenu("billing"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "billing"
                 ? "bg-slate-950 text-slate-50"
@@ -404,7 +445,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveMenu("settings")}
+            onClick={() => { setActiveMenu("settings"); setIsSidebarOpen(false); }}
             className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer text-[13px] ${
               activeMenu === "settings"
                 ? "bg-slate-950 text-slate-50"
@@ -448,7 +489,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
         )}
       </aside>
 
-      <main className="flex-1 p-6 ml-64">{renderContent()}</main>
+      <main className="flex-1 p-4 pt-20 lg:p-6 lg:ml-64">{renderContent()}</main>
     </div>
   );
 };

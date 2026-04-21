@@ -27,7 +27,7 @@ func (a *appState) handleGetTopTalkers(c echo.Context) error {
 	since := time.Now().Add(-1 * time.Hour)
 
 	query := `
-		SELECT src_ip, SUM(bytes) as total_bytes
+		SELECT src_ip::text, SUM(bytes) as total_bytes
 		FROM flow_logs
 		WHERE workspace_id = $1 AND captured_at >= $2
 	`
@@ -39,7 +39,7 @@ func (a *appState) handleGetTopTalkers(c echo.Context) error {
 	query += " GROUP BY src_ip ORDER BY total_bytes DESC LIMIT $" + strconv.Itoa(len(args)+1)
 	if deviceIP == "" {
 		query = `
-		SELECT src_ip, SUM(bytes) as total_bytes
+		SELECT src_ip::text, SUM(bytes) as total_bytes
 		FROM flow_logs
 		WHERE workspace_id = $1 AND captured_at >= $2
 		GROUP BY src_ip
@@ -137,20 +137,38 @@ func (a *appState) handleGetFlowLogs(c echo.Context) error {
 	wsID, _ := strconv.Atoi(wsIDStr)
 	
 	deviceIP := c.QueryParam("deviceIp")
-	limit := 50
+	pageStr := c.QueryParam("page")
+	page, _ := strconv.Atoi(pageStr)
+	if page <= 0 {
+		page = 1
+	}
+	limitStr := c.QueryParam("limit")
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 {
+		limit = 30
+	}
+	offset := (page - 1) * limit
+	
+	countQuery := "SELECT COUNT(*) FROM flow_logs WHERE workspace_id = $1"
+	args := []interface{}{wsID}
+	if deviceIP != "" {
+		countQuery += " AND agent_ip = $2"
+		args = append(args, deviceIP)
+	}
+
+	var totalCount int
+	a.db.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
 	
 	query := `
-		SELECT src_ip, dst_ip, protocol, src_port, dst_port, bytes, captured_at
+		SELECT src_ip::text, dst_ip::text, protocol, src_port, dst_port, bytes, captured_at
 		FROM flow_logs
 		WHERE workspace_id = $1
 	`
-	args := []interface{}{wsID}
 	if deviceIP != "" {
 		query += " AND agent_ip = $2"
-		args = append(args, deviceIP)
 	}
-	query += " ORDER BY captured_at DESC LIMIT $" + strconv.Itoa(len(args)+1)
-	args = append(args, limit)
+	query += " ORDER BY captured_at DESC LIMIT $" + strconv.Itoa(len(args)+1) + " OFFSET $" + strconv.Itoa(len(args)+2)
+	args = append(args, limit, offset)
 
 	rows, err := a.db.Query(ctx, query, args...)
 	if err != nil {
@@ -185,7 +203,28 @@ func (a *appState) handleGetFlowLogs(c echo.Context) error {
 		results = append(results, l)
 	}
 
-	return c.JSON(http.StatusOK, results)
+	if results == nil {
+		results = []FlowLog{}
+	}
+
+	totalPages := totalCount / limit
+	if totalCount%limit != 0 {
+		totalPages++
+	}
+
+	type FlowLogResponse struct {
+		Logs        []FlowLog `json:"logs"`
+		TotalPages  int       `json:"totalPages"`
+		CurrentPage int       `json:"currentPage"`
+		TotalCount  int       `json:"totalCount"`
+	}
+
+	return c.JSON(http.StatusOK, FlowLogResponse{
+		Logs:        results,
+		TotalPages:  totalPages,
+		CurrentPage: page,
+		TotalCount:  totalCount,
+	})
 }
 
 func (a *appState) handleGetActiveAnalyticsDevices(c echo.Context) error {

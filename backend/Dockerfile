@@ -39,6 +39,5 @@ COPY --from=builder /app/assets ./assets
 
 EXPOSE 8080
 EXPOSE 2055/udp
-EXPOSE 6343/udp
 
 CMD ["/app/server"]

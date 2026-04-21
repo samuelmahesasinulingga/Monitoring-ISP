@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 export type DeviceType = "router" | "switch" | "ap" | "server" | "client";
 
-export type IntegrationMode = "ping" | "snmp";
+export type IntegrationMode = "ping" | "snmp" | "api" | "snmp+api";
 
 export type SnmpVersion = "v1" | "v2c" | "v3";
 
@@ -17,6 +17,11 @@ export type DeviceRecord = {
   monitoringEnabled: boolean;
   monitoredQueues?: string[];
   monitoredInterfaces?: string[];
+  netflowPort: number;
+  apiUser?: string;
+  apiPassword?: string;
+  apiPort?: number;
+  pingIntervalMs?: number;
 };
 
 type DevicesSectionProps = {
@@ -71,8 +76,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [integrationMode, setIntegrationMode] = useState<IntegrationMode>("snmp");
   const [snmpVersion, setSnmpVersion] = useState<SnmpVersion>("v2c");
   const [snmpCommunity, setSnmpCommunity] = useState("public");
+  const [netflowPort, setNetflowPort] = useState(2055);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
+  const [fetchingTarget, setFetchingTarget] = useState<"queues" | "interfaces" | "all" | null>(null);
   const [testStatus, setTestStatus] = useState<"idle" | "success" | "failed">("idle");
   const [testMessage, setTestMessage] = useState<string>("");
   const [testIp, setTestIp] = useState("");
@@ -94,6 +101,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [editIntegrationMode, setEditIntegrationMode] = useState<IntegrationMode>("snmp");
   const [editSnmpVersion, setEditSnmpVersion] = useState<SnmpVersion>("v2c");
   const [editSnmpCommunity, setEditSnmpCommunity] = useState("");
+  const [editNetflowPort, setEditNetflowPort] = useState(2055);
   const [editMonitoringEnabled, setEditMonitoringEnabled] = useState(true);
   const [editAvailableQueues, setEditAvailableQueues] = useState<string[]>([]);
   const [editMonitoredQueues, setEditMonitoredQueues] = useState<string[]>([]);
@@ -159,6 +167,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       monitoringEnabled,
       monitoredQueues: queueMonitoringEnabled ? monitoredQueues : [],
       monitoredInterfaces: interfaceMonitoringEnabled ? monitoredInterfaces : [],
+      netflowPort,
       workspaceId: workspaceId ?? null,
     };
 
@@ -207,6 +216,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setIntegrationMode("snmp");
     setSnmpVersion("v2c");
     setSnmpCommunity("public");
+    setNetflowPort(2055);
     setMonitoringEnabled(true);
     setQueueMonitoringEnabled(false);
     setIsTesting(false);
@@ -235,6 +245,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         snmpVersion: snmpVersion,
         snmpCommunity: snmpCommunity,
         monitoringEnabled: true,
+        netflowPort: netflowPort,
         workspaceId: workspaceId ?? null,
       };
 
@@ -290,18 +301,15 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     targetIp: string,
     targetCommunity: string,
     targetVersion: SnmpVersion,
-    isEdit: boolean = false
+    isEdit: boolean = false,
+    fetchFor: "queues" | "interfaces" | "all" = "all"
   ) => {
     if (!targetIp.trim()) return;
     setIsTesting(true);
-    if (isEdit) {
-      setEditAvailableQueues([]);
-      setEditAvailableInterfaces([]);
-    } else {
-      setAvailableQueues([]);
-      setAvailableInterfaces([]);
-    }
-
+    setFetchingTarget(fetchFor);
+    
+    // Kita tidak membersihkan array list disini agar layar tidak berkedip kosong saat me-refresh.
+    
     try {
       const payload = {
         name: "",
@@ -311,6 +319,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         snmpVersion: targetVersion,
         snmpCommunity: targetCommunity,
         monitoringEnabled: true,
+        netflowPort: 2055,
         workspaceId: workspaceId ?? null,
       };
 
@@ -334,6 +343,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       console.error("auto fetch queues error", err);
     } finally {
       setIsTesting(false);
+      setFetchingTarget(null);
     }
   };
 
@@ -345,6 +355,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setEditIntegrationMode(device.integrationMode);
     setEditSnmpVersion(device.snmpVersion || "v2c");
     setEditSnmpCommunity(device.snmpCommunity || "public");
+    setEditNetflowPort(device.netflowPort || 2055);
     setEditMonitoringEnabled(device.monitoringEnabled);
     setEditMonitoredQueues(device.monitoredQueues || []);
     setEditQueueMonitoringEnabled(device.monitoredQueues && device.monitoredQueues.length > 0 ? true : false);
@@ -385,6 +396,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         monitoringEnabled: editMonitoringEnabled,
         monitoredQueues: editQueueMonitoringEnabled ? editMonitoredQueues : [],
         monitoredInterfaces: editInterfaceMonitoringEnabled ? editMonitoredInterfaces : [],
+        netflowPort: editNetflowPort,
         workspaceId: workspaceId ?? null,
       };
 
@@ -617,6 +629,21 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
             )}
 
+            <div>
+              <label className="mb-1 block text-[11px] text-slate-600">
+                NetFlow Port (UDP)
+              </label>
+              <input
+                type="number"
+                value={netflowPort}
+                onChange={(e) => setNetflowPort(parseInt(e.target.value) || 2055)}
+                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+              />
+              <p className="mt-1 text-[10px] text-slate-400">
+                Gunakan port berbeda (2055-2060) jika ada beberapa router di balik NAT yang sama.
+              </p>
+            </div>
+
             <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
               <Switch
                 label="Aktifkan Monitoring"
@@ -757,7 +784,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   <th className="px-2.5 py-1.5 text-left">Tipe</th>
                   <th className="px-2.5 py-1.5 text-left">Mode</th>
                   <th className="px-2.5 py-1.5 text-left">SNMP</th>
-
+                  <th className="px-2.5 py-1.5 text-left">NF Port</th>
                   <th className="px-2.5 py-1.5 text-left">Monitoring</th>
                   <th className="px-2.5 py-1.5 text-left">Aksi</th>
                 </tr>
@@ -781,6 +808,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       {d.snmpVersion && d.snmpCommunity
                         ? `${d.snmpVersion} / ${d.snmpCommunity}`
                         : "-"}
+                    </td>
+                    <td className="px-2.5 py-1.5 align-top text-slate-600">
+                      {d.netflowPort || 2055}
                     </td>
 
                     <td className="px-2.5 py-1.5 align-top">
@@ -1003,6 +1033,21 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 </div>
               )}
 
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-600">
+                  NetFlow Port (UDP)
+                </label>
+                <input
+                  type="number"
+                  value={editNetflowPort}
+                  onChange={(e) => setEditNetflowPort(parseInt(e.target.value) || 2055)}
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                />
+                <p className="mt-1 text-[10px] text-slate-400">
+                  Gunakan port unik (2055-2060) untuk identifikasi router di belakang NAT.
+                </p>
+              </div>
+
 
               <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
                 <Switch
@@ -1037,11 +1082,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     </label>
                     <button
                       type="button"
-                      onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true)}
+                      onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true, "queues")}
                       disabled={isTesting}
                       className="bg-white border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
                     >
-                      {isTesting ? "Fetching..." : "Refresh Daftar Queue"}
+                      {isTesting && fetchingTarget === "queues" ? "Memuat..." : "Refresh Daftar Queue"}
                     </button>
                   </div>
 
@@ -1099,11 +1144,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     </label>
                     <button
                       type="button"
-                      onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true)}
+                      onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true, "interfaces")}
                       disabled={isTesting}
                       className="bg-white border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
                     >
-                      {isTesting ? "Memuat..." : "Refresh Interface"}
+                      {isTesting && fetchingTarget === "interfaces" ? "Memuat..." : "Refresh Interface"}
                     </button>
                   </div>
                   {editAvailableInterfaces.length > 0 ? (
