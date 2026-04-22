@@ -32,16 +32,17 @@ type TrafficAnalyticsSectionProps = {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#6366f1", "#ef4444", "#8b5cf6"];
 
 const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ workspaceId }) => {
-  const [allDevices, setAllDevices] = useState<{ip: string, name: string, netflowPort: number}[]>([]);
-  const [activeDevices, setActiveDevices] = useState<string[]>([]);
+  const [allDevices, setAllDevices] = useState<{ id: number, ip: string, name: string, netflowPort: number }[]>([]);
+  const [activeDevices, setActiveDevices] = useState<number[]>([]);
   const [deviceMap, setDeviceMap] = useState<DeviceMap>({});
-  const [selectedDevice, setSelectedDevice] = useState<string>(""); // empty = all
-  
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(""); // empty = all
+
   const [topTalkers, setTopTalkers] = useState<Talker[]>([]);
   const [protoBreakdown, setProtoBreakdown] = useState<ProtoData[]>([]);
   const [flowLogs, setFlowLogs] = useState<FlowLog[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedDuration, setSelectedDuration] = useState<string>("0"); // 0 = all/latest
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDeviceMetadata = async () => {
@@ -51,27 +52,39 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         fetch(`/api/analytics/active-devices?workspaceId=${workspaceId}`),
         fetch(`/api/devices?workspaceId=${workspaceId}`)
       ]);
-      
+
+      if (!allDevicesRes.ok || !exportersRes.ok) {
+        console.error("Fetch failed", allDevicesRes.status, exportersRes.status);
+        return;
+      }
+
       const exporters = await exportersRes.json();
       const allDevicesData = await allDevicesRes.json();
-      
+
+      if (!Array.isArray(allDevicesData)) {
+        console.error("allDevicesData is not an array", allDevicesData);
+        return;
+      }
+
       const mapping: DeviceMap = {};
-      const devList: {ip: string, name: string, netflowPort: number}[] = [];
+      const devList: { id: number, ip: string, name: string, netflowPort: number }[] = [];
       allDevicesData.forEach((d: any) => {
         mapping[d.ip] = d.name;
-        devList.push({ ip: d.ip, name: d.name, netflowPort: d.netflowPort || 2055 });
+        devList.push({ id: d.id, ip: d.ip, name: d.name, netflowPort: d.netflowPort || 2055 });
       });
-      
+
       setAllDevices(devList);
       setActiveDevices(exporters || []);
       setDeviceMap(mapping);
-      
-      setAllDevices(devList => {
-        if (devList.length > 0) {
-          // Default to the first device since 'All Routers' option is removed
-          setSelectedDevice(prev => prev === "" ? devList[0].ip : prev);
+
+      setSelectedDeviceId(prev => {
+        if (prev !== "") return prev;
+        const savedDeviceId = localStorage.getItem(`selectedDeviceId_${workspaceId}`);
+        // Default to "All Devices" ("") if nothing is saved
+        if (savedDeviceId && (savedDeviceId === "" || devList.some(d => d.id.toString() === savedDeviceId))) {
+          return savedDeviceId;
         }
-        return devList;
+        return "";
       });
     } catch (err) {
       console.error("Metadata fetch error", err);
@@ -81,11 +94,12 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
   const fetchData = async () => {
     if (!workspaceId) return;
     try {
-      const deviceParam = selectedDevice ? `&deviceIp=${selectedDevice}` : "";
-      
+      const deviceParam = selectedDeviceId ? `&deviceId=${selectedDeviceId}` : "";
+      const durationParam = selectedDuration !== "0" ? `&duration=${selectedDuration}` : "";
+
       const [topRes, protoRes, logsRes] = await Promise.all([
-        fetch(`/api/analytics/top-talkers?workspaceId=${workspaceId}&limit=5${deviceParam}`),
-        fetch(`/api/analytics/top-protocols?workspaceId=${workspaceId}${deviceParam}`),
+        fetch(`/api/analytics/top-talkers?workspaceId=${workspaceId}&limit=5${deviceParam}${durationParam}`),
+        fetch(`/api/analytics/top-protocols?workspaceId=${workspaceId}${deviceParam}${durationParam}`),
         fetch(`/api/analytics/flow-logs?workspaceId=${workspaceId}${deviceParam}&page=${currentPage}&limit=30`)
       ]);
 
@@ -108,6 +122,41 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
     }
   };
 
+  // Fetch initial settings to sync dropdown
+  useEffect(() => {
+    if (!workspaceId) return;
+    fetch(`/api/workspaces`)
+      .then(res => res.json())
+      .then(list => {
+        const thisWs = list.find((w: any) => w.id === workspaceId);
+        if (thisWs) {
+          const val = thisWs.netflowMonitoringMode === "snapshot" 
+            ? thisWs.netflowSnapshotInterval.toString() 
+            : "0";
+          setSelectedDuration(val);
+        }
+      });
+  }, [workspaceId]);
+
+  const updateMonitoringMode = async (val: string) => {
+    if (!workspaceId) return;
+    const interval = parseInt(val);
+    const mode = interval > 0 ? "snapshot" : "continuous";
+    
+    try {
+      await fetch(`/api/workspaces/${workspaceId}/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          netflowMonitoringMode: mode,
+          netflowSnapshotInterval: interval
+        })
+      });
+    } catch (err) {
+      console.error("Failed to update netflow settings", err);
+    }
+  };
+
   useEffect(() => {
     fetchDeviceMetadata();
     const metaInterval = setInterval(fetchDeviceMetadata, 30000);
@@ -116,9 +165,17 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000); // Update every 10s
+
+    // UI will check for new data every 10 seconds regardless of interval mode
+    // to ensure snapshots appear as soon as they are available in the database.
+    const refreshMs = 10000; 
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, refreshMs);
+
     return () => clearInterval(interval);
-  }, [workspaceId, selectedDevice, currentPage]);
+  }, [workspaceId, selectedDeviceId, selectedDuration, currentPage]);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -143,42 +200,88 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
           <h2 className="text-xl font-bold text-slate-900">Traffic Analytics</h2>
           <p className="text-[13px] text-slate-500">Analisis trafik real-time menggunakan metadata sFlow & Traffic Flow.</p>
         </div>
-        
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Device Filter */}
-            <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                <span className="text-[11px] font-bold text-slate-400 uppercase">Device:</span>
-                <select 
-                    value={selectedDevice}
-                    onChange={(e) => {
-                        setIsLoading(true);
-                        setCurrentPage(1);
-                        setSelectedDevice(e.target.value);
-                    }}
-                    className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
-                >
-                    {allDevices.map(dev => (
-                        <option key={dev.ip} value={dev.ip}>
-                          {dev.name} {activeDevices.includes(dev.ip) ? "●" : ""}
-                        </option>
-                    ))}
-                </select>
-            </div>
 
-            {selectedDevice && activeDevices.includes(selectedDevice) ? (
-                <div className="px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-full border border-green-100 flex items-center gap-1.5 h-full">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                    ACTIVE
-                </div>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Device Filter */}
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-bold text-slate-400 uppercase">Device:</span>
+            <select
+              value={selectedDeviceId}
+              onChange={(e) => {
+                const val = e.target.value;
+                setIsLoading(true);
+                setCurrentPage(1);
+                setSelectedDeviceId(val);
+                if (workspaceId) {
+                  localStorage.setItem(`selectedDeviceId_${workspaceId}`, val);
+                }
+              }}
+              className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+            >
+              <option value="">Semua Perangkat</option>
+              {allDevices.map(dev => (
+                <option key={dev.id} value={dev.id.toString()}>
+                  {dev.name} {activeDevices.includes(dev.id) ? "●" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Window Filter (Sampling) */}
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-bold text-slate-400 uppercase">Window:</span>
+            <select
+              value={selectedDuration}
+              onChange={(e) => {
+                const val = e.target.value;
+                setIsLoading(true);
+                setCurrentPage(1);
+                setSelectedDuration(val);
+                updateMonitoringMode(val);
+              }}
+              className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+            >
+              <option value="0">Continuous (Real-time)</option>
+              <option value="1">Snapshot 1 Menit</option>
+              <option value="3">Snapshot 3 Menit</option>
+              <option value="5">Snapshot 5 Menit</option>
+            </select>
+          </div>
+
+          {selectedDeviceId === "" ? (
+            activeDevices.length > 0 ? (
+              <div className="px-3 py-1 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-full border border-blue-100 flex items-center gap-1.5 h-full">
+                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                {activeDevices.length} ACTIVE
+              </div>
             ) : (
-                <div className="px-3 py-1 bg-slate-50 text-slate-500 text-[11px] font-bold rounded-full border border-slate-200 flex items-center gap-1.5 h-full">
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
-                    NO TRAFFIC
-                </div>
-            )}
-            <button onClick={fetchData} className="p-2 bg-slate-50 text-slate-700 text-[11px] font-bold rounded-xl border border-slate-200 hover:bg-white transition-all">
-               🔄
-            </button>
+              <div className="px-3 py-1 bg-slate-50 text-slate-500 text-[11px] font-bold rounded-full border border-slate-200 flex items-center gap-1.5 h-full">
+                OFFLINE
+              </div>
+            )
+          ) : activeDevices.includes(parseInt(selectedDeviceId)) ? (
+            <div className="px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-full border border-green-100 flex items-center gap-1.5 h-full">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              ACTIVE
+            </div>
+          ) : (
+            <div className="px-3 py-1 bg-slate-50 text-slate-500 text-[11px] font-bold rounded-full border border-slate-200 flex items-center gap-1.5 h-full">
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+              NO TRAFFIC
+            </div>
+          )}
+          <button 
+            onClick={() => {
+              setIsLoading(true);
+              fetchData();
+              fetchDeviceMetadata();
+            }} 
+            className="p-2 bg-slate-50 text-slate-700 text-[11px] font-bold rounded-xl border border-slate-200 hover:bg-white transition-all disabled:opacity-50"
+            disabled={isLoading}
+            title="Refresh Data"
+          >
+            {isLoading ? "..." : "🔄"}
+          </button>
         </div>
       </div>
 
@@ -200,7 +303,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                     <span className="font-bold text-blue-600">{formatBytes(talker.bytes)}</span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000"
                       style={{ width: `${percentage}%` }}
                     />
@@ -236,8 +339,8 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  formatter={(value: any) => formatBytes(value)} 
+                <Tooltip
+                  formatter={(value: any) => formatBytes(value)}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
@@ -249,9 +352,25 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
       {/* Real-time Flow Stream */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="text-[14px] font-bold text-slate-800 uppercase tracking-wider">Real-time Traffic Flow (Log)</h3>
-            <span className="text-[10px] bg-blue-100 text-blue-700 font-black px-2 py-0.5 rounded uppercase">Live Feed</span>
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 className="text-[14px] font-bold text-slate-800 uppercase tracking-wider">
+              {selectedDuration === "0" ? "Real-time Traffic Flow (Log)" : `Snapshot Traffic Flow (${selectedDuration} Min)`}
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {selectedDuration === "0" 
+                ? "Streaming data trafik real-time dari router terpilih." 
+                : `Menampilkan data sampling trafik dari router terpilih (${selectedDuration} menit interval).`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {selectedDuration === "0" ? (
+              <span className="text-[10px] bg-blue-100 text-blue-700 font-black px-2 py-0.5 rounded uppercase shrink-0">Live Feed</span>
+            ) : (
+              <span className="text-[10px] bg-amber-100 text-amber-700 font-black px-2 py-0.5 rounded uppercase shrink-0">Snapshot Active</span>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[12px]">
@@ -260,7 +379,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Source IP</th>
                 <th className="px-6 py-3">Dest IP</th>
-                <th className="px-6 py-3">Proto</th>
+                <th className="px-6 py-3">Protocol</th>
                 <th className="px-6 py-3">Ports</th>
                 <th className="px-6 py-3 text-right">Size</th>
               </tr>
@@ -274,10 +393,9 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                   <td className="px-6 py-3 font-mono font-medium text-slate-700">{log.srcIp}</td>
                   <td className="px-6 py-3 font-mono text-slate-500">{log.dstIp}</td>
                   <td className="px-6 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      log.protocol === 'TCP' ? 'bg-blue-100 text-blue-700' : 
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${log.protocol === 'TCP' ? 'bg-blue-100 text-blue-700' :
                       log.protocol === 'UDP' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'
-                    }`}>
+                      }`}>
                       {log.protocol}
                     </span>
                   </td>
@@ -291,26 +409,26 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               )) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                    Menunggu trafik masuk... (Pastikan Traffic Flow di Router diarahkan ke Port {allDevices.find(d => d.ip === selectedDevice)?.netflowPort || 2055})
+                    Menunggu trafik masuk... (Pastikan Traffic Flow di Router diarahkan ke Port {allDevices.find(d => d.id.toString() === selectedDeviceId)?.netflowPort || 2055})
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        
+
         {totalPages > 1 && (
           <div className="p-4 border-t border-slate-100 flex items-center justify-between text-[12px]">
             <span className="text-slate-500 font-medium">Halaman <strong className="text-slate-700">{currentPage}</strong> dari <strong className="text-slate-700">{totalPages}</strong></span>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 Sebelumnya
               </button>
-              <button 
+              <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"

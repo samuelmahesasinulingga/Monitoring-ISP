@@ -114,7 +114,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
     }
 
     if (activeMenu === "slaReport") {
-      return <SLAReportSection />;
+      return <SLAReportSection workspaceId={workspaceId} />;
     }
 
     if (activeMenu === "customers") {

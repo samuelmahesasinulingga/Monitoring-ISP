@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 	"log"
+	"math/rand"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -12,6 +14,7 @@ import (
 
 type NetFlowRecord struct {
 	WorkspaceID int
+	DeviceID    int
 	AgentIP     string
 	SrcIP       string
 	DstIP       string
@@ -55,6 +58,44 @@ func startNetFlowCollector(state *appState) {
 	}
 }
 
+var wsSettingsCache = make(map[int]workspaceSettings)
+var wsSettingsMutex sync.RWMutex
+
+type workspaceSettings struct {
+	Mode     string
+	Interval int
+	Expiry   time.Time
+}
+
+func getWorkspaceNetFlowSettings(state *appState, wsID int) (string, int) {
+	wsSettingsMutex.RLock()
+	s, ok := wsSettingsCache[wsID]
+	wsSettingsMutex.RUnlock()
+
+	if ok && time.Now().Before(s.Expiry) {
+		return s.Mode, s.Interval
+	}
+
+	// Cache miss or expired (cache for 30 seconds)
+	var mode string
+	var interval int
+	err := state.db.QueryRow(context.Background(), "SELECT netflow_monitoring_mode, netflow_snapshot_interval FROM workspaces WHERE id = $1", wsID).Scan(&mode, &interval)
+	if err != nil {
+		mode = "continuous"
+		interval = 0
+	}
+
+	wsSettingsMutex.Lock()
+	wsSettingsCache[wsID] = workspaceSettings{
+		Mode:     mode,
+		Interval: interval,
+		Expiry:   time.Now().Add(30 * time.Second),
+	}
+	wsSettingsMutex.Unlock()
+
+	return mode, interval
+}
+
 func processNetFlowPacket(state *appState, agentIP string, localPort int, data []byte, out chan<- NetFlowRecord) {
 	if len(data) < 24 {
 		return
@@ -80,30 +121,45 @@ func processNetFlowPacket(state *appState, agentIP string, localPort int, data [
 	}
 
 	actualAgentIP := agentIP
+	var deviceID int
+
 	// Better identification logic:
 	// 1. First, check if there's a device specifically mapped to this IP and this Port
-	var specificIP string
-	err = state.db.QueryRow(context.Background(), "SELECT ip FROM devices WHERE workspace_id = $1 AND ip = $2 AND netflow_port = $3 LIMIT 1", wsID, agentIP, localPort).Scan(&specificIP)
+	err = state.db.QueryRow(context.Background(), "SELECT id, ip FROM devices WHERE workspace_id = $1 AND ip = $2 AND netflow_port = $3 LIMIT 1", wsID, agentIP, localPort).Scan(&deviceID, &actualAgentIP)
 	
-	if err == nil && specificIP != "" {
-		actualAgentIP = specificIP
-	} else if agentIP == "172.21.0.1" || agentIP == "172.17.0.1" || agentIP == "127.0.0.1" || agentIP == "::1" {
-		// 2. If it's a NAT gateway, find the device that is configured to use THIS specific local port
-		var portMappedIP string
-		err = state.db.QueryRow(context.Background(), "SELECT ip FROM devices WHERE workspace_id = $1 AND netflow_port = $2 ORDER BY id ASC LIMIT 1", wsID, localPort).Scan(&portMappedIP)
-		if err == nil && portMappedIP != "" {
-			actualAgentIP = portMappedIP
-		} else {
-			// Fallback to first device
-			state.db.QueryRow(context.Background(), "SELECT ip FROM devices WHERE workspace_id = $1 ORDER BY id ASC LIMIT 1", wsID).Scan(&portMappedIP)
-			if portMappedIP != "" {
-				actualAgentIP = portMappedIP
+	if err != nil {
+		if agentIP == "172.21.0.1" || agentIP == "172.17.0.1" || agentIP == "127.0.0.1" || agentIP == "::1" {
+			// 2. If it's a NAT gateway, find the device that is configured to use THIS specific local port
+			err = state.db.QueryRow(context.Background(), "SELECT id, ip FROM devices WHERE workspace_id = $1 AND netflow_port = $2 ORDER BY id ASC LIMIT 1", wsID, localPort).Scan(&deviceID, &actualAgentIP)
+			if err != nil {
+				// Fallback to first device
+				state.db.QueryRow(context.Background(), "SELECT id, ip FROM devices WHERE workspace_id = $1 ORDER BY id ASC LIMIT 1", wsID).Scan(&deviceID, &actualAgentIP)
 			}
+		} else {
+			// 3. Last fallback: Try finding device by IP only (if port doesn't match or not provided)
+			state.db.QueryRow(context.Background(), "SELECT id FROM devices WHERE workspace_id = $1 AND ip = $2 LIMIT 1", wsID, agentIP).Scan(&deviceID)
 		}
 	}
 
 	if count > 0 {
-		log.Printf("NetFlow: [%s] Received %d flows from router (Remote: %s)", actualAgentIP, count, agentIP)
+		log.Printf("NetFlow: [%s] Received %d flows from router (Remote: %s, DeviceID: %d)", actualAgentIP, count, agentIP, deviceID)
+	}
+
+	// SAMPLING LOGIC based on Workspace Settings
+	mode, interval := getWorkspaceNetFlowSettings(state, wsID)
+
+	if mode == "snapshot" && interval > 0 {
+		// SNAPSHOT MODE: Only collect for the first 10 seconds of every 'interval' minutes
+		now := time.Now()
+		isWindowOpen := (now.Minute()%interval == 0) && (now.Second() < 10)
+		if !isWindowOpen {
+			return // Discard data outside the snapshot window
+		}
+	} else {
+		// CONTINUOUS MODE: Random Sampling (10%) to save storage while maintaining visibility
+		if rand.Intn(100) >= 10 {
+			return // Discard 90% of logs to save storage
+		}
 	}
 
 	offset := 24
@@ -123,6 +179,7 @@ func processNetFlowPacket(state *appState, agentIP string, localPort int, data [
 
 		out <- NetFlowRecord{
 			WorkspaceID: wsID,
+			DeviceID:    deviceID,
 			AgentIP:     actualAgentIP,
 			SrcIP:       srcIP,
 			DstIP:       dstIP,
@@ -150,8 +207,8 @@ func netFlowDBWorker(state *appState, packets <-chan NetFlowRecord) {
 		ctx := context.Background()
 		b := &pgx.Batch{}
 		for _, p := range batch {
-			b.Queue("INSERT INTO flow_logs (workspace_id, agent_ip, src_ip, dst_ip, protocol, src_port, dst_port, bytes, packets) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-				p.WorkspaceID, p.AgentIP, p.SrcIP, p.DstIP, p.Protocol, p.SrcPort, p.DstPort, p.Bytes, p.Packets)
+			b.Queue("INSERT INTO flow_logs (workspace_id, device_id, agent_ip, src_ip, dst_ip, protocol, src_port, dst_port, bytes, packets) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+				p.WorkspaceID, p.DeviceID, p.AgentIP, p.SrcIP, p.DstIP, p.Protocol, p.SrcPort, p.DstPort, p.Bytes, p.Packets)
 		}
 
 		results := state.db.SendBatch(ctx, b)

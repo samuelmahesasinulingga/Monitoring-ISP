@@ -139,6 +139,7 @@ func main() {
 	e.GET("/api/analytics/top-protocols", state.handleGetProtocolBreakdown)
 	e.GET("/api/analytics/flow-logs", state.handleGetFlowLogs)
 	e.GET("/api/analytics/active-devices", state.handleGetActiveAnalyticsDevices)
+	e.GET("/api/monitoring/sla-stats", state.handleGetSLAStats)
 
 	go startPingWorker(state)
 	go startSnmpWorker(state)

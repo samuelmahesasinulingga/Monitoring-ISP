@@ -29,6 +29,10 @@ type workspace struct {
 	InvoiceBodyTemplate    *string `json:"invoiceBodyTemplate,omitempty"`
 	
 	CreatedAt        time.Time `json:"created_at"`
+	
+	// NetFlow Settings
+	NetFlowMonitoringMode   string `json:"netflowMonitoringMode"`
+	NetFlowSnapshotInterval int    `json:"netflowSnapshotInterval"`
 }
 
 type createWorkspaceRequest struct {
@@ -45,6 +49,8 @@ type updateWorkspaceSettingsRequest struct {
 	BillingIssueDay    *int  `json:"billingIssueDay"`
 	BillingIssueHour   *int  `json:"billingIssueHour"`
 	BillingIssueMinute *int  `json:"billingIssueMinute"`
+	NetFlowMonitoringMode   *string `json:"netflowMonitoringMode"`
+	NetFlowSnapshotInterval *int    `json:"netflowSnapshotInterval"`
 }
 
 type updateWorkspaceSmtpRequest struct {

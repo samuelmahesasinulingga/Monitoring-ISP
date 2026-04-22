@@ -307,9 +307,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     if (!targetIp.trim()) return;
     setIsTesting(true);
     setFetchingTarget(fetchFor);
-    
+
     // Kita tidak membersihkan array list disini agar layar tidak berkedip kosong saat me-refresh.
-    
+
     try {
       const payload = {
         name: "",
@@ -816,8 +816,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     <td className="px-2.5 py-1.5 align-top">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${d.monitoringEnabled
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-50 text-slate-500 border-slate-200"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-slate-50 text-slate-500 border-slate-200"
                           }`}
                       >
                         {d.monitoringEnabled ? "Aktif" : "Nonaktif"}
@@ -897,8 +897,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
             {testStatus !== "idle" && (
               <div
                 className={`mb-3 rounded-lg border px-3 py-2 text-[11px] ${testStatus === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-red-200 bg-red-50 text-red-700"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-red-200 bg-red-50 text-red-700"
                   }`}
               >
                 {testMessage}
@@ -1269,15 +1269,15 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div
             className={`w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border px-4 py-4 text-[12px] shadow-2xl transform transition-all duration-150 ${feedbackModal.type === "success"
-                ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
-                : "bg-red-50/95 border-red-200 text-red-700"
+              ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
+              : "bg-red-50/95 border-red-200 text-red-700"
               }`}
           >
             <div className="flex items-start gap-2 mb-2">
               <div
                 className={`mt-0.5 h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold ${feedbackModal.type === "success"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-red-100 text-red-700"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-red-100 text-red-700"
                   }`}
               >
                 {feedbackModal.type === "success" ? "✔" : "!"}
