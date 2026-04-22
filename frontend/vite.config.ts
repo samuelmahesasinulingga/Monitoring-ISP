@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    allowedHosts: ["nms2.idn.id"],
     proxy: {
       "/api": {
         target: "http://backend:8080",
