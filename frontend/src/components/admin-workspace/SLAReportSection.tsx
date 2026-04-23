@@ -28,11 +28,20 @@ interface SLAReportSectionProps {
 }
 
 const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
-  const [period, setPeriod] = useState<Period>("monthly");
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("all");
+  const [period, setPeriod] = useState<Period>(() => {
+    return (localStorage.getItem("sla_report_period") as Period) || "monthly";
+  });
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() => {
+    return localStorage.getItem("sla_report_device_id") || "all";
+  });
   const [devices, setDevices] = useState<Device[]>([]);
   const [stats, setStats] = useState<SLAStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    localStorage.setItem("sla_report_period", period);
+    localStorage.setItem("sla_report_device_id", selectedDeviceId);
+  }, [period, selectedDeviceId]);
 
   const periodLabel = (p: Period) => {
     if (p === "daily") return "Harian";

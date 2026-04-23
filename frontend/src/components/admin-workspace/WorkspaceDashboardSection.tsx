@@ -1,38 +1,68 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 type WorkspaceDashboardSectionProps = {
   workspaceName?: string;
+  workspaceId?: number;
 };
 
 const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
   workspaceName,
+  workspaceId,
 }) => {
-  const activeCustomer = 320; // dummy
-  const activeTicket = 18; // dummy
-  const unpaidInvoice = 12; // dummy
+  const [data, setData] = useState({
+    activeCustomer: 0,
+    activeTicket: 0,
+    unpaidInvoice: 0,
+    pingStatus: {
+      overall: "UP" as "UP" | "DOWN",
+      avgLatencyMs: 0,
+      packetLoss: 0,
+    },
+    activeAlertCount: 0,
+    slaThisMonth: 100,
+    invoiceSentThisMonth: false,
+    topInterfaces: [] as {name: string, usageMbps: number}[],
+    topQueues: [] as {name: string, usageMbps: number}[],
+  });
+  const [loading, setLoading] = useState(true);
 
-  const pingStatus = {
-    overall: "UP" as "UP" | "DOWN",
-    avgLatencyMs: 18,
-    packetLoss: 0.4,
-  };
+  useEffect(() => {
+    if (!workspaceId) return;
+    setLoading(true);
+    fetch(`/api/workspaces/${workspaceId}/dashboard-summary`)
+      .then(res => res.json())
+      .then(json => {
+        setData(json);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch dashboard summary:", err);
+        setLoading(false);
+      });
+  }, [workspaceId]);
 
-  const activeAlertCount = 3; // dummy
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12 mt-12 bg-white/50 backdrop-blur-sm rounded-2xl border border-slate-200">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-medium text-sm">Memuat dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const topInterfaces = [
-    { name: "ether1-UPLINK", usageMbps: 120 },
-    { name: "ether2-POP", usageMbps: 95 },
-    { name: "vlan10-Client", usageMbps: 80 },
-  ];
-
-  const topQueues = [
-    { name: "Queue-Office", usageMbps: 45 },
-    { name: "Queue-Home", usageMbps: 32 },
-    { name: "Queue-Business", usageMbps: 28 },
-  ];
-
-  const slaThisMonth = 99.2; // dummy
-  const invoiceSentThisMonth = false; // dummy
+  const {
+    activeCustomer,
+    activeTicket,
+    unpaidInvoice,
+    pingStatus,
+    activeAlertCount,
+    slaThisMonth,
+    invoiceSentThisMonth,
+    topInterfaces,
+    topQueues,
+  } = data;
 
   return (
     <section className="max-w-5xl mx-auto">
@@ -157,10 +187,10 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
           <div className="flex items-center justify-between mb-2.5">
             <div>
               <div className="text-[13px] font-semibold text-slate-900">
-                Alert & BW Tertinggi
+                Alert & IP Teratas
               </div>
               <div className="text-[11px] text-slate-500">
-                Ringkasan alert aktif dan penggunaan bandwidth tertinggi.
+                Ringkasan alert aktif dan penggunaan data (Top Talkers).
               </div>
             </div>
             <div
@@ -177,20 +207,22 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <div className="text-[11px] font-semibold text-slate-600">
-                Interface teratas
+                IP Pelanggan Teratas (24 jam)
               </div>
               <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-500">
-                {topInterfaces.map((iface) => (
+                {topInterfaces.length > 0 ? topInterfaces.map((iface) => (
                   <li
                     key={iface.name}
                     className="flex justify-between mb-1"
                   >
                     <span>{iface.name}</span>
                     <span className="font-semibold text-slate-900">
-                      {iface.usageMbps} Mbps
+                      {iface.usageMbps} MB
                     </span>
                   </li>
-                ))}
+                )) : (
+                  <li className="text-slate-400 italic">Belum ada data NetFlow.</li>
+                )}
               </ul>
             </div>
 
@@ -199,7 +231,7 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
                 Queue Mikrotik teratas
               </div>
               <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-500">
-                {topQueues.map((queue) => (
+                {topQueues.length > 0 ? topQueues.map((queue) => (
                   <li
                     key={queue.name}
                     className="flex justify-between mb-1"
@@ -209,7 +241,9 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
                       {queue.usageMbps} Mbps
                     </span>
                   </li>
-                ))}
+                )) : (
+                  <li className="text-slate-400 italic">Belum ada data Queue.</li>
+                )}
               </ul>
             </div>
           </div>

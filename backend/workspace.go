@@ -33,6 +33,12 @@ type workspace struct {
 	// NetFlow Settings
 	NetFlowMonitoringMode   string `json:"netflowMonitoringMode"`
 	NetFlowSnapshotInterval int    `json:"netflowSnapshotInterval"`
+
+	// Automated SLA Reporting
+	AutoReportEnabled bool    `json:"autoReportEnabled"`
+	AutoReportPeriod  string  `json:"autoReportPeriod"`
+	AutoReportTime    string  `json:"autoReportTime"`
+	LastAutoReportSent *time.Time `json:"lastAutoReportSent,omitempty"`
 }
 
 type createWorkspaceRequest struct {
@@ -51,6 +57,9 @@ type updateWorkspaceSettingsRequest struct {
 	BillingIssueMinute *int  `json:"billingIssueMinute"`
 	NetFlowMonitoringMode   *string `json:"netflowMonitoringMode"`
 	NetFlowSnapshotInterval *int    `json:"netflowSnapshotInterval"`
+	AutoReportEnabled *bool   `json:"autoReportEnabled"`
+	AutoReportPeriod  *string `json:"autoReportPeriod"`
+	AutoReportTime    *string `json:"autoReportTime"`
 }
 
 type updateWorkspaceSmtpRequest struct {

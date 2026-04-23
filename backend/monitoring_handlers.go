@@ -64,8 +64,8 @@ func (a *appState) handleGetSLAStats(c echo.Context) error {
 
 	queryFromJoin := " FROM device_ping_logs l JOIN devices d ON l.device_id = d.id "
 
-	// 1. Get Counts & Latency
-	countQuery := "SELECT status, COUNT(*), COALESCE(AVG(latency_ms), 0) " + queryFromJoin + whereClause + " GROUP BY status"
+	// 1. Get Counts & Latency & First Log Time
+	countQuery := "SELECT status, COUNT(*), COALESCE(AVG(latency_ms), 0), MIN(l.created_at) " + queryFromJoin + whereClause + " GROUP BY status"
 	if a.db == nil {
 		return c.String(http.StatusInternalServerError, "database pool is nil")
 	}
@@ -79,18 +79,25 @@ func (a *appState) handleGetSLAStats(c echo.Context) error {
 
 	var upCount, downCount int
 	var avgLat float64
+	var firstLogTime time.Time
 	
 	for rows.Next() {
 		var status string
 		var count int
 		var lat float64
-		if err := rows.Scan(&status, &count, &lat); err == nil {
+		var minTime time.Time
+		if err := rows.Scan(&status, &count, &lat, &minTime); err == nil {
 			if status == "UP" {
 				upCount = count
 				avgLat = lat
 			} else {
 				downCount = count
 			}
+			if firstLogTime.IsZero() || minTime.Before(firstLogTime) {
+				firstLogTime = minTime
+			}
+		} else {
+			log.Printf("SLA stats row scan error: %v", err)
 		}
 	}
 
@@ -123,10 +130,14 @@ func (a *appState) handleGetSLAStats(c echo.Context) error {
 	}
 
 	// Estimation of total downtime minutes
-	periodDuration := now.Sub(startTime).Minutes()
+	actualDuration := now.Sub(startTime).Minutes()
+	if !firstLogTime.IsZero() && firstLogTime.After(startTime) {
+		actualDuration = now.Sub(firstLogTime).Minutes()
+	}
+
 	estDowntimeMin := 0
 	if totalLogs > 0 {
-		estDowntimeMin = int((float64(downCount) / float64(totalLogs)) * periodDuration)
+		estDowntimeMin = int((float64(downCount) / float64(totalLogs)) * actualDuration)
 	}
 
 	return c.JSON(http.StatusOK, SLAStatsResponse{

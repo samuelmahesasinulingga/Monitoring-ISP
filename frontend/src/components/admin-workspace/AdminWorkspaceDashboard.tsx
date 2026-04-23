@@ -83,7 +83,7 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
 
   const renderContent = () => {
     if (activeMenu === "dashboard") {
-      return <WorkspaceDashboardSection workspaceName={workspaceName} />;
+      return <WorkspaceDashboardSection workspaceName={workspaceName} workspaceId={workspaceId} />;
     }
 
     if (activeMenu === "monitoring") {

@@ -5,6 +5,171 @@ interface WorkspaceSettingsSectionProps {
   workspaceId?: number;
 }
 
+const AnalogTimePicker = ({ value, onChange, disabled }: { value: string, onChange: (v: string) => void, disabled?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<"hour" | "minute">("hour");
+
+  const currentHour = parseInt(value.split(":")[0] || "0", 10);
+  const currentMinute = parseInt(value.split(":")[1] || "0", 10);
+
+  const handleHourClick = (h: number) => {
+    const newHour = h.toString().padStart(2, "0");
+    const newMinute = currentMinute.toString().padStart(2, "0");
+    onChange(`${newHour}:${newMinute}`);
+    setMode("minute");
+  };
+
+  const handleMinuteClick = (m: number) => {
+    const newHour = currentHour.toString().padStart(2, "0");
+    const newMinute = m.toString().padStart(2, "0");
+    onChange(`${newHour}:${newMinute}`);
+    setIsOpen(false);
+    setMode("hour");
+  };
+
+  const getHandRotation = () => {
+    if (mode === "hour") {
+      return (currentHour % 12) * 30;
+    }
+    return currentMinute * 6;
+  };
+
+  const handHeight = mode === "hour" && (currentHour === 0 || currentHour > 12) ? 45 : 75;
+
+  return (
+    <div className="relative">
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none flex items-center justify-between cursor-pointer transition-colors ${
+          disabled
+            ? "bg-slate-50 text-slate-400 cursor-not-allowed"
+            : "bg-white hover:border-indigo-300"
+        }`}
+      >
+        <span className="font-medium text-slate-700">{value}</span>
+        <span className="text-[14px]">🕒</span>
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute top-full right-0 md:left-0 mt-2 p-4 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 w-[240px]">
+          <div className="flex items-center justify-center gap-2 mb-4 text-[24px] font-bold text-slate-700">
+            <span
+              className={`cursor-pointer px-3 py-1 rounded-xl transition-colors ${
+                mode === "hour" ? "bg-indigo-100 text-indigo-700" : "hover:bg-slate-100 text-slate-400"
+              }`}
+              onClick={() => setMode("hour")}
+            >
+              {currentHour.toString().padStart(2, "0")}
+            </span>
+            <span className="text-slate-300 animate-pulse">:</span>
+            <span
+              className={`cursor-pointer px-3 py-1 rounded-xl transition-colors ${
+                mode === "minute" ? "bg-indigo-100 text-indigo-700" : "hover:bg-slate-100 text-slate-400"
+              }`}
+              onClick={() => setMode("minute")}
+            >
+              {currentMinute.toString().padStart(2, "0")}
+            </span>
+          </div>
+
+          <div className="relative w-48 h-48 rounded-full bg-slate-50 flex items-center justify-center mx-auto shadow-inner">
+            {mode === "hour" ? (
+              <>
+                {/* Outer Ring (1-12) */}
+                {[...Array(12)].map((_, i) => {
+                  const h = i === 0 ? 12 : i;
+                  const angle = (i * 30 - 90) * (Math.PI / 180);
+                  const x = Math.cos(angle) * 75;
+                  const y = Math.sin(angle) * 75;
+                  const isActive = currentHour === h;
+                  return (
+                    <button
+                      key={`h1-${h}`}
+                      onClick={() => handleHourClick(h)}
+                      className={`absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-all ${
+                        isActive
+                          ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
+                          : "text-slate-700 hover:bg-indigo-100 z-10"
+                      }`}
+                      style={{ transform: `translate(${x}px, ${y}px)` }}
+                    >
+                      {h}
+                    </button>
+                  );
+                })}
+                {/* Inner Ring (13-00) */}
+                {[...Array(12)].map((_, i) => {
+                  const h = i === 0 ? 0 : i + 12;
+                  const displayH = h === 0 ? "00" : h;
+                  const angle = (i * 30 - 90) * (Math.PI / 180);
+                  const x = Math.cos(angle) * 45;
+                  const y = Math.sin(angle) * 45;
+                  const isActive = currentHour === h;
+                  return (
+                    <button
+                      key={`h2-${h}`}
+                      onClick={() => handleHourClick(h)}
+                      className={`absolute w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium transition-all ${
+                        isActive
+                          ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
+                          : "text-slate-500 hover:bg-indigo-100 z-10"
+                      }`}
+                      style={{ transform: `translate(${x}px, ${y}px)` }}
+                    >
+                      {displayH}
+                    </button>
+                  );
+                })}
+              </>
+            ) : (
+              // Minutes (0, 5, 10...)
+              [...Array(12)].map((_, i) => {
+                const m = i * 5;
+                const angle = (i * 30 - 90) * (Math.PI / 180);
+                const x = Math.cos(angle) * 75;
+                const y = Math.sin(angle) * 75;
+                const isActive = currentMinute === m;
+                return (
+                  <button
+                    key={`m-${m}`}
+                    onClick={() => handleMinuteClick(m)}
+                    className={`absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-all ${
+                      isActive
+                        ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
+                        : "text-slate-700 hover:bg-indigo-100 z-10"
+                    }`}
+                    style={{ transform: `translate(${x}px, ${y}px)` }}
+                  >
+                    {m === 0 ? "00" : m}
+                  </button>
+                );
+              })
+            )}
+
+            {/* Hand */}
+            <div className="w-2 h-2 rounded-full bg-indigo-500 z-30 shadow-sm" />
+            <div
+              className="absolute w-0.5 bg-indigo-400 origin-bottom transition-all duration-300 pointer-events-none"
+              style={{
+                height: `${handHeight}px`,
+                bottom: "50%",
+                left: "calc(50% - 1px)",
+                transform: `rotate(${getHandRotation()}deg)`,
+              }}
+            >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-indigo-500" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isOpen && !disabled && (
+        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+      )}
+    </div>
+  );
+};
+
 const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   workspaceName,
   workspaceId,
@@ -28,11 +193,10 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [testEmailMessage, setTestEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // SLA target & thresholds
-  const [defaultSlaTarget, setDefaultSlaTarget] = useState(99.5);
-  const [bwAlertThreshold, setBwAlertThreshold] = useState(80);
-  const [latencyAlertMs, setLatencyAlertMs] = useState(120);
-  const [packetLossThreshold, setPacketLossThreshold] = useState(1);
+  // Automated SLA Reporting
+  const [autoReportEnabled, setAutoReportEnabled] = useState("disabled");
+  const [autoReportPeriod, setAutoReportPeriod] = useState("weekly");
+  const [autoReportTime, setAutoReportTime] = useState("08:00");
   const [slaSaveMessage, setSlaSaveMessage] = useState<string | null>(null);
 
   // Telegram Alerting
@@ -66,6 +230,10 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
             if (thisWs.smtpFromEmail) setSmtpFromEmail(thisWs.smtpFromEmail);
             if (thisWs.invoiceSubjectTemplate) setInvoiceSubjectTemplate(thisWs.invoiceSubjectTemplate);
             if (thisWs.invoiceBodyTemplate) setInvoiceBodyTemplate(thisWs.invoiceBodyTemplate);
+            
+            if (thisWs.autoReportEnabled !== undefined) setAutoReportEnabled(thisWs.autoReportEnabled ? "enabled" : "disabled");
+            if (thisWs.autoReportPeriod) setAutoReportPeriod(thisWs.autoReportPeriod);
+            if (thisWs.autoReportTime) setAutoReportTime(thisWs.autoReportTime);
           }
         }
       } catch (err) {
@@ -165,13 +333,31 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
     }
   };
 
-  const handleSaveSla = () => {
-    // Nanti diintegrasikan ke backend, misalnya: PUT /api/workspaces/{id}/sla-config
-    setSlaSaveMessage(
-      `Pengaturan SLA target ${defaultSlaTarget.toFixed(
-        3
-      )}% dan threshold alert disimpan (dummy).`
-    );
+  const handleSaveSla = async () => {
+    if (!workspaceId) return;
+
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          autoReportEnabled: autoReportEnabled === "enabled",
+          autoReportPeriod: autoReportPeriod,
+          autoReportTime: autoReportTime,
+        }),
+      });
+
+      if (res.ok) {
+        setSlaSaveMessage("Jadwal laporan SLA otomatis berhasil disimpan!");
+      } else {
+        setSlaSaveMessage("Gagal menyimpan jadwal laporan SLA.");
+      }
+    } catch (err) {
+      console.error("Failed to save SLA settings:", err);
+      setSlaSaveMessage("Terjadi kesalahan sistem.");
+    }
+
+    setTimeout(() => setSlaSaveMessage(null), 3000);
   };
 
   const exampleSubject = invoiceSubjectTemplate
@@ -443,83 +629,70 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
           </div>
         </div>
 
-        {/* Default SLA target & threshold alert */}
+        {/* Automated SLA Report Schedule */}
         <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
           <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-900">
-            Target SLA & threshold alert
+            Jadwal Laporan SLA Otomatis
           </h2>
           <p className="m-0 mb-3 text-[12px] text-slate-500">
-            Tentukan target SLA default dan ambang batas (threshold) untuk
-            alert bandwidth, latency, dan packet loss.
+            Kirimkan ringkasan performa SLA dan statistik jaringan secara otomatis ke grup Telegram Anda.
           </p>
 
-          <div className="grid gap-3 mb-3 md:grid-cols-3">
+          <div className="grid gap-3 mb-4 md:grid-cols-3">
             <div>
               <div className="mb-1 text-[12px] text-slate-600">
-                Target SLA default (%)
+                Otomasi Laporan
               </div>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={0.001}
-                value={defaultSlaTarget}
-                onChange={(e) => setDefaultSlaTarget(Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
-              />
+              <select
+                value={autoReportEnabled}
+                onChange={(e) => setAutoReportEnabled(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
+              >
+                <option value="disabled">Nonaktif</option>
+                <option value="enabled">Aktifkan Pengiriman</option>
+              </select>
             </div>
             <div>
               <div className="mb-1 text-[12px] text-slate-600">
-                Threshold BW usage (% kapasitas)
+                Periode Laporan
               </div>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={bwAlertThreshold}
-                onChange={(e) => setBwAlertThreshold(Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
-              />
+              <select
+                value={autoReportPeriod}
+                onChange={(e) => setAutoReportPeriod(e.target.value)}
+                disabled={autoReportEnabled === "disabled"}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 disabled:bg-slate-50 disabled:text-slate-400"
+              >
+                <option value="daily">Harian (Setiap Hari)</option>
+                <option value="weekly">Mingguan (Setiap Senin)</option>
+                <option value="monthly">Bulanan (Tanggal 1)</option>
+              </select>
             </div>
             <div>
               <div className="mb-1 text-[12px] text-slate-600">
-                Threshold latency (ms)
+                Waktu Pengiriman (WIB)
               </div>
-              <input
-                type="number"
-                min={0}
-                value={latencyAlertMs}
-                onChange={(e) => setLatencyAlertMs(Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
-              />
-            </div>
-            <div>
-              <div className="mb-1 text-[12px] text-slate-600">
-                Threshold packet loss (%)
-              </div>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={packetLossThreshold}
-                onChange={(e) => setPacketLossThreshold(Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
+              <AnalogTimePicker
+                value={autoReportTime}
+                onChange={(val) => setAutoReportTime(val)}
+                disabled={autoReportEnabled === "disabled"}
               />
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSaveSla}
-            className="px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-[12px] font-semibold text-white hover:bg-indigo-600 hover:border-indigo-600 transition-colors"
-          >
-            Simpan pengaturan SLA & alert
-          </button>
-
-          {slaSaveMessage && (
-            <div className="mt-2 text-[11px] text-slate-500">{slaSaveMessage}</div>
-          )}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveSla}
+              className="px-4 py-2 rounded-full border border-indigo-500 bg-indigo-500 text-[12px] font-semibold text-white hover:bg-indigo-600 hover:border-indigo-600 transition-colors shadow-sm"
+            >
+              Simpan Jadwal Laporan
+            </button>
+            {slaSaveMessage && (
+              <span className="text-[11px] font-medium text-emerald-600 animate-pulse">
+                {slaSaveMessage}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </section>

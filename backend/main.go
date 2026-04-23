@@ -78,6 +78,7 @@ func main() {
 	// Workspace management
 	e.POST("/api/workspaces", state.handleCreateWorkspace)
 	e.GET("/api/workspaces", state.handleListWorkspaces)
+	e.GET("/api/workspaces/:id/dashboard-summary", state.handleGetDashboardSummary)
 	e.PUT("/api/workspaces/:id", state.handleUpdateWorkspace)
 	e.PUT("/api/workspaces/:id/settings", state.handleUpdateWorkspaceSettings)
 	e.PUT("/api/workspaces/:id/smtp", state.handleUpdateWorkspaceSmtpSettings)
@@ -145,6 +146,7 @@ func main() {
 	go startSnmpWorker(state)
 	go startBillingAutomationWorker(state)
 	go startNetFlowCollector(state)
+	go startSLAReportWorker(state)
 
 	log.Println("Backend running on :8080")
 	e.Logger.Fatal(e.Start(":8080"))
