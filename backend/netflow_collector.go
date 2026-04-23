@@ -25,36 +25,85 @@ type NetFlowRecord struct {
 	Packets     int
 }
 
+var (
+	activeListeners   = make(map[int]*net.UDPConn)
+	activeListenersMu sync.Mutex
+)
+
 func startNetFlowCollector(state *appState) {
 	packetChan := make(chan NetFlowRecord, 1000)
 	go netFlowDBWorker(state, packetChan)
 
-	// Listen on multiple ports (default range 2055-2060)
-	for port := 2055; port <= 2060; port++ {
-		go func(p int) {
+	// Periodically refresh listeners based on devices in DB
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		// Initial refresh
+		refreshListeners(state, packetChan)
+
+		for range ticker.C {
+			refreshListeners(state, packetChan)
+		}
+	}()
+}
+
+func refreshListeners(state *appState, packetChan chan NetFlowRecord) {
+	ctx := context.Background()
+	rows, err := state.db.Query(ctx, "SELECT DISTINCT netflow_port FROM devices WHERE netflow_enabled = TRUE")
+	if err != nil {
+		log.Printf("NetFlow Manager: Failed to query ports: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	targetPorts := make(map[int]bool)
+	for rows.Next() {
+		var p int
+		if err := rows.Scan(&p); err == nil && p > 0 {
+			targetPorts[p] = true
+		}
+	}
+
+	activeListenersMu.Lock()
+	defer activeListenersMu.Unlock()
+
+	// Stop listeners for ports no longer in DB
+	for port, conn := range activeListeners {
+		if !targetPorts[port] {
+			log.Printf("NetFlow Manager: Stopping listener on port %d", port)
+			conn.Close()
+			delete(activeListeners, port)
+		}
+	}
+
+	// Start listeners for new ports
+	for port := range targetPorts {
+		if _, exists := activeListeners[port]; !exists {
+			log.Printf("NetFlow Manager: Starting listener on port %d", port)
 			addr := net.UDPAddr{
-				Port: p,
+				Port: port,
 				IP:   net.ParseIP("0.0.0.0"),
 			}
 			conn, err := net.ListenUDP("udp", &addr)
 			if err != nil {
-				log.Printf("NetFlow Collector: Failed to listen on UDP %d: %v", p, err)
-				return
+				log.Printf("NetFlow Manager: Failed to listen on UDP %d: %v", port, err)
+				continue
 			}
-			defer conn.Close()
+			activeListeners[port] = conn
 
-			log.Printf("NetFlow Collector: Listening on UDP %d", p)
-
-			buf := make([]byte, 8192)
-			for {
-				n, remoteAddr, err := conn.ReadFromUDP(buf)
-				if err != nil {
-					continue
+			go func(p int, c *net.UDPConn) {
+				buf := make([]byte, 8192)
+				for {
+					n, remoteAddr, err := c.ReadFromUDP(buf)
+					if err != nil {
+						// Listener likely closed
+						return
+					}
+					processNetFlowPacket(state, remoteAddr.IP.String(), p, buf[:n], packetChan)
 				}
-
-				processNetFlowPacket(state, remoteAddr.IP.String(), p, buf[:n], packetChan)
-			}
-		}(port)
+			}(port, conn)
+		}
 	}
 }
 
@@ -108,57 +157,53 @@ func processNetFlowPacket(state *appState, agentIP string, localPort int, data [
 
 	count := int(binary.BigEndian.Uint16(data[2:4]))
 	
-	wsID := 1
-	var foundWsID int
-	// If it's a Docker Gateway IP, we try to match by workspace
-	err := state.db.QueryRow(context.Background(), "SELECT workspace_id FROM devices WHERE ip = $1 LIMIT 1", agentIP).Scan(&foundWsID)
-	if err != nil && (agentIP == "172.21.0.1" || agentIP == "172.17.0.1" || agentIP == "127.0.0.1" || agentIP == "::1") {
-		state.db.QueryRow(context.Background(), "SELECT id FROM workspaces ORDER BY id ASC LIMIT 1").Scan(&foundWsID)
-	}
+	// Identify device and verify it has NetFlow enabled
+	var wsID, deviceID int
+	var netflowEnabled bool
 	
-	if foundWsID > 0 {
-		wsID = foundWsID
-	}
-
-	actualAgentIP := agentIP
-	var deviceID int
-
-	// Better identification logic:
-	// 1. First, check if there's a device specifically mapped to this IP and this Port
-	err = state.db.QueryRow(context.Background(), "SELECT id, ip FROM devices WHERE workspace_id = $1 AND ip = $2 AND netflow_port = $3 LIMIT 1", wsID, agentIP, localPort).Scan(&deviceID, &actualAgentIP)
+	// 1. Precise Match: IP + Port
+	err := state.db.QueryRow(context.Background(), 
+		"SELECT id, workspace_id, netflow_enabled FROM devices WHERE ip = $1 AND netflow_port = $2 LIMIT 1", 
+		agentIP, localPort).Scan(&deviceID, &wsID, &netflowEnabled)
 	
 	if err != nil {
-		if agentIP == "172.21.0.1" || agentIP == "172.17.0.1" || agentIP == "127.0.0.1" || agentIP == "::1" {
-			// 2. If it's a NAT gateway, find the device that is configured to use THIS specific local port
-			err = state.db.QueryRow(context.Background(), "SELECT id, ip FROM devices WHERE workspace_id = $1 AND netflow_port = $2 ORDER BY id ASC LIMIT 1", wsID, localPort).Scan(&deviceID, &actualAgentIP)
-			if err != nil {
-				// Fallback to first device
-				state.db.QueryRow(context.Background(), "SELECT id, ip FROM devices WHERE workspace_id = $1 ORDER BY id ASC LIMIT 1", wsID).Scan(&deviceID, &actualAgentIP)
-			}
-		} else {
-			// 3. Last fallback: Try finding device by IP only (if port doesn't match or not provided)
-			state.db.QueryRow(context.Background(), "SELECT id FROM devices WHERE workspace_id = $1 AND ip = $2 LIMIT 1", wsID, agentIP).Scan(&deviceID)
+		// 2. NAT Fallback: Port only (for multiple routers behind same public IP)
+		err = state.db.QueryRow(context.Background(), 
+			"SELECT id, workspace_id, netflow_enabled FROM devices WHERE netflow_port = $1 LIMIT 1", 
+			localPort).Scan(&deviceID, &wsID, &netflowEnabled)
+		
+		if err != nil {
+			// 3. Last Fallback: IP only
+			state.db.QueryRow(context.Background(), 
+				"SELECT id, workspace_id, netflow_enabled FROM devices WHERE ip = $1 LIMIT 1", 
+				agentIP).Scan(&deviceID, &wsID, &netflowEnabled)
 		}
 	}
 
+	// If device not found or NetFlow disabled, drop packet
+	if deviceID == 0 || !netflowEnabled {
+		return
+	}
+
 	if count > 0 {
-		log.Printf("NetFlow: [%s] Received %d flows from router (Remote: %s, DeviceID: %d)", actualAgentIP, count, agentIP, deviceID)
+		// Optional: Log every 100th packet to avoid spamming logs while debugging
+		if rand.Intn(100) == 0 {
+			log.Printf("NetFlow: [%s] Received %d flows from router (DeviceID: %d, Port: %d)", agentIP, count, deviceID, localPort)
+		}
 	}
 
 	// SAMPLING LOGIC based on Workspace Settings
 	mode, interval := getWorkspaceNetFlowSettings(state, wsID)
 
 	if mode == "snapshot" && interval > 0 {
-		// SNAPSHOT MODE: Only collect for the first 10 seconds of every 'interval' minutes
 		now := time.Now()
 		isWindowOpen := (now.Minute()%interval == 0) && (now.Second() < 10)
 		if !isWindowOpen {
-			return // Discard data outside the snapshot window
+			return
 		}
 	} else {
-		// CONTINUOUS MODE: Random Sampling (10%) to save storage while maintaining visibility
 		if rand.Intn(100) >= 10 {
-			return // Discard 90% of logs to save storage
+			return 
 		}
 	}
 
@@ -180,7 +225,7 @@ func processNetFlowPacket(state *appState, agentIP string, localPort int, data [
 		out <- NetFlowRecord{
 			WorkspaceID: wsID,
 			DeviceID:    deviceID,
-			AgentIP:     actualAgentIP,
+			AgentIP:     agentIP,
 			SrcIP:       srcIP,
 			DstIP:       dstIP,
 			Protocol:    proto,

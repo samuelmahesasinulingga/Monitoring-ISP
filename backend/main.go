@@ -133,7 +133,9 @@ func main() {
 	e.POST("/api/packages", state.handleCreatePackage)
 	e.DELETE("/api/packages/:id", state.handleDeletePackage)
 
+	e.GET("/api/services", state.handleListServices)
 	e.POST("/api/services", state.handleCreateService)
+	e.PUT("/api/services/:id", state.handleUpdateService)
 	e.DELETE("/api/services/:id", state.handleDeleteService)
 
 	e.GET("/api/analytics/top-talkers", state.handleGetTopTalkers)
@@ -143,6 +145,7 @@ func main() {
 	e.GET("/api/monitoring/sla-stats", state.handleGetSLAStats)
 
 	go startPingWorker(state)
+	go startServicePingWorker(state)
 	go startSnmpWorker(state)
 	go startBillingAutomationWorker(state)
 	go startNetFlowCollector(state)

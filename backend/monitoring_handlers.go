@@ -29,6 +29,8 @@ func (a *appState) handleGetSLAStats(c echo.Context) error {
 	ctx := c.Request().Context()
 	wsIDStr := c.QueryParam("workspaceId")
 	devIDStr := c.QueryParam("deviceId")
+	svcIDStr := c.QueryParam("serviceId")
+	custIDStr := c.QueryParam("customerId")
 	period := c.QueryParam("period") // daily, weekly, monthly
 
 	wsID, _ := strconv.Atoi(wsIDStr)
@@ -63,6 +65,24 @@ func (a *appState) handleGetSLAStats(c echo.Context) error {
 	}
 
 	queryFromJoin := " FROM device_ping_logs l JOIN devices d ON l.device_id = d.id "
+
+	if svcIDStr != "" {
+		svcID, _ := strconv.Atoi(svcIDStr)
+		if svcID > 0 {
+			queryFromJoin = " FROM service_ping_logs l JOIN services s ON l.service_id = s.id "
+			whereClause = " WHERE s.workspace_id = $1 AND l.created_at >= $2 AND l.service_id = $3 "
+			args = []interface{}{wsID, startTime, svcID}
+		}
+	}
+
+	if custIDStr != "" {
+		custID, _ := strconv.Atoi(custIDStr)
+		if custID > 0 {
+			queryFromJoin = " FROM service_ping_logs l JOIN services s ON l.service_id = s.id "
+			whereClause = " WHERE s.workspace_id = $1 AND l.created_at >= $2 AND s.customer_id = $3 "
+			args = []interface{}{wsID, startTime, custID}
+		}
+	}
 
 	// 1. Get Counts & Latency & First Log Time
 	countQuery := "SELECT status, COUNT(*), COALESCE(AVG(latency_ms), 0), MIN(l.created_at) " + queryFromJoin + whereClause + " GROUP BY status"

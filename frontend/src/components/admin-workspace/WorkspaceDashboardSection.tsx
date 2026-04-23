@@ -76,7 +76,7 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
         </p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/15 to-indigo-500/20 border border-blue-500/20 shadow-lg shadow-slate-900/10">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[13px] font-semibold text-blue-700">
@@ -92,20 +92,6 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-500/10 via-amber-400/15 to-amber-400/20 border border-orange-500/20 shadow-lg shadow-slate-900/10">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[13px] font-semibold text-amber-700">
-              Tiket Aktif
-            </span>
-            <span className="text-[20px]">🎫</span>
-          </div>
-          <div className="text-[30px] font-bold text-slate-900">
-            {activeTicket}
-          </div>
-          <p className="mt-1 text-[11px] text-slate-600">
-            Tiket gangguan yang masih terbuka.
-          </p>
-        </div>
 
         <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-400/15 to-teal-400/20 border border-emerald-500/20 shadow-lg shadow-slate-900/10">
           <div className="flex items-center justify-between mb-2.5">
@@ -164,7 +150,7 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
             <div>
               <div className="text-[11px] text-slate-500">SLA bulan ini</div>
               <div className="text-[18px] font-bold text-slate-900">
-                {slaThisMonth}%
+                {typeof slaThisMonth === 'number' ? slaThisMonth.toFixed(3) : slaThisMonth}%
               </div>
             </div>
           </div>

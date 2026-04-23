@@ -18,6 +18,7 @@ type device struct {
 	MonitoredQueues   []string  `json:"monitoredQueues"`
 	MonitoredInterfaces []string `json:"monitoredInterfaces"`
 	NetFlowPort       int       `json:"netflowPort"`
+	NetFlowEnabled    bool      `json:"netflowEnabled"`
 	WorkspaceID       *int      `json:"workspaceId,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 }
@@ -37,6 +38,7 @@ type createDeviceRequest struct {
 	MonitoredQueues   []string  `json:"monitoredQueues"`
 	MonitoredInterfaces []string `json:"monitoredInterfaces"`
 	NetFlowPort       int      `json:"netflowPort"`
+	NetFlowEnabled    bool     `json:"netflowEnabled"`
 	WorkspaceID       *int     `json:"workspaceId"`
 }
 

@@ -36,8 +36,10 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
   const [activeDevices, setActiveDevices] = useState<number[]>([]);
   const [deviceMap, setDeviceMap] = useState<DeviceMap>({});
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>(""); // empty = all
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(""); // empty = all
 
   const [topTalkers, setTopTalkers] = useState<Talker[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [protoBreakdown, setProtoBreakdown] = useState<ProtoData[]>([]);
   const [flowLogs, setFlowLogs] = useState<FlowLog[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,8 +88,22 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         }
         return "";
       });
+
     } catch (err) {
       console.error("Metadata fetch error", err);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    if (!workspaceId) return;
+    try {
+      const custRes = await fetch(`/api/customers?workspaceId=${workspaceId}`);
+      if (custRes.ok) {
+        const data = await custRes.json();
+        setCustomers(data || []);
+      }
+    } catch (err) {
+      console.error("Fetch customers error", err);
     }
   };
 
@@ -95,12 +111,13 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
     if (!workspaceId) return;
     try {
       const deviceParam = selectedDeviceId ? `&deviceId=${selectedDeviceId}` : "";
+      const customerParam = selectedCustomerId ? `&customerId=${selectedCustomerId}` : "";
       const durationParam = selectedDuration !== "0" ? `&duration=${selectedDuration}` : "";
 
       const [topRes, protoRes, logsRes] = await Promise.all([
-        fetch(`/api/analytics/top-talkers?workspaceId=${workspaceId}&limit=5${deviceParam}${durationParam}`),
-        fetch(`/api/analytics/top-protocols?workspaceId=${workspaceId}${deviceParam}${durationParam}`),
-        fetch(`/api/analytics/flow-logs?workspaceId=${workspaceId}${deviceParam}&page=${currentPage}&limit=30`)
+        fetch(`/api/analytics/top-talkers?workspaceId=${workspaceId}&limit=5${deviceParam}${customerParam}${durationParam}`),
+        fetch(`/api/analytics/top-protocols?workspaceId=${workspaceId}${deviceParam}${customerParam}${durationParam}`),
+        fetch(`/api/analytics/flow-logs?workspaceId=${workspaceId}${deviceParam}${customerParam}&page=${currentPage}&limit=30`)
       ]);
 
       const topData = await topRes.json();
@@ -159,7 +176,11 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
   useEffect(() => {
     fetchDeviceMetadata();
-    const metaInterval = setInterval(fetchDeviceMetadata, 30000);
+    fetchCustomers();
+    const metaInterval = setInterval(() => {
+      fetchDeviceMetadata();
+      fetchCustomers();
+    }, 30000);
     return () => clearInterval(metaInterval);
   }, [workspaceId]);
 
@@ -175,7 +196,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
     }, refreshMs);
 
     return () => clearInterval(interval);
-  }, [workspaceId, selectedDeviceId, selectedDuration, currentPage]);
+  }, [workspaceId, selectedDeviceId, selectedCustomerId, selectedDuration, currentPage]);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -222,6 +243,28 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               {allDevices.map(dev => (
                 <option key={dev.id} value={dev.id.toString()}>
                   {dev.name} {activeDevices.includes(dev.id) ? "●" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Customer Filter */}
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-bold text-slate-400 uppercase">Customer:</span>
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => {
+                const val = e.target.value;
+                setIsLoading(true);
+                setCurrentPage(1);
+                setSelectedCustomerId(val);
+              }}
+              className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+            >
+              <option value="">Semua Pelanggan</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id.toString()}>
+                  {c.name}
                 </option>
               ))}
             </select>

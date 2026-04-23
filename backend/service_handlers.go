@@ -22,9 +22,18 @@ func (a *appState) handleListServices(c echo.Context) error {
 		if convErr != nil || wsID <= 0 {
 			return c.String(http.StatusBadRequest, "invalid workspaceId")
 		}
-		rows, err = a.db.Query(ctx, `SELECT id, customer_id, plan_name, bandwidth_mbps, active, workspace_id, created_at FROM services WHERE workspace_id = $1 ORDER BY id`, wsID)
+		rows, err = a.db.Query(ctx, `
+			SELECT s.id, s.customer_id, c.name as customer_name, s.plan_name, s.bandwidth_mbps, s.active, s.workspace_id, s.monitoring_ip, s.monitoring_enabled, s.created_at 
+			FROM services s
+			JOIN customers c ON s.customer_id = c.id
+			WHERE s.workspace_id = $1 
+			ORDER BY s.id`, wsID)
 	} else {
-		rows, err = a.db.Query(ctx, `SELECT id, customer_id, plan_name, bandwidth_mbps, active, workspace_id, created_at FROM services ORDER BY id`)
+		rows, err = a.db.Query(ctx, `
+			SELECT s.id, s.customer_id, c.name as customer_name, s.plan_name, s.bandwidth_mbps, s.active, s.workspace_id, s.monitoring_ip, s.monitoring_enabled, s.created_at 
+			FROM services s
+			JOIN customers c ON s.customer_id = c.id
+			ORDER BY s.id`)
 	}
 	if err != nil {
 		log.Printf("list services query error: %v", err)
@@ -35,7 +44,7 @@ func (a *appState) handleListServices(c echo.Context) error {
 	var services []service
 	for rows.Next() {
 		var s service
-		if err := rows.Scan(&s.ID, &s.CustomerID, &s.PlanName, &s.BandwidthMbps, &s.Active, &s.WorkspaceID, &s.CreatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.CustomerID, &s.CustomerName, &s.PlanName, &s.BandwidthMbps, &s.Active, &s.WorkspaceID, &s.MonitoringIP, &s.MonitoringEnabled, &s.CreatedAt); err != nil {
 			log.Printf("scan service error: %v", err)
 			continue
 		}
@@ -61,19 +70,50 @@ func (a *appState) handleCreateService(c echo.Context) error {
 	}
 
 	query := `
-		INSERT INTO services (customer_id, plan_name, bandwidth_mbps, active, workspace_id)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, customer_id, plan_name, bandwidth_mbps, active, workspace_id, created_at
+		INSERT INTO services (customer_id, plan_name, bandwidth_mbps, active, workspace_id, monitoring_ip, monitoring_enabled)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, customer_id, (SELECT name FROM customers WHERE id = $1), plan_name, bandwidth_mbps, active, workspace_id, monitoring_ip, monitoring_enabled, created_at
 	`
 	var s service
-	err := a.db.QueryRow(ctx, query, req.CustomerID, req.PlanName, req.BandwidthMbps, req.Active, req.WorkspaceID).
-		Scan(&s.ID, &s.CustomerID, &s.PlanName, &s.BandwidthMbps, &s.Active, &s.WorkspaceID, &s.CreatedAt)
+	err := a.db.QueryRow(ctx, query, req.CustomerID, req.PlanName, req.BandwidthMbps, req.Active, req.WorkspaceID, req.MonitoringIP, req.MonitoringEnabled).
+		Scan(&s.ID, &s.CustomerID, &s.CustomerName, &s.PlanName, &s.BandwidthMbps, &s.Active, &s.WorkspaceID, &s.MonitoringIP, &s.MonitoringEnabled, &s.CreatedAt)
 	if err != nil {
 		log.Printf("create service error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to create service")
 	}
 
 	return c.JSON(http.StatusCreated, s)
+}
+
+func (a *appState) handleUpdateService(c echo.Context) error {
+	ctx := c.Request().Context()
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return c.String(http.StatusBadRequest, "invalid service id")
+	}
+
+	var req service
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return c.String(http.StatusBadRequest, "invalid request body")
+	}
+
+	query := `
+		UPDATE services 
+		SET customer_id = $1, plan_name = $2, bandwidth_mbps = $3, active = $4, workspace_id = $5, monitoring_ip = $6, monitoring_enabled = $7
+		WHERE id = $8
+		RETURNING id, customer_id, (SELECT name FROM customers WHERE id = $1), plan_name, bandwidth_mbps, active, workspace_id, monitoring_ip, monitoring_enabled, created_at
+	`
+	var s service
+	err = a.db.QueryRow(ctx, query, req.CustomerID, req.PlanName, req.BandwidthMbps, req.Active, req.WorkspaceID, req.MonitoringIP, req.MonitoringEnabled, id).
+		Scan(&s.ID, &s.CustomerID, &s.CustomerName, &s.PlanName, &s.BandwidthMbps, &s.Active, &s.WorkspaceID, &s.MonitoringIP, &s.MonitoringEnabled, &s.CreatedAt)
+
+	if err != nil {
+		log.Printf("update service error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to update service")
+	}
+
+	return c.JSON(http.StatusOK, s)
 }
 
 func (a *appState) handleDeleteService(c echo.Context) error {

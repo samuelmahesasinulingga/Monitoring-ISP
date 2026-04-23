@@ -34,9 +34,12 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() => {
     return localStorage.getItem("sla_report_device_id") || "all";
   });
+  const [reportType, setReportType] = useState<"device" | "customer">("device");
   const [devices, setDevices] = useState<Device[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [stats, setStats] = useState<SLAStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("sla_report_period", period);
@@ -51,17 +54,34 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
 
   useEffect(() => {
     if (!workspaceId) return;
-    fetch(`/api/devices?workspaceId=${workspaceId}`)
-      .then(res => res.json())
-      .then(data => setDevices(data || []))
-      .catch(err => console.error("Error fetching devices:", err));
+    setIsDataLoading(true);
+    
+    Promise.all([
+      fetch(`/api/devices?workspaceId=${workspaceId}`).then(res => res.json()),
+      fetch(`/api/customers?workspaceId=${workspaceId}`).then(res => res.json())
+    ]).then(([devicesData, customersData]) => {
+      setDevices(devicesData || []);
+      setCustomers(customersData || []);
+      setIsDataLoading(false);
+    }).catch(err => {
+      console.error("Error fetching report metadata:", err);
+      setIsDataLoading(false);
+    });
   }, [workspaceId]);
 
   useEffect(() => {
     if (!workspaceId) return;
     setIsLoading(true);
-    const devParam = selectedDeviceId !== "all" ? `&deviceId=${selectedDeviceId}` : "";
-    fetch(`/api/monitoring/sla-stats?workspaceId=${workspaceId}&period=${period}${devParam}`)
+    let url = `/api/monitoring/sla-stats?workspaceId=${workspaceId}&period=${period}`;
+    if (selectedDeviceId !== "all") {
+      if (reportType === "device") {
+        url += `&deviceId=${selectedDeviceId}`;
+      } else {
+        url += `&customerId=${selectedDeviceId}`;
+      }
+    }
+    
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         setStats(data);
@@ -71,7 +91,7 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
         console.error("Error fetching SLA stats:", err);
         setIsLoading(false);
       });
-  }, [workspaceId, period, selectedDeviceId]);
+  }, [workspaceId, period, selectedDeviceId, reportType]);
 
   const slaValue = stats?.uptimePercentage ?? 100;
   const totalDowntimeMinutes = stats?.downtimeMinutes ?? 0;
@@ -92,6 +112,18 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
 
         <div className="flex gap-2 flex-wrap">
           <select
+            value={reportType}
+            onChange={(e) => {
+              setReportType(e.target.value as any);
+              setSelectedDeviceId("all");
+            }}
+            className="px-3 py-2 rounded-xl border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
+          >
+            <option value="device">Perangkat (Devices)</option>
+            <option value="customer">Pelanggan (Services)</option>
+          </select>
+
+          <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
             className="px-3 py-2 rounded-xl border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
@@ -106,10 +138,17 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
             onChange={(e) => setSelectedDeviceId(e.target.value)}
             className="px-3 py-2 rounded-xl border border-slate-200 text-[12px] bg-white min-w-[220px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
           >
-            <option value="all">Semua Perangkat</option>
-            {devices.map(d => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
+            <option value="all">Semua {reportType === "device" ? "Perangkat" : "Layanan Pelanggan"}</option>
+            {reportType === "device" ? (
+              devices.map(d => (
+                <option key={d.id} value={d.id.toString()}>{d.name}</option>
+              ))
+            ) : (
+              customers.map(c => (
+                <option key={c.id} value={c.id.toString()}>{c.name}</option>
+              ))
+            )}
+            {isDataLoading && <option disabled>Memuat data...</option>}
           </select>
         </div>
       </header>

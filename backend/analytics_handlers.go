@@ -16,10 +16,12 @@ func (a *appState) handleGetTopTalkers(c echo.Context) error {
 	if wsID <= 0 {
 		return c.String(http.StatusBadRequest, "invalid workspace id")
 	}
-
 	deviceIP := c.QueryParam("deviceIp")
 	deviceIDStr := c.QueryParam("deviceId")
 	deviceID, _ := strconv.Atoi(deviceIDStr)
+	customerIP := c.QueryParam("customerIp")
+	customerIDStr := c.QueryParam("customerId")
+	customerID, _ := strconv.Atoi(customerIDStr)
 
 	durationStr := c.QueryParam("duration")
 	duration, _ := strconv.Atoi(durationStr)
@@ -48,6 +50,12 @@ func (a *appState) handleGetTopTalkers(c echo.Context) error {
 	} else if deviceIP != "" {
 		query += " AND agent_ip = $3"
 		args = append(args, deviceIP)
+	} else if customerIP != "" {
+		query += " AND (src_ip = $3 OR dst_ip = $3)"
+		args = append(args, customerIP)
+	} else if customerID > 0 {
+		query += " AND (src_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3) OR dst_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3))"
+		args = append(args, customerID)
 	}
 
 	query += " GROUP BY src_ip ORDER BY total_bytes DESC LIMIT $" + strconv.Itoa(len(args)+1)
@@ -88,6 +96,9 @@ func (a *appState) handleGetProtocolBreakdown(c echo.Context) error {
 	deviceIP := c.QueryParam("deviceIp")
 	deviceIDStr := c.QueryParam("deviceId")
 	deviceID, _ := strconv.Atoi(deviceIDStr)
+	customerIP := c.QueryParam("customerIp")
+	customerIDStr := c.QueryParam("customerId")
+	customerID, _ := strconv.Atoi(customerIDStr)
 
 	durationStr := c.QueryParam("duration")
 	duration, _ := strconv.Atoi(durationStr)
@@ -109,6 +120,12 @@ func (a *appState) handleGetProtocolBreakdown(c echo.Context) error {
 	} else if deviceIP != "" {
 		query += " AND agent_ip = $3"
 		args = append(args, deviceIP)
+	} else if customerIP != "" {
+		query += " AND (src_ip = $3 OR dst_ip = $3)"
+		args = append(args, customerIP)
+	} else if customerID > 0 {
+		query += " AND (src_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3) OR dst_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3))"
+		args = append(args, customerID)
 	}
 	query += " GROUP BY protocol ORDER BY total_bytes DESC"
 
@@ -153,6 +170,9 @@ func (a *appState) handleGetFlowLogs(c echo.Context) error {
 	deviceIP := c.QueryParam("deviceIp")
 	deviceIDStr := c.QueryParam("deviceId")
 	deviceID, _ := strconv.Atoi(deviceIDStr)
+	customerIP := c.QueryParam("customerIp")
+	customerIDStr := c.QueryParam("customerId")
+	customerID, _ := strconv.Atoi(customerIDStr)
 
 	pageStr := c.QueryParam("page")
 	page, _ := strconv.Atoi(pageStr)
@@ -182,6 +202,12 @@ func (a *appState) handleGetFlowLogs(c echo.Context) error {
 	} else if deviceIP != "" {
 		countQuery += " AND agent_ip = $3"
 		args = append(args, deviceIP)
+	} else if customerIP != "" {
+		countQuery += " AND (src_ip = $" + strconv.Itoa(len(args)+1) + " OR dst_ip = $" + strconv.Itoa(len(args)+1) + ")"
+		args = append(args, customerIP)
+	} else if customerID > 0 {
+		countQuery += " AND (src_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3) OR dst_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3))"
+		args = append(args, customerID)
 	}
 
 	var totalCount int
@@ -196,6 +222,10 @@ func (a *appState) handleGetFlowLogs(c echo.Context) error {
 		query += " AND (device_id = $3 OR agent_ip::text = (SELECT ip FROM devices WHERE id = $3))"
 	} else if deviceIP != "" {
 		query += " AND agent_ip = $3"
+	} else if customerIP != "" {
+		query += " AND (src_ip = $" + strconv.Itoa(len(args)+1) + " OR dst_ip = $" + strconv.Itoa(len(args)+1) + ")"
+	} else if customerID > 0 {
+		query += " AND (src_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3) OR dst_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3))"
 	}
 
 	query += " ORDER BY captured_at DESC LIMIT $" + strconv.Itoa(len(args)+1) + " OFFSET $" + strconv.Itoa(len(args)+2)

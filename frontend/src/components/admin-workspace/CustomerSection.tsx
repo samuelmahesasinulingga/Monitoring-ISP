@@ -9,6 +9,18 @@ export type Customer = {
   created_at: string;
 };
 
+export type Service = {
+  id: number;
+  customerId: number;
+  planName: string;
+  bandwidthMbps: number;
+  active: boolean;
+  workspaceId?: number;
+  monitoringIp?: string;
+  monitoringEnabled: boolean;
+  created_at: string;
+};
+
 type CustomerSectionProps = {
   workspaceName?: string;
   workspaceId?: number;
@@ -28,6 +40,20 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+
+  // Service Management State
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [selectedCustomerForService, setSelectedCustomerForService] = useState<Customer | null>(null);
+  const [customerServices, setCustomerServices] = useState<Service[]>([]);
+  const [isServiceLoading, setIsServiceLoading] = useState(false);
+
+  // Service Form State
+  const [servicePlanName, setServicePlanName] = useState("");
+  const [serviceBandwidth, setServiceBandwidth] = useState(10);
+  const [serviceActive, setServiceActive] = useState(true);
+  const [serviceMonitoringIp, setServiceMonitoringIp] = useState("");
+  const [serviceMonitoringEnabled, setServiceMonitoringEnabled] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
 
   const fetchCustomers = async () => {
     setIsLoading(true);
@@ -148,6 +174,91 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
       }
     } catch (err) {
       console.error("delete customer error", err);
+    }
+  };
+
+  const openServiceModal = async (cust: Customer) => {
+    setSelectedCustomerForService(cust);
+    setIsServiceModalOpen(true);
+    setIsServiceLoading(true);
+    try {
+      const res = await fetch(`/api/services?workspaceId=${workspaceId}`);
+      if (res.ok) {
+        const allServices: Service[] = await res.json();
+        setCustomerServices(allServices.filter(s => s.customerId === cust.id));
+      }
+    } catch (err) {
+      console.error("fetch services error", err);
+    } finally {
+      setIsServiceLoading(false);
+    }
+  };
+
+  const handleAddOrUpdateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerForService) return;
+
+    const payload = {
+      customerId: selectedCustomerForService.id,
+      planName: servicePlanName,
+      bandwidthMbps: Number(serviceBandwidth),
+      active: serviceActive,
+      workspaceId: workspaceId ?? null,
+      monitoringIp: serviceMonitoringIp || null,
+      monitoringEnabled: serviceMonitoringEnabled
+    };
+
+    try {
+      const url = editingService ? `/api/services/${editingService.id}` : `/api/services`;
+      const method = editingService ? "PUT" : "POST";
+      
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        if (editingService) {
+          setCustomerServices(prev => prev.map(s => s.id === saved.id ? saved : s));
+        } else {
+          setCustomerServices(prev => [...prev, saved]);
+        }
+        resetServiceForm();
+      }
+    } catch (err) {
+      console.error("save service error", err);
+    }
+  };
+
+  const resetServiceForm = () => {
+    setServicePlanName("");
+    setServiceBandwidth(10);
+    setServiceActive(true);
+    setServiceMonitoringIp("");
+    setServiceMonitoringEnabled(false);
+    setEditingService(null);
+  };
+
+  const handleEditService = (svc: Service) => {
+    setEditingService(svc);
+    setServicePlanName(svc.planName);
+    setServiceBandwidth(svc.bandwidthMbps);
+    setServiceActive(svc.active);
+    setServiceMonitoringIp(svc.monitoringIp || "");
+    setServiceMonitoringEnabled(svc.monitoringEnabled);
+  };
+
+  const handleDeleteService = async (id: number) => {
+    if (!confirm("Hapus layanan ini?")) return;
+    try {
+      const res = await fetch(`/api/services/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setCustomerServices(prev => prev.filter(s => s.id !== id));
+      }
+    } catch (err) {
+      console.error("delete service error", err);
     }
   };
 
@@ -274,6 +385,13 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
+                            onClick={() => openServiceModal(c)}
+                            className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-blue-100 cursor-pointer"
+                          >
+                            Layanan
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => openEditModal(c)}
                             className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
                           >
@@ -319,6 +437,140 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
               >
                 Ya, Hapus
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isServiceModalOpen && selectedCustomerForService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="m-0 text-[18px] font-bold text-slate-900">
+                Layanan Pelanggan: {selectedCustomerForService.name}
+              </h3>
+              <button
+                onClick={() => setIsServiceModalOpen(false)}
+                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-[300px_1fr] gap-6">
+              {/* Form Layanan */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 h-fit">
+                <h4 className="text-[13px] font-bold mb-3">{editingService ? "Edit Layanan" : "Tambah Layanan"}</h4>
+                <form onSubmit={handleAddOrUpdateService} className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">Nama Paket / Plan</label>
+                    <input
+                      value={servicePlanName}
+                      onChange={e => setServicePlanName(e.target.value)}
+                      placeholder="e.g. Home Fiber 50Mbps"
+                      required
+                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-200 outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">Bandwidth (Mbps)</label>
+                    <input
+                      type="number"
+                      value={serviceBandwidth}
+                      onChange={e => setServiceBandwidth(Number(e.target.value))}
+                      required
+                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-200 outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">IP Monitoring (Opsional)</label>
+                    <input
+                      value={serviceMonitoringIp}
+                      onChange={e => setServiceMonitoringIp(e.target.value)}
+                      placeholder="e.g. 192.168.10.2"
+                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-200 outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="monEnabled"
+                      checked={serviceMonitoringEnabled}
+                      onChange={e => setServiceMonitoringEnabled(e.target.checked)}
+                    />
+                    <label htmlFor="monEnabled" className="text-[11px] font-semibold text-slate-700">Aktifkan SLA Monitoring</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="svcActive"
+                      checked={serviceActive}
+                      onChange={e => setServiceActive(e.target.checked)}
+                    />
+                    <label htmlFor="svcActive" className="text-[11px] font-semibold text-slate-700">Status Aktif</label>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {editingService && (
+                      <button
+                        type="button"
+                        onClick={resetServiceForm}
+                        className="flex-1 h-8 text-[12px] font-bold rounded bg-white border border-slate-200 hover:bg-slate-50"
+                      >
+                        Batal
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="flex-1 h-8 text-[12px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      {editingService ? "Simpan" : "Tambah"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Daftar Layanan */}
+              <div>
+                <table className="w-full text-[12px]">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr className="text-slate-500 text-left">
+                      <th className="px-3 py-2">Plan</th>
+                      <th className="px-3 py-2 text-center">BW</th>
+                      <th className="px-3 py-2">IP Monitor</th>
+                      <th className="px-3 py-2 text-center">Monitoring</th>
+                      <th className="px-3 py-2 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isServiceLoading ? (
+                      <tr><td colSpan={5} className="p-4 text-center text-slate-400">Memuat...</td></tr>
+                    ) : customerServices.length === 0 ? (
+                      <tr><td colSpan={5} className="p-4 text-center text-slate-400 italic">Belum ada layanan.</td></tr>
+                    ) : (
+                      customerServices.map(s => (
+                        <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="px-3 py-2 font-bold">{s.planName}</td>
+                          <td className="px-3 py-2 text-center font-semibold text-blue-600">{s.bandwidthMbps} Mbps</td>
+                          <td className="px-3 py-2 text-slate-600">{s.monitoringIp || "-"}</td>
+                          <td className="px-3 py-2 text-center">
+                            {s.monitoringEnabled ? (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[10px] font-bold">AKTIF</span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 text-[10px] font-bold">NONAKTIF</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => handleEditService(s)} className="text-blue-600 font-bold hover:underline">Edit</button>
+                              <button onClick={() => handleDeleteService(s.id)} className="text-red-600 font-bold hover:underline">Hapus</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

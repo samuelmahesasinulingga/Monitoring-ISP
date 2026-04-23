@@ -18,6 +18,7 @@ export type DeviceRecord = {
   monitoredQueues?: string[];
   monitoredInterfaces?: string[];
   netflowPort: number;
+  netflowEnabled: boolean;
   apiUser?: string;
   apiPassword?: string;
   apiPort?: number;
@@ -76,7 +77,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [integrationMode, setIntegrationMode] = useState<IntegrationMode>("snmp");
   const [snmpVersion, setSnmpVersion] = useState<SnmpVersion>("v2c");
   const [snmpCommunity, setSnmpCommunity] = useState("public");
-  const [netflowPort, setNetflowPort] = useState(2055);
+  const [netflowPort, setNetflowPort] = useState(10000);
+  const [netflowEnabled, setNetflowEnabled] = useState(true);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
   const [fetchingTarget, setFetchingTarget] = useState<"queues" | "interfaces" | "all" | null>(null);
@@ -101,7 +103,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [editIntegrationMode, setEditIntegrationMode] = useState<IntegrationMode>("snmp");
   const [editSnmpVersion, setEditSnmpVersion] = useState<SnmpVersion>("v2c");
   const [editSnmpCommunity, setEditSnmpCommunity] = useState("");
-  const [editNetflowPort, setEditNetflowPort] = useState(2055);
+  const [editNetflowPort, setEditNetflowPort] = useState(10000);
+  const [editNetflowEnabled, setEditNetflowEnabled] = useState(true);
   const [editMonitoringEnabled, setEditMonitoringEnabled] = useState(true);
   const [editAvailableQueues, setEditAvailableQueues] = useState<string[]>([]);
   const [editMonitoredQueues, setEditMonitoredQueues] = useState<string[]>([]);
@@ -168,6 +171,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       monitoredQueues: queueMonitoringEnabled ? monitoredQueues : [],
       monitoredInterfaces: interfaceMonitoringEnabled ? monitoredInterfaces : [],
       netflowPort,
+      netflowEnabled,
       workspaceId: workspaceId ?? null,
     };
 
@@ -216,7 +220,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setIntegrationMode("snmp");
     setSnmpVersion("v2c");
     setSnmpCommunity("public");
-    setNetflowPort(2055);
+    setNetflowPort(10000);
+    setNetflowEnabled(true);
     setMonitoringEnabled(true);
     setQueueMonitoringEnabled(false);
     setIsTesting(false);
@@ -246,6 +251,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         snmpCommunity: snmpCommunity,
         monitoringEnabled: true,
         netflowPort: netflowPort,
+        netflowEnabled: netflowEnabled,
         workspaceId: workspaceId ?? null,
       };
 
@@ -355,7 +361,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setEditIntegrationMode(device.integrationMode);
     setEditSnmpVersion(device.snmpVersion || "v2c");
     setEditSnmpCommunity(device.snmpCommunity || "public");
-    setEditNetflowPort(device.netflowPort || 2055);
+    setEditNetflowPort(device.netflowPort || 10000);
+    setEditNetflowEnabled(device.netflowEnabled ?? true);
     setEditMonitoringEnabled(device.monitoringEnabled);
     setEditMonitoredQueues(device.monitoredQueues || []);
     setEditQueueMonitoringEnabled(device.monitoredQueues && device.monitoredQueues.length > 0 ? true : false);
@@ -397,6 +404,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         monitoredQueues: editQueueMonitoringEnabled ? editMonitoredQueues : [],
         monitoredInterfaces: editInterfaceMonitoringEnabled ? editMonitoredInterfaces : [],
         netflowPort: editNetflowPort,
+        netflowEnabled: editNetflowEnabled,
         workspaceId: workspaceId ?? null,
       };
 
@@ -636,12 +644,24 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               <input
                 type="number"
                 value={netflowPort}
-                onChange={(e) => setNetflowPort(parseInt(e.target.value) || 2055)}
-                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                disabled={!netflowEnabled}
+                onChange={(e) => setNetflowPort(parseInt(e.target.value) || 10000)}
+                className={`h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!netflowEnabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : ""}`}
               />
-              <p className="mt-1 text-[10px] text-slate-400">
-                Gunakan port berbeda (2055-2060) jika ada beberapa router di balik NAT yang sama.
-              </p>
+              {netflowEnabled && (
+                <p className="mt-1 text-[10px] text-slate-400">
+                  Gunakan port berbeda (10000-20000) jika ada beberapa router di balik NAT yang sama.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+              <Switch
+                label="Aktifkan NetFlow"
+                description="Mulai merekam trafik data dari router ini"
+                checked={netflowEnabled}
+                onChange={setNetflowEnabled}
+              />
             </div>
 
             <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
@@ -810,7 +830,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                         : "-"}
                     </td>
                     <td className="px-2.5 py-1.5 align-top text-slate-600">
-                      {d.netflowPort || 2055}
+                      {d.netflowPort || 10000}
+                      <span className={`ml-1 text-[9px] font-bold ${d.netflowEnabled ? "text-emerald-500" : "text-slate-400"}`}>
+                        {d.netflowEnabled ? "(ON)" : "(OFF)"}
+                      </span>
                     </td>
 
                     <td className="px-2.5 py-1.5 align-top">
@@ -1040,12 +1063,24 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 <input
                   type="number"
                   value={editNetflowPort}
-                  onChange={(e) => setEditNetflowPort(parseInt(e.target.value) || 2055)}
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  disabled={!editNetflowEnabled}
+                  onChange={(e) => setEditNetflowPort(parseInt(e.target.value) || 10000)}
+                  className={`h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!editNetflowEnabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : ""}`}
                 />
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Gunakan port unik (2055-2060) untuk identifikasi router di belakang NAT.
-                </p>
+                {editNetflowEnabled && (
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    Gunakan port unik (10000-20000) untuk identifikasi router di belakang NAT.
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
+                <Switch
+                  label="Aktifkan NetFlow"
+                  description="Monitor trafik data dari router ini"
+                  checked={editNetflowEnabled}
+                  onChange={setEditNetflowEnabled}
+                />
               </div>
 
 

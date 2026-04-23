@@ -199,3 +199,65 @@ func sendStatusAlert(state *appState, workspaceID int, deviceName string, newSta
 		log.Printf("Telegram Alert SUCCESS for device %s (Status: %s)", deviceName, newStatus)
 	}
 }
+
+func startServicePingWorker(state *appState) {
+	ticker := time.NewTicker(30 * time.Second) // Service pings every 30s
+	defer ticker.Stop()
+
+	for range ticker.C {
+		ctx := context.Background()
+
+		// Fetch services with monitoring enabled and an IP
+		rows, err := state.db.Query(ctx, `
+			SELECT id, monitoring_ip 
+			FROM services 
+			WHERE monitoring_enabled = TRUE AND monitoring_ip IS NOT NULL AND monitoring_ip != ''
+		`)
+		if err != nil {
+			log.Printf("worker query services error: %v", err)
+			continue
+		}
+
+		type workerService struct {
+			ID           int
+			MonitoringIP string
+		}
+
+		var services []workerService
+		for rows.Next() {
+			var s workerService
+			if err := rows.Scan(&s.ID, &s.MonitoringIP); err != nil {
+				continue
+			}
+			services = append(services, s)
+		}
+		rows.Close()
+
+		now := time.Now()
+
+		for _, s := range services {
+			go func(svc workerService, executeTime time.Time) {
+				status := "UP"
+				latencyMs := int64(0)
+
+				// Use "ping" mode for services (direct ICMP)
+				latency, err := pingDevice(svc.MonitoringIP, "ping", 0, "", "")
+				if err != nil {
+					status = "DOWN"
+				} else {
+					latencyMs = latency.Milliseconds()
+				}
+
+				// Insert log into service_ping_logs
+				_, err = state.db.Exec(context.Background(), `
+					INSERT INTO service_ping_logs (service_id, latency_ms, status, created_at)
+					VALUES ($1, $2, $3, $4)
+				`, svc.ID, latencyMs, status, executeTime)
+
+				if err != nil {
+					log.Printf("gagal insert log ping untuk service %d: %v", svc.ID, err)
+				}
+			}(s, now)
+		}
+	}
+}
