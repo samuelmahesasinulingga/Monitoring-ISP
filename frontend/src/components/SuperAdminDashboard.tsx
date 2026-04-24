@@ -5,14 +5,7 @@ import UsersSection from "./super-admin/UsersSection";
 import SettingsSection from "./super-admin/SettingsSection";
 import ProfileSection from "./super-admin/ProfileSection";
 import RolesSection, { RoleDefinition } from "./super-admin/RolesSection";
-
-type SectionKey =
-  | "overview"
-  | "adminWorkspace"
-  | "users"
-  | "roles"
-  | "settings"
-  | "profile";
+import Sidebar, { MenuKey } from "./Sidebar";
 
 type Workspace = {
   id: number;
@@ -34,9 +27,9 @@ type SuperAdminDashboardProps = {
 };
 
 function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardProps) {
-  const [showAccountMenu, setShowAccountMenu] = useState(false);
-  const [activeSection, setActiveSection] = useState<SectionKey>("overview");
+  const [activeSection, setActiveSection] = useState<MenuKey>("overview");
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [superAdminProfile, setSuperAdminProfile] = useState<SuperAdminProfile>({
     name: "Super Admin",
     email: "admin@isp.co.id",
@@ -77,190 +70,44 @@ function SuperAdminDashboard({ onOpenWorkspace, onLogout }: SuperAdminDashboardP
   }, []);
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-indigo-100 via-slate-50 to-sky-100 text-slate-900">
-      {/* Sidebar */}
-      <aside className="fixed top-0 left-0 z-20 h-screen w-64 px-4 py-6 bg-slate-950 text-slate-200 shadow-2xl shadow-slate-900/70 flex flex-col">
-        <div className="mb-8 relative">
-          <button
-            onClick={() => setShowAccountMenu((v) => !v)}
-            className="w-full text-left px-3 py-2.5 rounded-2xl border border-slate-800 bg-slate-800/70 hover:bg-slate-700/80 cursor-pointer text-slate-100 transition-colors"
-          >
-            <div className="text-[13px] font-semibold text-slate-100">ISP Admin</div>
-            <div className="text-[11px] text-slate-400">Super Admin Dashboard</div>
-          </button>
-          {showAccountMenu && (
-            <div
-              className="absolute top-full left-0 mt-2 w-full bg-slate-900 rounded-2xl shadow-xl shadow-slate-900/60 px-2 py-2 text-[12px] text-slate-100 z-20"
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveSection("overview");
-                  setShowAccountMenu(false);
-                }}
-                className={`w-full text-left px-2.5 py-1.5 rounded-lg border-0 cursor-pointer text-[12px] mb-1 transition-colors ${
-                  activeSection === "overview"
-                    ? "bg-slate-800 text-slate-50"
-                    : "text-slate-100 hover:bg-slate-800/70"
-                }`}
-              >
-                Platform Central
-              </button>
-              {safeWorkspaces.length > 0 && (
-                <div className="px-2.5 py-1 text-[11px] text-slate-500 uppercase tracking-wide">
-                  Workspace
-                </div>
-              )}
-              {safeWorkspaces.map((ws) => (
-                <button
-                  key={ws.id}
-                  type="button"
-                  onClick={() => {
-                    if (onOpenWorkspace) {
-                      onOpenWorkspace(ws);
-                    } else {
-                      setActiveSection("adminWorkspace");
-                    }
-                    setShowAccountMenu(false);
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg border-0 cursor-pointer text-[12px] flex items-center gap-2 transition-colors ${
-                    activeSection === "adminWorkspace"
-                      ? "bg-slate-800 text-slate-50"
-                      : "text-slate-100 hover:bg-slate-800/70"
-                  }`}
-                >
-                  <span
-                    className="w-5 h-5 rounded-md overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 inline-flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
-                  >
-                    {ws.iconUrl ? (
-                      <img
-                        src={ws.iconUrl}
-                        alt="Icon workspace"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      ws.name
-                        .trim()
-                        .charAt(0)
-                        .toUpperCase()
-                    )}
-                  </span>
-                  <span>{ws.name}</span>
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  if (onLogout) {
-                    onLogout();
-                  }
-                  setShowAccountMenu(false);
-                }}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg border-0 bg-transparent text-red-200 hover:bg-red-900/40 cursor-pointer text-[12px] mt-1"
-              >
-                Logout
-              </button>
-            </div>
-          )}
+    <div className="min-h-screen flex bg-slate-950 text-slate-200">
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-slate-950 z-20 flex items-center justify-between px-4 shadow-[0_4px_20px_rgba(15,23,42,0.4)]">
+        <div className="font-bold text-slate-100 text-[14px] flex items-center gap-2">
+          <span className="w-6 h-6 rounded bg-gradient-to-br from-indigo-600 to-purple-600 inline-flex items-center justify-center text-white text-[10px] font-bold">
+            P
+          </span>
+          Platform Central
         </div>
-        <nav className="flex flex-col gap-2 text-[13px] flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80">
-          <button
-            onClick={() => setActiveSection("overview")}
-            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
-              activeSection === "overview"
-                ? "bg-slate-900 text-slate-50"
-                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
-            }`}
-          >
-            📊 Dashboard
-          </button>
-          <button
-            onClick={() => setActiveSection("adminWorkspace")}
-            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
-              activeSection === "adminWorkspace"
-                ? "bg-slate-900 text-slate-50"
-                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
-            }`}
-          >
-            👥 Workspace
-          </button>
-          <button
-            onClick={() => setActiveSection("roles")}
-            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
-              activeSection === "roles"
-                ? "bg-slate-900 text-slate-50"
-                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
-            }`}
-          >
-            🔑 Role & Akses
-          </button>
-          <button
-            onClick={() => setActiveSection("users")}
-            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
-              activeSection === "users"
-                ? "bg-slate-900 text-slate-50"
-                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
-            }`}
-          >
-            👤 Pengguna
-          </button>
-          <button
-            onClick={() => setActiveSection("settings")}
-            className={`text-left px-3 py-2.5 rounded-full border-0 cursor-pointer transition-colors ${
-              activeSection === "settings"
-                ? "bg-slate-900 text-slate-50"
-                : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/50"
-            }`}
-          >
-            ⚙️ Pengaturan Sistem
-          </button>
-        </nav>
-        <div className="mt-auto">
-          <div className="mt-4 px-2.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveSection("profile")}
-              className="flex items-center gap-2 bg-transparent border-0 flex-1 text-left cursor-pointer"
-            >
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600"
-              >
-                {superAdminProfile.avatarUrl ? (
-                  <img
-                    src={superAdminProfile.avatarUrl}
-                    alt="Foto profil"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white text-sm font-semibold">SA</span>
-                )}
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-slate-100">
-                  {superAdminProfile.name}
-                </div>
-                <div className="text-[11px] text-slate-400">Logged in</div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onLogout) {
-                  onLogout();
-                }
-              }}
-              className="px-3 py-1.5 rounded-full border-0 bg-red-500 hover:bg-red-600 text-white text-[11px] font-semibold cursor-pointer transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </aside>
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-1.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+
+      <Sidebar
+        sideMode="superAdmin"
+        activeMenu={activeSection as any}
+        onMenuChange={(menu) => {
+          setActiveSection(menu as any);
+          setIsSidebarOpen(false);
+        }}
+        workspaceName="Platform Central"
+        onLogout={onLogout || (() => {})}
+        currentUserEmail={superAdminProfile.email}
+        currentUserRole="Super Admin"
+        fetchedWorkspaces={safeWorkspaces}
+        onChangeWorkspace={onOpenWorkspace}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
       {/* Main content */}
-      <main className="flex-1 p-6 ml-64">
+      <main className="flex-1 p-4 pt-20 lg:p-6 lg:ml-[280px]">
         {activeSection === "overview" && <DashboardSection />}
-        {activeSection === "adminWorkspace" && (
+        {activeSection === "workspace" && (
           <AdminWorkspaceSection
             workspaces={safeWorkspaces}
             setWorkspaces={setWorkspaces}

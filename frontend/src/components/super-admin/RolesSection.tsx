@@ -135,10 +135,10 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
     <div className="max-w-3xl mx-auto p-2">
       <header className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">
+          <h1 className="text-2xl font-bold text-slate-100 mb-1">
             Role & Akses
           </h1>
-          <p className="text-[13px] text-slate-500 m-0">
+          <p className="text-[13px] text-slate-400 m-0">
             Atur jenis role dan deskripsi akses yang tersedia di platform.
           </p>
         </div>
@@ -151,10 +151,10 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
         </button>
       </header>
 
-      <div className="rounded-2xl bg-white/95 border border-slate-200 shadow-xl shadow-slate-900/10 overflow-hidden">
+      <div className="rounded-2xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 border border-slate-800 shadow-xl shadow-black/40 overflow-hidden">
         <table className="w-full border-collapse text-[12px]">
-          <thead className="bg-slate-100/80">
-            <tr className="text-slate-500 text-left">
+          <thead className="bg-slate-800/80">
+            <tr className="text-slate-400 text-left">
               <th className="py-2.5 px-2 w-20">ID</th>
               <th className="py-2.5 px-2 w-56">Nama Role</th>
               <th className="py-2.5 px-2">Deskripsi</th>
@@ -164,20 +164,20 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
           <tbody>
             {roles.map((role) => (
               <tr key={role.id}>
-                <td className="py-2.5 px-2 border-t border-slate-200 text-slate-500">
+                <td className="py-2.5 px-2 border-t border-slate-800 text-slate-400">
                   #{role.id}
                 </td>
-                <td className="py-2.5 px-2 border-t border-slate-200 font-semibold text-slate-900">
+                <td className="py-2.5 px-2 border-t border-slate-800 font-semibold text-slate-100">
                   {role.name}
                 </td>
-                <td className="py-2.5 px-2 border-t border-slate-200 text-slate-600">
+                <td className="py-2.5 px-2 border-t border-slate-800 text-slate-400">
                   {role.description || "-"}
                 </td>
-                <td className="py-2.5 px-2 border-t border-slate-200">
+                <td className="py-2.5 px-2 border-t border-slate-800">
                   <button
                     type="button"
                     onClick={() => openEditModal(role)}
-                    className="px-2.5 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] cursor-pointer mr-1.5 hover:bg-slate-50"
+                    className="px-2.5 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[11px] cursor-pointer mr-1.5 hover:bg-slate-800/50"
                   >
                     Edit
                   </button>
@@ -186,7 +186,7 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
                     onClick={() => handleDeleteRole(role.id)}
                     className={`px-2.5 py-1.5 rounded-full border-0 text-[11px] ${
                       role.id === 1
-                        ? "bg-slate-200 text-slate-500 cursor-default"
+                        ? "bg-slate-200 text-slate-400 cursor-default"
                         : "bg-red-500 hover:bg-red-600 text-white cursor-pointer"
                     }`}
                     disabled={role.id === 1}
@@ -215,17 +215,17 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
           className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50"
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl p-5 shadow-2xl border border-slate-200"
+            className="w-full max-w-md bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl p-5 shadow-2xl border border-slate-800"
           >
             <div
-              className="mb-4 pb-2.5 border-b border-slate-200"
+              className="mb-4 pb-2.5 border-b border-slate-800"
             >
               <h2
-                className="m-0 mb-1 text-lg font-semibold text-slate-900"
+                className="m-0 mb-1 text-lg font-semibold text-slate-100"
               >
                 {editingId == null ? "Tambah Role" : "Edit Role"}
               </h2>
-              <p className="m-0 text-xs text-slate-500">
+              <p className="m-0 text-xs text-slate-400">
                 Tentukan nama role dan deskripsi singkat hak aksesnya.
               </p>
             </div>
@@ -236,7 +236,7 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
             >
               <div>
                 <label
-                  className="block text-[11px] text-slate-600 mb-1"
+                  className="block text-[11px] text-slate-400 mb-1"
                 >
                   Nama Role
                 </label>
@@ -244,13 +244,13 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Misal: NOC Engineer, Billing, Support"
-                  className="w-full h-9 px-3.5 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
+                  className="w-full h-9 px-3.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
                 <label
-                  className="block text-[11px] text-slate-600 mb-1"
+                  className="block text-[11px] text-slate-400 mb-1"
                 >
                   Deskripsi
                 </label>
@@ -259,12 +259,12 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Contoh: Dapat melihat monitoring dan SLA di workspace tertentu."
                   rows={3}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-[12px] bg-white outline-none resize-y focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
+                  className="w-full px-3.5 py-2 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none resize-y focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-600 mb-1">
+                <label className="block text-[11px] text-slate-400 mb-1">
                   Hak akses untuk role ini
                 </label>
                 <div className="mb-2 flex items-center gap-2">
@@ -273,14 +273,14 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
                     value={permissionSearch}
                     onChange={(e) => setPermissionSearch(e.target.value)}
                     placeholder="Cari hak akses (misal: monitoring, billing)"
-                    className="flex-1 h-8 px-3 rounded-full border border-slate-200 text-[11px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                    className="flex-1 h-8 px-3 rounded-full border border-slate-800 text-[11px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                   />
                   <span className="text-[11px] text-slate-400">
                     {selectedPermissions.length} dipilih
                   </span>
                 </div>
 
-                <div className="max-h-40 overflow-auto rounded-xl border border-slate-100 bg-slate-50/60 p-2 space-y-1.5">
+                <div className="max-h-40 overflow-auto rounded-xl border border-slate-800 bg-slate-800/50/60 p-2 space-y-1.5">
                   {ALL_PERMISSIONS.filter((p) => {
                     const q = permissionSearch.toLowerCase();
                     if (!q) return true;
@@ -293,13 +293,13 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
                     return (
                       <div
                         key={perm.key}
-                        className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 bg-white"
+                        className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg"
                       >
                         <div>
-                          <div className="text-[11px] font-semibold text-slate-800">
+                          <div className="text-[11px] font-semibold text-slate-100">
                             {perm.label}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[11px] text-slate-400">
                             {perm.description}
                           </div>
                         </div>
@@ -321,7 +321,7 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
                             }`}
                           >
                             <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-150 ${
+                              className={`inline-block h-4 w-4 transform rounded-full bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg shadow-sm ring-0 transition-transform duration-150 ${
                                 active ? "translate-x-4" : "translate-x-0"
                               }`}
                             />
@@ -342,7 +342,7 @@ const RolesSection: React.FC<RolesSectionProps> = ({ roles, setRoles }) => {
                     resetForm();
                     setShowModal(false);
                   }}
-                  className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] cursor-pointer hover:bg-slate-50"
+                  className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] cursor-pointer hover:bg-slate-800/50"
                 >
                   Batal
                 </button>

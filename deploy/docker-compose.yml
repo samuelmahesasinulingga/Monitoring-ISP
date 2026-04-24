@@ -35,6 +35,7 @@ services:
     ports:
       - "8080:8080"
       - "2055-2060:2055-2060/udp"
+      - "10000-10010:10000-10010/udp"
     networks:
       - isp_net
     restart: unless-stopped

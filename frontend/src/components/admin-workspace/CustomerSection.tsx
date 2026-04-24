@@ -265,48 +265,48 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
   return (
     <section className="max-w-5xl mx-auto">
       <header className="mb-4">
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
+        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
           Data Pelanggan {workspaceName ? `- ${workspaceName}` : ""}
         </h2>
-        <p className="m-0 text-[12px] text-slate-500">
+        <p className="m-0 text-[12px] text-slate-400">
           Kelola data diri pelanggan ISP pada workspace ini.
         </p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
         {/* Sidebar Form */}
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-md shadow-slate-900/5 h-fit">
-          <h3 className="m-0 mb-3 text-[13px] font-semibold text-slate-900">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20 h-fit">
+          <h3 className="m-0 mb-3 text-[13px] font-semibold text-slate-100">
             {isEditModalOpen ? "Edit Pelanggan" : "Tambah Pelanggan Baru"}
           </h3>
           <form onSubmit={isEditModalOpen ? handleUpdateCustomer : handleAddCustomer} className="flex flex-col gap-3 text-[12px]">
             <div>
-              <label className="mb-1 block text-[11px] text-slate-600">Nama Pelanggan (Wajib)</label>
+              <label className="mb-1 block text-[11px] text-slate-400">Nama Pelanggan (Wajib)</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Misal: PT Maju Bersama"
                 required
-                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-slate-600">Email Utama</label>
+              <label className="mb-1 block text-[11px] text-slate-400">Email Utama</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Misal: info@majubersama.com"
-                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-slate-600">Alamat Lengkap</label>
+              <label className="mb-1 block text-[11px] text-slate-400">Alamat Lengkap</label>
               <textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Alamat kantor atau lokasi pemasangan..."
-                className="w-full min-h-[80px] rounded-lg border border-slate-200 bg-white p-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 resize-y"
+                className="w-full min-h-[80px] rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 p-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 resize-y"
               />
             </div>
             
@@ -321,7 +321,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                     setEmail("");
                     setAddress("");
                   }}
-                  className="inline-flex h-8 w-full items-center justify-center rounded-full border border-slate-300 bg-white text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 cursor-pointer"
+                  className="inline-flex h-8 w-full items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50 cursor-pointer"
                 >
                   Batal
                 </button>
@@ -337,9 +337,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         </div>
 
         {/* Tabel Data */}
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-md shadow-slate-900/5">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20">
           <div className="mb-4">
-            <h3 className="m-0 text-[13px] font-semibold text-slate-900">
+            <h3 className="m-0 text-[13px] font-semibold text-slate-100">
               Daftar Pelanggan Terdaftar
             </h3>
           </div>
@@ -347,7 +347,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[11px]">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr className="bg-slate-800/50 text-slate-400 border-b border-slate-800">
                   <th className="px-2.5 py-2 text-left font-semibold">Nama Instansi / Pelanggan</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Email</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Alamat Lokasi</th>
@@ -366,19 +366,19 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                   </tr>
                 ) : (
                   customers.map((c) => (
-                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <tr key={c.id} className="border-b border-slate-800 hover:bg-slate-800/50">
                       <td className="px-2.5 py-2 align-top">
-                        <div className="font-semibold text-slate-800">{c.name}</div>
+                        <div className="font-semibold text-slate-100">{c.name}</div>
                       </td>
-                      <td className="px-2.5 py-2 align-top text-slate-600">
+                      <td className="px-2.5 py-2 align-top text-slate-400">
                         {c.email || <span className="text-slate-400 italic">Belum diset</span>}
                       </td>
-                      <td className="px-2.5 py-2 align-top text-slate-600">
+                      <td className="px-2.5 py-2 align-top text-slate-400">
                         <div className="max-w-[180px] truncate" title={c.address}>
                           {c.address || <span className="text-slate-400 italic">Belum diset</span>}
                         </div>
                       </td>
-                      <td className="px-2.5 py-2 align-top text-slate-500">
+                      <td className="px-2.5 py-2 align-top text-slate-400">
                         {new Date(c.created_at).toLocaleDateString('id-ID')}
                       </td>
                       <td className="px-2.5 py-2 align-top text-right">
@@ -393,7 +393,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                           <button
                             type="button"
                             onClick={() => openEditModal(c)}
-                            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                            className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-2 py-1 text-[10px] font-semibold text-slate-300 hover:bg-slate-800 cursor-pointer"
                           >
                             Edit
                           </button>
@@ -417,16 +417,16 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
 
       {isDeleteModalOpen && customerToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
-            <h3 className="m-0 mb-2 text-[15px] font-bold text-slate-900">Konfirmasi Hapus</h3>
-            <p className="m-0 mb-4 text-[12px] text-slate-600">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-5 shadow-xl">
+            <h3 className="m-0 mb-2 text-[15px] font-bold text-slate-100">Konfirmasi Hapus</h3>
+            <p className="m-0 mb-4 text-[12px] text-slate-400">
               Apakah Anda yakin ingin menghapus pelanggan <strong>{customerToDelete.name}</strong>? Data tagihan dan layanan terkait juga akan dihapus.
             </p>
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 rounded-full border border-slate-300 bg-white text-[12px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] font-semibold text-slate-300 hover:bg-slate-800/50 cursor-pointer"
               >
                 Batal
               </button>
@@ -444,14 +444,14 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
 
       {isServiceModalOpen && selectedCustomerForService && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="m-0 text-[18px] font-bold text-slate-900">
+              <h3 className="m-0 text-[18px] font-bold text-slate-100">
                 Layanan Pelanggan: {selectedCustomerForService.name}
               </h3>
               <button
                 onClick={() => setIsServiceModalOpen(false)}
-                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                className="w-8 h-8 rounded-full border border-slate-800 flex items-center justify-center hover:bg-slate-800/50 cursor-pointer"
               >
                 ✕
               </button>
@@ -459,36 +459,36 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
 
             <div className="grid md:grid-cols-[300px_1fr] gap-6">
               {/* Form Layanan */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 h-fit">
+              <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-800 h-fit">
                 <h4 className="text-[13px] font-bold mb-3">{editingService ? "Edit Layanan" : "Tambah Layanan"}</h4>
                 <form onSubmit={handleAddOrUpdateService} className="flex flex-col gap-3">
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">Nama Paket / Plan</label>
+                    <label className="text-[11px] font-semibold text-slate-400 mb-1 block">Nama Paket / Plan</label>
                     <input
                       value={servicePlanName}
                       onChange={e => setServicePlanName(e.target.value)}
                       placeholder="e.g. Home Fiber 50Mbps"
                       required
-                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-200 outline-none focus:border-blue-500"
+                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-800 outline-none focus:border-blue-500 bg-slate-900/50 text-slate-100"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">Bandwidth (Mbps)</label>
+                    <label className="text-[11px] font-semibold text-slate-400 mb-1 block">Bandwidth (Mbps)</label>
                     <input
                       type="number"
                       value={serviceBandwidth}
                       onChange={e => setServiceBandwidth(Number(e.target.value))}
                       required
-                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-200 outline-none focus:border-blue-500"
+                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-800 outline-none focus:border-blue-500 bg-slate-900/50 text-slate-100"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">IP Monitoring (Opsional)</label>
+                    <label className="text-[11px] font-semibold text-slate-400 mb-1 block">IP Monitoring (Opsional)</label>
                     <input
                       value={serviceMonitoringIp}
                       onChange={e => setServiceMonitoringIp(e.target.value)}
                       placeholder="e.g. 192.168.10.2"
-                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-200 outline-none focus:border-blue-500"
+                      className="w-full h-8 px-2 text-[12px] rounded border border-slate-800 outline-none focus:border-blue-500 bg-slate-900/50 text-slate-100"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -498,7 +498,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                       checked={serviceMonitoringEnabled}
                       onChange={e => setServiceMonitoringEnabled(e.target.checked)}
                     />
-                    <label htmlFor="monEnabled" className="text-[11px] font-semibold text-slate-700">Aktifkan SLA Monitoring</label>
+                    <label htmlFor="monEnabled" className="text-[11px] font-semibold text-slate-300">Aktifkan SLA Monitoring</label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -507,14 +507,14 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                       checked={serviceActive}
                       onChange={e => setServiceActive(e.target.checked)}
                     />
-                    <label htmlFor="svcActive" className="text-[11px] font-semibold text-slate-700">Status Aktif</label>
+                    <label htmlFor="svcActive" className="text-[11px] font-semibold text-slate-300">Status Aktif</label>
                   </div>
                   <div className="flex gap-2 mt-2">
                     {editingService && (
                       <button
                         type="button"
                         onClick={resetServiceForm}
-                        className="flex-1 h-8 text-[12px] font-bold rounded bg-white border border-slate-200 hover:bg-slate-50"
+                        className="flex-1 h-8 text-[12px] font-bold rounded bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 hover:bg-slate-800/50"
                       >
                         Batal
                       </button>
@@ -532,8 +532,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
               {/* Daftar Layanan */}
               <div>
                 <table className="w-full text-[12px]">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr className="text-slate-500 text-left">
+                  <thead className="bg-slate-800/50 border-b border-slate-800">
+                    <tr className="text-slate-400 text-left">
                       <th className="px-3 py-2">Plan</th>
                       <th className="px-3 py-2 text-center">BW</th>
                       <th className="px-3 py-2">IP Monitor</th>
@@ -548,15 +548,15 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                       <tr><td colSpan={5} className="p-4 text-center text-slate-400 italic">Belum ada layanan.</td></tr>
                     ) : (
                       customerServices.map(s => (
-                        <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <tr key={s.id} className="border-b border-slate-800 hover:bg-slate-800/50">
                           <td className="px-3 py-2 font-bold">{s.planName}</td>
                           <td className="px-3 py-2 text-center font-semibold text-blue-600">{s.bandwidthMbps} Mbps</td>
-                          <td className="px-3 py-2 text-slate-600">{s.monitoringIp || "-"}</td>
+                          <td className="px-3 py-2 text-slate-400">{s.monitoringIp || "-"}</td>
                           <td className="px-3 py-2 text-center">
                             {s.monitoringEnabled ? (
                               <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[10px] font-bold">AKTIF</span>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 text-[10px] font-bold">NONAKTIF</span>
+                              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-bold">NONAKTIF</span>
                             )}
                           </td>
                           <td className="px-3 py-2 text-right">

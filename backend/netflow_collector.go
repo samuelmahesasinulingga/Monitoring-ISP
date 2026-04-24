@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"log"
-	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -186,10 +185,8 @@ func processNetFlowPacket(state *appState, agentIP string, localPort int, data [
 	}
 
 	if count > 0 {
-		// Optional: Log every 100th packet to avoid spamming logs while debugging
-		if rand.Intn(100) == 0 {
-			log.Printf("NetFlow: [%s] Received %d flows from router (DeviceID: %d, Port: %d)", agentIP, count, deviceID, localPort)
-		}
+		// Log every packet temporarily for debugging
+		log.Printf("NetFlow: [%s] Menerima %d flows dari router (ID: %d, Port: %d)", agentIP, count, deviceID, localPort)
 	}
 
 	// SAMPLING LOGIC based on Workspace Settings
@@ -202,9 +199,10 @@ func processNetFlowPacket(state *appState, agentIP string, localPort int, data [
 			return
 		}
 	} else {
-		if rand.Intn(100) >= 10 {
-			return 
-		}
+		// Temporarily disabled sampling to ensure data visibility
+		// if rand.Intn(100) >= 10 {
+		// 	return 
+		// }
 	}
 
 	offset := 24

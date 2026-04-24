@@ -57,6 +57,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # network_mode: host membuat backend menggunakan network VPS secara langsung.
+    # Semua port (8080, 2055, 10000, dll) otomatis terekspos tanpa perlu mapping 'ports'.
     network_mode: host
     restart: unless-stopped
 

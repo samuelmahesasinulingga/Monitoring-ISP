@@ -2,4 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global overrides / base styles boleh ditaruh di sini nanti. */
+:root {
+  --bg-sidebar: linear-gradient(180deg, #060b18 0%, #0a0f1d 100%);
+  --bg-main: #f8fafc;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(255, 255, 255, 0.05);
+  --card-bg: rgba(15, 23, 42, 0.6);
+  --item-hover: rgba(255, 255, 255, 0.03);
+  --item-active: rgba(59, 130, 246, 0.08);
+  color-scheme: dark;
+}
+
+body {
+  transition: background-color 0.3s, color 0.3s;
+  background-color: #020617; /* slate-950 equivalent to ensure body is dark */
+}
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a; /* slate-900 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155; /* slate-700 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569; /* slate-600 */
+}

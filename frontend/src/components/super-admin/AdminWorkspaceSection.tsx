@@ -214,11 +214,11 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
   };
 
   return (
-    <section className="rounded-xl bg-white border border-slate-200 p-4 shadow-lg shadow-slate-900/5">
+    <section className="rounded-xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 p-4 shadow-lg shadow-black/20">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="m-0 mb-1 text-lg font-semibold text-slate-900">Manajemen Workspace</h1>
-          <p className="m-0 text-xs text-slate-500">
+          <h1 className="m-0 mb-1 text-lg font-semibold text-slate-100">Manajemen Workspace</h1>
+          <p className="m-0 text-xs text-slate-400">
             Kelola daftar workspace / lokasi operasional ISP Anda.
           </p>
         </div>
@@ -231,10 +231,10 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
         </button>
       </div>
 
-      <div className="rounded-lg border border-slate-200 overflow-hidden mt-2">
+      <div className="rounded-lg border border-slate-800 overflow-hidden mt-2">
         <table className="w-full border-collapse text-[12px]">
-          <thead className="bg-slate-100/80">
-            <tr className="text-slate-500 text-left">
+          <thead className="bg-slate-800/80">
+            <tr className="text-slate-400 text-left">
               <th className="py-2 px-1.5 w-14">Icon</th>
               <th className="py-2 px-1.5">Nama Workspace</th>
               <th className="py-2 px-1.5">Alamat</th>
@@ -244,7 +244,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
           <tbody>
             {safeWorkspaces.map((workspace) => (
               <tr key={workspace.id}>
-                <td className="py-2 px-1.5 border-t border-slate-200">
+                <td className="py-2 px-1.5 border-t border-slate-800">
                   <div className="w-7 h-7 rounded-lg overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-[12px] font-semibold">
                     {(workspace as any).iconUrl ? (
                       <img
@@ -257,24 +257,24 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                     )}
                   </div>
                 </td>
-                <td className="py-2 px-1.5 border-t border-slate-200 font-medium text-slate-900">
+                <td className="py-2 px-1.5 border-t border-slate-800 font-medium text-slate-100">
                   {workspace.name}
                 </td>
-                <td className="py-2 px-1.5 border-t border-slate-200 text-slate-600">
+                <td className="py-2 px-1.5 border-t border-slate-800 text-slate-400">
                   {workspace.address}
                 </td>
-                <td className="py-2 px-1.5 border-t border-slate-200">
+                <td className="py-2 px-1.5 border-t border-slate-800">
                   <button
                     type="button"
                     onClick={() => openMemberModal(workspace.id)}
-                    className="px-2.5 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-[11px] cursor-pointer mr-1.5 hover:bg-slate-100"
+                    className="px-2.5 py-1.5 rounded-full border border-slate-800 bg-slate-800/50 text-[11px] cursor-pointer mr-1.5 hover:bg-slate-800"
                   >
                     Kelola Anggota
                   </button>
                   <button
                     type="button"
                     onClick={() => openEditModal(workspace)}
-                    className="px-2.5 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] cursor-pointer mr-1.5 hover:bg-slate-50"
+                    className="px-2.5 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[11px] cursor-pointer mr-1.5 hover:bg-slate-800/50"
                   >
                     Edit
                   </button>
@@ -297,17 +297,17 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
           className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50"
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl p-5 shadow-2xl border border-slate-200"
+            className="w-full max-w-md bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl p-5 shadow-2xl border border-slate-800"
           >
             <div
-              className="mb-4 pb-2.5 border-b border-slate-200"
+              className="mb-4 pb-2.5 border-b border-slate-800"
             >
               <h2
-                className="m-0 mb-1 text-lg font-semibold text-slate-900"
+                className="m-0 mb-1 text-lg font-semibold text-slate-100"
               >
                 {editingId == null ? "Tambah Workspace" : "Edit Workspace"}
               </h2>
-              <p className="m-0 text-xs text-slate-500">
+              <p className="m-0 text-xs text-slate-400">
                 Isi nama workspace dan alamat lengkapnya, lalu simpan.
               </p>
             </div>
@@ -317,7 +317,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
             >
               <div>
                 <label
-                  className="block text-[11px] text-slate-600 mb-1"
+                  className="block text-[11px] text-slate-400 mb-1"
                 >
                   Nama Workspace
                 </label>
@@ -325,12 +325,12 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                   value={newWorkspaceName}
                   onChange={(e) => setNewWorkspaceName(e.target.value)}
                   placeholder="Misal: POP Surabaya"
-                  className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs bg-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
+                  className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-xs bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
                 />
               </div>
               <div>
                 <label
-                  className="block text-[11px] text-slate-600 mb-1"
+                  className="block text-[11px] text-slate-400 mb-1"
                 >
                   Alamat Workspace
                 </label>
@@ -339,12 +339,12 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                   onChange={(e) => setNewWorkspaceAddress(e.target.value)}
                   placeholder="Jl. Contoh Raya No. 123, Kota"
                   rows={3}
-                  className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs bg-white outline-none resize-y focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
+                  className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-xs bg-slate-900/50 text-slate-100 outline-none resize-y focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
                 />
               </div>
               <div>
                 <label
-                  className="block text-[11px] text-slate-600 mb-1"
+                  className="block text-[11px] text-slate-400 mb-1"
                 >
                   Icon Workspace (opsional)
                 </label>
@@ -382,7 +382,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] cursor-pointer hover:bg-slate-50"
+                  className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] cursor-pointer hover:bg-slate-800/50"
                 >
                   Batal
                 </button>
@@ -402,7 +402,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
           className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50"
         >
           <div
-            className="w-full max-w-xl bg-white rounded-2xl p-5 shadow-2xl border border-slate-200"
+            className="w-full max-w-xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl p-5 shadow-2xl border border-slate-800"
           >
             {(() => {
               const activeWorkspace = workspaces.find(
@@ -420,15 +420,15 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
               return (
                 <>
                   <div
-                    className="mb-4 pb-2.5 border-b border-slate-200"
+                    className="mb-4 pb-2.5 border-b border-slate-800"
                   >
                     <h2
-                      className="m-0 mb-1 text-lg font-semibold text-slate-900"
+                      className="m-0 mb-1 text-lg font-semibold text-slate-100"
                     >
                       Kelola Anggota Workspace
                     </h2>
                     <p
-                      className="m-0 text-xs text-slate-500"
+                      className="m-0 text-xs text-slate-400"
                     >
                       Workspace: <strong>{activeWorkspace?.name}</strong>
                     </p>
@@ -440,18 +440,18 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                       value={memberSearch}
                       onChange={(e) => setMemberSearch(e.target.value)}
                       placeholder="Cari nama atau email anggota"
-                      className="flex-1 px-3 py-1.5 rounded-full border border-slate-200 text-xs outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50"
+                      className="flex-1 px-3 py-1.5 rounded-full border border-slate-800 text-xs outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-slate-900/50 text-slate-100"
                     />
                   </div>
                   <div
-                    className="rounded-lg border border-slate-200 max-h-64 overflow-auto"
+                    className="rounded-lg border border-slate-800 max-h-64 overflow-auto"
                   >
                     <table
                       className="w-full border-collapse text-[12px]"
                     >
-                      <thead className="bg-slate-100/80">
+                      <thead className="bg-slate-800/80">
                         <tr
-                          className="text-slate-500 text-left"
+                          className="text-slate-400 text-left"
                         >
                           <th className="py-1.5 px-2">Nama</th>
                           <th className="py-1.5 px-2">Email</th>
@@ -472,17 +472,17 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                           filteredMembers.map((member) => (
                             <tr key={member.id}>
                               <td
-                                className="py-1.5 px-2 border-t border-slate-200"
+                                className="py-1.5 px-2 border-t border-slate-800"
                               >
                                 {member.name}
                               </td>
                               <td
-                                className="py-1.5 px-2 border-t border-slate-200 text-slate-600"
+                                className="py-1.5 px-2 border-t border-slate-800 text-slate-400"
                               >
                                 {member.email}
                               </td>
                               <td
-                                className="py-1.5 px-2 border-t border-slate-200"
+                                className="py-1.5 px-2 border-t border-slate-800"
                               >
                                 <select
                                   value={member.role}
@@ -494,7 +494,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                                         .value as WorkspaceMember["role"]
                                     )
                                   }
-                                  className="px-2 py-1 rounded-full border border-slate-200 text-[11px] outline-none bg-white"
+                                  className="px-2 py-1 rounded-full border border-slate-800 text-[11px] outline-none bg-slate-900/50 text-slate-100"
                                 >
                                   <option value="Admin Workspace">
                                     Admin Workspace
@@ -522,7 +522,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                       <button
                         type="button"
                         onClick={() => setMemberModalWorkspaceId(null)}
-                        className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] cursor-pointer hover:bg-slate-50"
+                        className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] cursor-pointer hover:bg-slate-800/50"
                       >
                         Tutup
                       </button>
@@ -544,21 +544,21 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
 
       {deleteTarget && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
-          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 transform transition-all duration-200">
+          <div className="w-full max-w-sm bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl p-4 shadow-2xl border border-slate-800 transform transition-all duration-200">
             <div className="mb-3 flex items-center gap-2">
               <div className="h-8 w-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 text-sm animate-pulse">
                 !
               </div>
               <div>
-                <h2 className="m-0 text-[14px] font-semibold text-slate-900">
+                <h2 className="m-0 text-[14px] font-semibold text-slate-100">
                   Hapus workspace?
                 </h2>
-                <p className="m-0 mt-0.5 text-[11px] text-slate-500">
+                <p className="m-0 mt-0.5 text-[11px] text-slate-400">
                   Workspace <strong>{deleteTarget.name}</strong> dan datanya akan dihapus.
                 </p>
               </div>
             </div>
-            <p className="m-0 mb-3 text-[11px] text-slate-500">
+            <p className="m-0 mb-3 text-[11px] text-slate-400">
               Apakah Anda yakin ingin menghapus workspace ini?
             </p>
             <div className="flex justify-end gap-2">
@@ -566,7 +566,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
                 type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={isDeleting}
-                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] cursor-pointer hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] cursor-pointer hover:bg-slate-800/50 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Batal
               </button>
@@ -613,7 +613,7 @@ const AdminWorkspaceSection: React.FC<AdminWorkspaceSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setAlert(null)}
-                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50"
+                className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[11px] font-semibold text-slate-300 cursor-pointer hover:bg-slate-800/50"
               >
                 Tutup
               </button>

@@ -101,11 +101,11 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
     <section className="max-w-5xl mx-auto">
       <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-900 flex items-center gap-2">
+          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-100 flex items-center gap-2">
             <span className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-[18px]">📈</span>
             SLA & Report
           </h1>
-          <p className="m-0 text-[12px] text-slate-500">
+          <p className="m-0 text-[12px] text-slate-400">
             Analisa SLA dan laporan ketersediaan layanan perangkat monitor.
           </p>
         </div>
@@ -117,7 +117,7 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
               setReportType(e.target.value as any);
               setSelectedDeviceId("all");
             }}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
+            className="px-3 py-2 rounded-xl border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
           >
             <option value="device">Perangkat (Devices)</option>
             <option value="customer">Pelanggan (Services)</option>
@@ -126,7 +126,7 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
+            className="px-3 py-2 rounded-xl border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
           >
             <option value="daily">Periode harian</option>
             <option value="weekly">Periode mingguan</option>
@@ -136,7 +136,7 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
           <select
             value={selectedDeviceId}
             onChange={(e) => setSelectedDeviceId(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-[12px] bg-white min-w-[220px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
+            className="px-3 py-2 rounded-xl border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 min-w-[220px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 shadow-sm"
           >
             <option value="all">Semua {reportType === "device" ? "Perangkat" : "Layanan Pelanggan"}</option>
             {reportType === "device" ? (
@@ -160,16 +160,16 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
       ) : (
         <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)" }}>
           {/* Analisa SLA */}
-          <div className="rounded-2xl p-5 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
-            <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-900">
+          <div className="rounded-2xl p-5 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
+            <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-100">
               Analisa Perhitungan SLA ({periodLabel(period)})
             </h2>
-            <p className="m-0 text-[12px] text-slate-500 mb-4">
+            <p className="m-0 text-[12px] text-slate-400 mb-4">
               Ringkasan ketersediaan berdasarkan data log ping real-time.
             </p>
 
             <div className="flex items-center justify-between gap-6 mb-5 flex-wrap">
-              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex-1 min-w-[140px]">
+              <div className="bg-slate-800/50/50 p-4 rounded-2xl border border-slate-800 flex-1 min-w-[140px]">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                   SLA SCORE
                 </div>
@@ -189,20 +189,20 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
               <div className="flex-1 min-w-[200px]">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  <div className="text-[12px] text-slate-600">
-                    Estimasi downtime: <span className="font-bold text-slate-900">{Math.floor(totalDowntimeMinutes / 60)} jam {totalDowntimeMinutes % 60} menit</span>
+                  <div className="text-[12px] text-slate-400">
+                    Estimasi downtime: <span className="font-bold text-slate-100">{Math.floor(totalDowntimeMinutes / 60)} jam {totalDowntimeMinutes % 60} menit</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                  <div className="text-[12px] text-slate-600">
-                    Rata-rata Latensi: <span className="font-bold text-slate-900">{stats?.avgLatencyMs.toFixed(1)} ms</span>
+                  <div className="text-[12px] text-slate-400">
+                    Rata-rata Latensi: <span className="font-bold text-slate-100">{stats?.avgLatencyMs.toFixed(1)} ms</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4 text-[12px] text-slate-600 max-h-[220px] overflow-auto">
+            <div className="rounded-2xl bg-slate-800/50 border border-slate-800 px-4 py-4 text-[12px] text-slate-400 max-h-[220px] overflow-auto">
               <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-slate-400 mb-3">
                 Log Gangguan (Downtime)
               </div>
@@ -210,11 +210,11 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
                 downtimeEvents.map((d, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between py-2 border-b border-slate-200 last:border-0"
+                    className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0"
                   >
                     <div>
-                      <div className="font-bold text-slate-900">{d.date}</div>
-                      <div className="text-[11px] text-slate-500">{d.cause}</div>
+                      <div className="font-bold text-slate-100">{d.date}</div>
+                      <div className="text-[11px] text-slate-400">{d.cause}</div>
                     </div>
                     <div className="px-2 py-0.5 rounded-lg bg-red-50 text-red-600 text-[11px] font-bold">
                       OFFLINE
@@ -230,11 +230,11 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
           </div>
 
           {/* Performance Report */}
-          <div className="rounded-2xl p-5 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
-            <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-900">
+          <div className="rounded-2xl p-5 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
+            <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-100">
               Kualitas Monitoring
             </h2>
-            <p className="m-0 text-[12px] text-slate-500 mb-5">
+            <p className="m-0 text-[12px] text-slate-400 mb-5">
               Statistik pengumpulan data untuk periode {periodLabel(period)}.
             </p>
 
@@ -255,10 +255,10 @@ const SLAReportSection: React.FC<SLAReportSectionProps> = ({ workspaceId }) => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100">
+              <div className="pt-4 border-t border-slate-800">
                 <button 
                   onClick={() => window.print()}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10"
+                  className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/40"
                 >
                   📥 Cetak Laporan SLA
                 </button>

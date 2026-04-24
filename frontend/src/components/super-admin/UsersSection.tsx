@@ -218,19 +218,19 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
     <div className="max-w-5xl mx-auto p-2">
       <header className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h1 className="mb-1 text-[24px] font-bold text-slate-900">
+          <h1 className="mb-1 text-[24px] font-bold text-slate-100">
             Pengguna
           </h1>
-          <p className="m-0 text-[13px] text-slate-500">
+          <p className="m-0 text-[13px] text-slate-400">
             Kelola akun pengguna yang memiliki akses ke sistem ISP Anda.
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
             <span>
-              Total: <span className="font-semibold text-slate-900">{totalUsers}</span>
+              Total: <span className="font-semibold text-slate-100">{totalUsers}</span>
             </span>
             {userCountByRole.map((item) => (
               <span key={item.roleName}>
-                | {item.roleName}: <span className="font-semibold text-slate-900">{item.count}</span>
+                | {item.roleName}: <span className="font-semibold text-slate-100">{item.count}</span>
               </span>
             ))}
           </div>
@@ -244,10 +244,10 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
         </button>
       </header>
 
-      <div className="mt-4 rounded-2xl bg-white/95 border border-slate-200 shadow-xl shadow-slate-900/5 overflow-hidden">
+      <div className="mt-4 rounded-2xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 border border-slate-800 shadow-xl shadow-black/20 overflow-hidden">
         <table className="w-full border-collapse text-[12px]">
-          <thead className="bg-slate-100">
-            <tr className="text-left text-slate-500">
+          <thead className="bg-slate-800">
+            <tr className="text-left text-slate-400">
               <th className="px-3 py-2.5 font-medium">Nama Lengkap</th>
               <th className="px-3 py-2.5 font-medium">Email</th>
               <th className="px-3 py-2.5 font-medium">No. WhatsApp</th>
@@ -258,20 +258,20 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
           </thead>
           <tbody>
             {filteredUsers.map((user) => (
-              <tr key={user.id} className="hover:bg-slate-50">
-                <td className="px-3 py-2.5 border-t border-slate-200 font-medium text-slate-900">
+              <tr key={user.id} className="hover:bg-slate-800/50">
+                <td className="px-3 py-2.5 border-t border-slate-800 font-medium text-slate-100">
                   {user.fullName}
                 </td>
-                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-600">
+                <td className="px-3 py-2.5 border-t border-slate-800 text-slate-400">
                   {user.email}
                 </td>
-                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-600">
+                <td className="px-3 py-2.5 border-t border-slate-800 text-slate-400">
                   {user.whatsapp}
                 </td>
-                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-600">
+                <td className="px-3 py-2.5 border-t border-slate-800 text-slate-400">
                   {getWorkspaceName(user.workspaceId)}
                 </td>
-                <td className="px-3 py-2.5 border-t border-slate-200 text-slate-700">
+                <td className="px-3 py-2.5 border-t border-slate-800 text-slate-300">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
                       user.role === "Super Admin"
@@ -282,11 +282,11 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                     {user.role}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 border-t border-slate-200">
+                <td className="px-3 py-2.5 border-t border-slate-800">
                   <button
                     type="button"
                     onClick={() => openEditModal(user)}
-                    className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-[11px] text-slate-700 hover:bg-slate-50 mr-1.5"
+                    className="px-2.5 py-1 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[11px] text-slate-300 hover:bg-slate-800/50 mr-1.5"
                   >
                     Edit
                   </button>
@@ -315,12 +315,12 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50">
-          <div className="w-full max-w-lg bg-white rounded-2xl p-5 shadow-2xl shadow-slate-900/50 border border-slate-200">
-            <div className="mb-4 border-b border-slate-200 pb-3">
-              <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
+          <div className="w-full max-w-lg bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl p-5 shadow-2xl shadow-slate-900/50 border border-slate-800">
+            <div className="mb-4 border-b border-slate-800 pb-3">
+              <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
                 {editingId == null ? "Tambah Pengguna" : "Edit Pengguna"}
               </h2>
-              <p className="m-0 text-[12px] text-slate-500">
+              <p className="m-0 text-[12px] text-slate-400">
                 Isi data lengkap pengguna, lalu simpan.
               </p>
             </div>
@@ -330,19 +330,19 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
               className="grid gap-3 md:grid-cols-2"
             >
               <div className="md:col-span-2">
-                <label className="block text-[11px] text-slate-600 mb-1">
+                <label className="block text-[11px] text-slate-400 mb-1">
                   Nama Lengkap
                 </label>
                 <input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Misal: Budi Santoso"
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-600 mb-1">
+                <label className="block text-[11px] text-slate-400 mb-1">
                   Email
                 </label>
                 <input
@@ -350,24 +350,24 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="user@isp.co.id"
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-600 mb-1">
+                <label className="block text-[11px] text-slate-400 mb-1">
                   Nomor WhatsApp
                 </label>
                 <input
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="0812-xxxx-xxxx"
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-600 mb-1">
+                <label className="block text-[11px] text-slate-400 mb-1">
                   Password
                 </label>
                 <input
@@ -375,18 +375,18 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimal 6 karakter"
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-600 mb-1">
+                <label className="block text-[11px] text-slate-400 mb-1">
                   Role
                 </label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 >
                   {safeRoles.map((r) => (
                     <option key={r.id} value={r.name}>
@@ -397,14 +397,14 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-600 mb-1">
+                <label className="block text-[11px] text-slate-400 mb-1">
                   Workspace
                 </label>
                 <select
                   value={role === "Super Admin" ? "" : workspaceId}
                   onChange={(e) => setWorkspaceId(e.target.value)}
                   disabled={role === "Super Admin"}
-                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
                   {role === "Super Admin" ? (
                     <option value="">Akses Semua Workspace</option>
@@ -426,7 +426,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                     resetForm();
                     setShowModal(false);
                   }}
-                  className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] text-slate-700 hover:bg-slate-50"
+                  className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] text-slate-300 hover:bg-slate-800/50"
                 >
                   Batal
                 </button>
@@ -444,22 +444,22 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
 
       {deleteTarget && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
-          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 transform transition-all duration-200">
+          <div className="w-full max-w-sm bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl p-4 shadow-2xl border border-slate-800 transform transition-all duration-200">
             <div className="mb-3 flex items-center gap-2">
               <div className="h-8 w-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 text-sm animate-pulse">
                 !
               </div>
               <div>
-                <h2 className="m-0 text-[14px] font-semibold text-slate-900">
+                <h2 className="m-0 text-[14px] font-semibold text-slate-100">
                   Hapus pengguna?
                 </h2>
-                <p className="m-0 mt-0.5 text-[11px] text-slate-500">
+                <p className="m-0 mt-0.5 text-[11px] text-slate-400">
                   Pengguna <strong>{deleteTarget.fullName}</strong> dengan email {" "}
                   <span className="font-mono text-[11px]">{deleteTarget.email}</span> akan dihapus.
                 </p>
               </div>
             </div>
-            <p className="m-0 mb-3 text-[11px] text-slate-500">
+            <p className="m-0 mb-3 text-[11px] text-slate-400">
               Apakah Anda yakin ingin menghapus pengguna ini?
             </p>
             <div className="flex justify-end gap-2">
@@ -467,7 +467,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
                 type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={isDeleting}
-                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[12px] cursor-pointer hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] cursor-pointer hover:bg-slate-800/50 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Batal
               </button>
@@ -514,7 +514,7 @@ const UsersSection: React.FC<UsersSectionProps> = ({ workspaces, roles }) => {
               <button
                 type="button"
                 onClick={() => setAlert(null)}
-                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50"
+                className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[11px] font-semibold text-slate-300 cursor-pointer hover:bg-slate-800/50"
               >
                 Tutup
               </button>

@@ -42,15 +42,15 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ profile, setProfile }) 
   return (
     <section className="max-w-xl mx-auto p-2">
       <header className="mb-5">
-        <h1 className="m-0 mb-1 text-2xl font-bold text-slate-900">
+        <h1 className="m-0 mb-1 text-2xl font-bold text-slate-100">
           Profil Super Admin
         </h1>
-        <p className="m-0 text-[13px] text-slate-500">
+        <p className="m-0 text-[13px] text-slate-400">
           Ubah informasi dasar akun super admin Anda.
         </p>
       </header>
 
-      <div className="bg-white/95 rounded-xl p-5 border border-slate-200 shadow-xl shadow-slate-900/10">
+      <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 rounded-xl p-5 border border-slate-800 shadow-xl shadow-black/40">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-lg font-semibold">
             {profile.avatarUrl ? (
@@ -64,10 +64,10 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ profile, setProfile }) 
             )}
           </div>
           <div>
-            <div className="text-[13px] font-semibold text-slate-900 mb-0.5">
+            <div className="text-[13px] font-semibold text-slate-100 mb-0.5">
               {profile.name || "Super Admin"}
             </div>
-            <div className="text-[12px] text-slate-500">{profile.email}</div>
+            <div className="text-[12px] text-slate-400">{profile.email}</div>
           </div>
         </div>
 
@@ -76,19 +76,19 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ profile, setProfile }) 
           className="grid grid-cols-1 gap-3"
         >
           <div>
-            <label className="block text-[11px] text-slate-600 mb-1">
+            <label className="block text-[11px] text-slate-400 mb-1">
               Nama Lengkap
             </label>
             <input
               value={profile.name}
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Nama Super Admin"
-              className="w-full h-9 px-3.5 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
+              className="w-full h-9 px-3.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] text-slate-600 mb-1">
+            <label className="block text-[11px] text-slate-400 mb-1">
               Email
             </label>
             <input
@@ -96,24 +96,24 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ profile, setProfile }) 
               value={profile.email}
               onChange={(e) => handleChange("email", e.target.value)}
               placeholder="admin@isp.co.id"
-              className="w-full h-9 px-3.5 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
+              className="w-full h-9 px-3.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] text-slate-600 mb-1">
+            <label className="block text-[11px] text-slate-400 mb-1">
               Nomor WhatsApp
             </label>
             <input
               value={profile.whatsapp}
               onChange={(e) => handleChange("whatsapp", e.target.value)}
               placeholder="0812-0000-0000"
-              className="w-full h-9 px-3.5 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
+              className="w-full h-9 px-3.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] text-slate-600 mb-1">
+            <label className="block text-[11px] text-slate-400 mb-1">
               Foto Profil
             </label>
             <input

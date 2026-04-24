@@ -327,10 +327,10 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     <section className="max-w-5xl mx-auto">
       <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-900">
+          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-100">
             💳 Billing & Invoice
           </h1>
-          <p className="m-0 text-[12px] text-slate-500">
+          <p className="m-0 text-[12px] text-slate-400">
             Buat manual invoice dan pantau tagihan untuk workspace
             {workspaceName ? ` "${workspaceName}"` : " ini"}.
           </p>
@@ -346,20 +346,20 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
       <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)] gap-4 mb-4 items-start">
         {/* Form invoice manual */}
-        <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5">
-          <h2 className="m-0 mb-3 text-[15px] font-semibold text-slate-900">
+        <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
+          <h2 className="m-0 mb-3 text-[15px] font-semibold text-slate-100">
             Buat Tagihan Manual
           </h2>
 
           <div className="grid gap-3 mb-4">
             <div>
-              <div className="text-[12px] font-medium text-slate-600 mb-1">
+              <div className="text-[12px] font-medium text-slate-400 mb-1">
                 Klien / Pelanggan
               </div>
               <select
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(Number(e.target.value))}
-                className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-[12px] bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
               >
                 <option value="" disabled>-- Pilih Pelanggan --</option>
                 {customers.map((c) => (
@@ -372,24 +372,24 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="text-[12px] font-medium text-slate-600 mb-1">
+                <div className="text-[12px] font-medium text-slate-400 mb-1">
                   Periode Tagihan
                 </div>
                 <input
                   type="month"
                   value={periodMonth}
                   onChange={(e) => setPeriodMonth(e.target.value)}
-                  className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-[12px] outline-none bg-slate-50 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-800/50 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
                 />
               </div>
               <div>
-                <div className="text-[12px] font-medium text-slate-600 mb-1">
+                <div className="text-[12px] font-medium text-slate-400 mb-1">
                   Pilih Paket Layanan
                 </div>
                 <select
                   value={selectedPackageId}
                   onChange={handlePackageSelect}
-                  className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-[12px] bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60"
+                  className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] bg-slate-800/50 outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 text-slate-100"
                 >
                   <option value="" disabled>-- Setur Manual --</option>
                   {packages.map((p) => (
@@ -402,7 +402,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
             </div>
 
             <div>
-              <div className="text-[12px] font-medium text-slate-600 mb-1">
+              <div className="text-[12px] font-medium text-slate-400 mb-1">
                 Total Tagihan (Rp)
               </div>
               <input
@@ -410,9 +410,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                 min={0}
                 value={price}
                 onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-[12px] outline-none bg-slate-50 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-800/50 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
               />
-              <div className="mt-1 text-[10px] text-slate-500">
+              <div className="mt-1 text-[10px] text-slate-400">
                 Nilai ini bisa disesuaikan manual meskipun sudah memilih paket (mis. ada diskon).
               </div>
             </div>
@@ -429,16 +429,16 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         </div>
 
         {/* Tabel Invoice */}
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-0 shadow-md shadow-slate-900/5 h-fit overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="m-0 text-[15px] font-semibold text-slate-900">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-0 shadow-md shadow-black/20 h-fit overflow-hidden">
+          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+            <h2 className="m-0 text-[15px] font-semibold text-slate-100">
               Riwayat Tagihan
             </h2>
           </div>
           <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
             <table className="w-full border-collapse text-[11px] text-left">
-              <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm border-b border-slate-200">
-                <tr className="text-slate-500">
+              <thead className="sticky top-0 bg-slate-800/50 z-10 shadow-sm border-b border-slate-800">
+                <tr className="text-slate-400">
                   <th className="px-3 py-2.5 font-semibold">Pelanggan</th>
                   <th className="px-3 py-2.5 font-semibold">Periode</th>
                   <th className="px-3 py-2.5 font-semibold">Nominal</th>
@@ -457,14 +457,14 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                   </tr>
                 ) : (
                   invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      <td className="px-3 py-2.5 text-slate-800 font-medium whitespace-nowrap">
+                    <tr key={inv.id} className="border-b border-slate-800 hover:bg-slate-800/50/50 transition-colors">
+                      <td className="px-3 py-2.5 text-slate-100 font-medium whitespace-nowrap">
                         {inv.customerName || `Cust ID: ${inv.customerId}`}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-600">
+                      <td className="px-3 py-2.5 text-slate-400">
                         {inv.periodStart.slice(0, 7)}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-700 font-semibold">
+                      <td className="px-3 py-2.5 text-slate-300 font-semibold">
                         Rp {inv.amount.toLocaleString("id-ID")}
                       </td>
                       <td className="px-3 py-2.5">
@@ -488,7 +488,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                           onClick={() => handleSendInvoiceEmail(inv.id)}
                           className={`inline-flex items-center justify-center rounded-lg border px-2 py-1 text-[10px] font-semibold cursor-pointer disabled:opacity-50 ${
                             inv.status === "paid" 
-                            ? "border-slate-200 bg-slate-50 text-slate-300" 
+                            ? "border-slate-800 bg-slate-800/50 text-slate-300" 
                             : "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
                           }`}
                         >
@@ -521,43 +521,43 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       </div>
 
       {/* Auto kirim tagihan */}
-      <div className="rounded-2xl p-4 bg-white border border-slate-200 shadow-lg shadow-slate-900/5 mt-4">
-        <h2 className="m-0 mb-1 text-[14px] font-semibold text-slate-900">
+      <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20 mt-4">
+        <h2 className="m-0 mb-1 text-[14px] font-semibold text-slate-100">
           Auto Kirim Email Tagihan
         </h2>
-        <p className="m-0 text-[12px] text-slate-500 mb-3">
+        <p className="m-0 text-[12px] text-slate-400 mb-3">
           Atur agar invoice dikirim otomatis ke email pelanggan berdasarkan jadwal yang ditentukan.
         </p>
 
         <div className="flex flex-wrap gap-4 items-center mb-3">
-          <label className="flex items-center gap-2 text-[12px] font-medium text-slate-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-[12px] font-medium text-slate-300 cursor-pointer">
             <input
               type="checkbox"
               checked={autoSendEnabled}
               onChange={(e) => setAutoSendEnabled(e.target.checked)}
-              className="rounded border-slate-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+              className="rounded border-slate-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 bg-slate-900/50 text-slate-100"
             />
             <span>Aktifkan auto billing otomatis (Terbit & Kirim Email)</span>
           </label>
 
           <div className="flex items-center gap-2">
-            <span className="text-[12px] text-slate-600">Terbit tiap tanggal:</span>
+            <span className="text-[12px] text-slate-400">Terbit tiap tanggal:</span>
             <select
               value={scheduleDay}
               onChange={(e) => setScheduleDay(Number(e.target.value))}
-              className="px-2 py-1 rounded border border-slate-200 text-[12px] outline-none"
+              className="px-2 py-1 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
             >
               {days.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
 
           <div className="flex items-center gap-2 relative">
-            <span className="text-[12px] text-slate-600">Jam Terbit:</span>
+            <span className="text-[12px] text-slate-400">Jam Terbit:</span>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-medium text-slate-700 hover:border-blue-400 hover:bg-white transition-all shadow-sm min-w-[80px] justify-between"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-800/50 text-[12px] font-medium text-slate-300 hover:border-blue-400 hover:bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg transition-all shadow-sm min-w-[80px] justify-between"
               >
                 <span>{scheduleHour.toString().padStart(2, '0')}:{scheduleMinute.toString().padStart(2, '0')}</span>
                 <span className="text-[10px] text-slate-400">▼</span>
@@ -569,15 +569,15 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                     className="fixed inset-0 z-[60]" 
                     onClick={() => setIsTimePickerOpen(false)}
                   />
-                  <div className="absolute bottom-full left-0 mb-2 z-[70] w-[260px] bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div className="absolute bottom-full left-0 mb-2 z-[70] w-[260px] bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl border border-slate-800 shadow-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
                     <div className="flex justify-between items-center mb-3">
-                      <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Pilih Waktu (WIB)</h4>
+                      <h4 className="text-[11px] font-bold text-slate-100 uppercase tracking-wider">Pilih Waktu (WIB)</h4>
                       <div className="flex items-center gap-1">
                         <input
                           type="text"
                           maxLength={5}
                           placeholder="00:00"
-                          className="w-14 px-1.5 py-0.5 border border-slate-200 rounded text-[11px] text-center outline-none focus:border-blue-500"
+                          className="w-14 px-1.5 py-0.5 border border-slate-800 rounded text-[11px] text-center outline-none focus:border-blue-500 bg-slate-900/50 text-slate-100"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               const val = (e.target as HTMLInputElement).value;
@@ -610,7 +610,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                             className={`py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                               isSelected 
                                 ? "bg-blue-600 text-white shadow-md shadow-blue-200" 
-                                : "text-slate-600 hover:bg-slate-100"
+                                : "text-slate-400 hover:bg-slate-800"
                             }`}
                           >
                             {h.toString().padStart(2, '0')}:{m.toString().padStart(2, '0')}
@@ -618,7 +618,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                         );
                       })}
                     </div>
-                    <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center">
+                    <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center">
                       <span className="text-[10px] text-slate-400">Tap jam untuk memilih</span>
                       <button 
                         type="button"
@@ -651,48 +651,48 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       {/* MODAL KELOLA PAKET */}
       {isPackageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-5 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="m-0 text-[16px] font-bold text-slate-900">Master Data Paket Layanan</h3>
+              <h3 className="m-0 text-[16px] font-bold text-slate-100">Master Data Paket Layanan</h3>
               <button
                 type="button"
                 onClick={() => setIsPackageModalOpen(false)}
-                className="w-7 h-7 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-[12px] text-slate-500 mb-4 mt-0">
+            <p className="text-[12px] text-slate-400 mb-4 mt-0">
               Paket yang dibuat di sini akan muncul pada dropdown pembuatan Tagihan untuk kemudahan pengisian nominal.
             </p>
 
-            <form onSubmit={handleCreatePackage} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5 items-end bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <form onSubmit={handleCreatePackage} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5 items-end bg-slate-800/50 p-3 rounded-xl border border-slate-800">
               <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="md:col-span-1">
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Nama Paket</label>
+                  <label className="block text-[11px] font-medium text-slate-400 mb-1">Nama Paket</label>
                   <input
                     type="text"
                     required
                     value={newPkgName}
                     onChange={e => setNewPkgName(e.target.value)}
                     placeholder="e.g. Dedicated 50Mbps"
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 text-[12px] outline-none"
+                    className="w-full px-2.5 py-1.5 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Max Bandwidth (Mbps)</label>
+                  <label className="block text-[11px] font-medium text-slate-400 mb-1">Max Bandwidth (Mbps)</label>
                   <input
                     type="number"
                     min={1}
                     required
                     value={newPkgBandwidth}
                     onChange={e => setNewPkgBandwidth(Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 text-[12px] outline-none"
+                    className="w-full px-2.5 py-1.5 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Harga (Rp)</label>
+                  <label className="block text-[11px] font-medium text-slate-400 mb-1">Harga (Rp)</label>
                   <div className="flex gap-2">
                     <input
                       type="number"
@@ -700,7 +700,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       required
                       value={newPkgPrice}
                       onChange={e => setNewPkgPrice(Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 rounded border border-slate-200 text-[12px] outline-none"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
                     />
                   </div>
                 </div>
@@ -715,9 +715,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               </div>
             </form>
 
-            <div className="max-h-[220px] overflow-auto border border-slate-200 rounded-xl">
+            <div className="max-h-[220px] overflow-auto border border-slate-800 rounded-xl">
               <table className="w-full text-left text-[11px]">
-                <thead className="bg-slate-100 text-slate-600 sticky top-0 border-b border-slate-200">
+                <thead className="bg-slate-800 text-slate-400 sticky top-0 border-b border-slate-800">
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama Paket</th>
                     <th className="px-3 py-2 font-semibold text-center">BW Limit</th>
@@ -732,8 +732,8 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                     </tr>
                   ) : (
                     packages.map(p => (
-                      <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="px-3 py-2 font-medium text-slate-800">{p.name}</td>
+                      <tr key={p.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                        <td className="px-3 py-2 font-medium text-slate-100">{p.name}</td>
                         <td className="px-3 py-2 text-center text-blue-600 font-semibold">{p.bandwidthMbps} Mbps</td>
                         <td className="px-3 py-2 font-semibold text-emerald-600">Rp {p.price.toLocaleString("id-ID")}</td>
                         <td className="px-3 py-2 text-right">
@@ -756,7 +756,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               <button
                 type="button"
                 onClick={() => setIsPackageModalOpen(false)}
-                className="px-4 py-2 rounded border border-slate-300 text-slate-700 text-[12px] font-medium hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 rounded border border-slate-300 text-slate-300 text-[12px] font-medium hover:bg-slate-800/50 cursor-pointer"
               >
                 Tutup
               </button>
@@ -768,40 +768,40 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       {/* MODAL KELOLA STATUS TAGIHAN */}
       {editingInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-5 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="m-0 text-[16px] font-bold text-slate-900">Kelola Tagihan</h3>
+              <h3 className="m-0 text-[16px] font-bold text-slate-100">Kelola Tagihan</h3>
               <button
                 type="button"
                 onClick={() => setEditingInvoice(null)}
-                className="w-7 h-7 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="mb-4 bg-slate-50 border border-slate-100 rounded-lg p-3 text-[12px]">
+            <div className="mb-4 bg-slate-800/50 border border-slate-800 rounded-lg p-3 text-[12px]">
               <div className="flex justify-between mb-1">
-                <span className="text-slate-500">Klien</span>
-                <span className="font-semibold text-slate-800">{editingInvoice.customerName}</span>
+                <span className="text-slate-400">Klien</span>
+                <span className="font-semibold text-slate-100">{editingInvoice.customerName}</span>
               </div>
               <div className="flex justify-between mb-1">
-                <span className="text-slate-500">Nominal</span>
-                <span className="font-semibold text-slate-800">Rp {editingInvoice.amount.toLocaleString("id-ID")}</span>
+                <span className="text-slate-400">Nominal</span>
+                <span className="font-semibold text-slate-100">Rp {editingInvoice.amount.toLocaleString("id-ID")}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Periode</span>
-                <span className="font-semibold text-slate-800">{editingInvoice.periodStart.slice(0, 7)}</span>
+                <span className="text-slate-400">Periode</span>
+                <span className="font-semibold text-slate-100">{editingInvoice.periodStart.slice(0, 7)}</span>
               </div>
             </div>
 
             <div className="grid gap-3 mb-5">
               <div>
-                <label className="block text-[12px] font-medium text-slate-700 mb-1">Status Pembayaran</label>
+                <label className="block text-[12px] font-medium text-slate-300 mb-1">Status Pembayaran</label>
                 <select
                   value={modalStatus}
                   onChange={(e) => setModalStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] bg-white outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-800 text-[13px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40"
                 >
                   <option value="unpaid">BELUM LUNAS</option>
                   <option value="paid">SUDAH LUNAS</option>
@@ -816,7 +816,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       type="date"
                       value={modalPaymentDate}
                       onChange={(e) => setModalPaymentDate(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-white outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -826,7 +826,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       placeholder="e.g. Transfer BCA / Tunai / OVO"
                       value={modalPaymentMethod}
                       onChange={(e) => setModalPaymentMethod(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-white outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -836,13 +836,13 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       value={modalNotes}
                       onChange={(e) => setModalNotes(e.target.value)}
                       rows={2}
-                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-white outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-medium text-emerald-800 mb-1">Upload Bukti Bayar</label>
                     {editingInvoice.proofOfTransferUrl && (
-                      <div className="mb-2 p-2 bg-white rounded border border-emerald-100 flex items-center justify-between">
+                      <div className="mb-2 p-2 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded border border-emerald-100 flex items-center justify-between">
                         <span className="text-[10px] text-emerald-600 font-semibold">Sudah ada bukti</span>
                         <a href={editingInvoice.proofOfTransferUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline">Lihat</a>
                       </div>
@@ -851,7 +851,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       type="file"
                       accept="image/*"
                       onChange={(e) => setModalFile(e.target.files?.[0] || null)}
-                      className="w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
+                      className="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
                     />
                   </div>
                 </div>
@@ -862,7 +862,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               <button
                 type="button"
                 onClick={() => setEditingInvoice(null)}
-                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-[12px] font-medium hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-300 text-[12px] font-medium hover:bg-slate-800/50 cursor-pointer"
               >
                 Batal
               </button>
@@ -882,32 +882,32 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       {/* MODAL DETAIL PEMBAYARAN */}
       {viewingInvoice && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-white/20 bg-white p-6 shadow-2xl animate-fade-in">
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-white/20 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 shadow-2xl animate-fade-in">
             <div className="flex justify-between items-center mb-5">
-              <h3 className="m-0 text-[18px] font-bold text-slate-900">Detail Pembayaran</h3>
+              <h3 className="m-0 text-[18px] font-bold text-slate-100">Detail Pembayaran</h3>
               <button
                 type="button"
                 onClick={() => setViewingInvoice(null)}
-                className="w-8 h-8 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-8 h-8 rounded-full border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex items-center justify-center cursor-pointer transition-colors"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-inner">
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-800 shadow-inner">
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Klien</span>
-                    <span className="text-[13px] font-bold text-slate-900">{viewingInvoice.customerName}</span>
+                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Klien</span>
+                    <span className="text-[13px] font-bold text-slate-100">{viewingInvoice.customerName}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Nominal</span>
+                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Nominal</span>
                     <span className="text-[13px] font-bold text-emerald-600">Rp {viewingInvoice.amount.toLocaleString("id-ID")}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Periode</span>
-                    <span className="text-[13px] font-bold text-slate-700">{viewingInvoice.periodStart.slice(0, 7)}</span>
+                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Periode</span>
+                    <span className="text-[13px] font-bold text-slate-300">{viewingInvoice.periodStart.slice(0, 7)}</span>
                   </div>
                 </div>
               </div>
@@ -915,7 +915,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               <div className="grid gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu Bayar</label>
-                  <div className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-[12px] font-medium text-slate-700">
+                  <div className="px-3 py-2 rounded-xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 text-[12px] font-medium text-slate-300">
                     📅 {viewingInvoice.paymentDate ? new Date(viewingInvoice.paymentDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}
                   </div>
                 </div>
@@ -929,7 +929,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Catatan Tambahan</label>
-                  <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[12px] text-slate-600 italic">
+                  <div className="px-3 py-2 rounded-xl bg-slate-800/50 border border-slate-800 text-[12px] text-slate-400 italic">
                     "{viewingInvoice.notes || "Tidak ada catatan untuk pembayaran ini."}"
                   </div>
                 </div>
@@ -941,7 +941,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       href={viewingInvoice.proofOfTransferUrl} 
                       target="_blank" 
                       rel="noreferrer"
-                      className="group relative overflow-hidden rounded-2xl border border-slate-200 aspect-video bg-slate-100 flex items-center justify-center hover:border-blue-400 transition-all shadow-sm"
+                      className="group relative overflow-hidden rounded-2xl border border-slate-800 aspect-video bg-slate-800 flex items-center justify-center hover:border-blue-400 transition-all shadow-sm"
                     >
                       <img 
                         src={viewingInvoice.proofOfTransferUrl} 
@@ -949,7 +949,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <span className="text-white text-[12px] font-bold bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30">
+                        <span className="text-white text-[12px] font-bold bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30">
                           🔍 Klik untuk Memperbesar
                         </span>
                       </div>

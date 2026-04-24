@@ -55,21 +55,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-100 via-slate-50 to-indigo-100 text-slate-900 px-4">
-      <div className="w-full max-w-4xl bg-white/95 rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-200 grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-100 via-slate-50 to-indigo-100 text-slate-100 px-4">
+      <div className="w-full max-w-4xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-800 grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-6">
         <div className="flex flex-col justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-1 mb-4 w-fit text-[11px] text-slate-500">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-800/50/80 px-3 py-1 mb-4 w-fit text-[11px] text-slate-400">
             <span className="text-xs">📡</span>
             <span className="font-medium tracking-wide">ISP Monitoring &amp; Billing Console</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-2 leading-snug">
+          <h1 className="text-2xl md:text-3xl font-semibold text-slate-100 mb-2 leading-snug">
             Selamat datang di panel<br className="hidden sm:block" /> administrasi ISP Anda
           </h1>
-          <p className="text-xs md:text-sm text-slate-500 mb-4 max-w-md">
+          <p className="text-xs md:text-sm text-slate-400 mb-4 max-w-md">
             Pantau kualitas jaringan, SLA, dan aktivitas pelanggan dalam satu panel terpusat.
             Gunakan akun Super Admin atau Admin Workspace untuk melanjutkan.
           </p>
-          <div className="hidden md:flex items-center gap-3 text-[11px] text-slate-500 mt-2">
+          <div className="hidden md:flex items-center gap-3 text-[11px] text-slate-400 mt-2">
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               <span>Realtime monitoring</span>
@@ -85,16 +85,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white/90 px-5 py-5 md:px-6 md:py-6 shadow-lg shadow-slate-900/5">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/90 px-5 py-5 md:px-6 md:py-6 shadow-lg shadow-black/20">
           <div className="flex items-center gap-2 mb-3">
             <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-blue-50 text-xl">
               🔐
             </div>
             <div>
-              <h2 className="m-0 text-base font-semibold text-slate-900">
+              <h2 className="m-0 text-base font-semibold text-slate-100">
                 Masuk ke akun Anda
               </h2>
-              <p className="m-0 mt-0.5 text-[11px] text-slate-500">
+              <p className="m-0 mt-0.5 text-[11px] text-slate-400">
                 Akses dibatasi untuk user internal ISP.
               </p>
             </div>
@@ -104,7 +104,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <div>
             <label
               htmlFor="email"
-              className="block text-[11px] mb-1.5 font-medium text-slate-600"
+              className="block text-[11px] mb-1.5 font-medium text-slate-400"
             >
               Email
             </label>
@@ -114,14 +114,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Masukkan email anda"
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs md:text-sm bg-white text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60 placeholder:text-slate-300"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-800 text-xs md:text-sm bg-slate-900/50 text-slate-100 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60 placeholder:text-slate-300"
             />
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="flex items-center justify-between text-[11px] mb-1.5 font-medium text-slate-600"
+              className="flex items-center justify-between text-[11px] mb-1.5 font-medium text-slate-400"
             >
               <span>Password</span>
             </label>
@@ -131,7 +131,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Masukkan password anda"
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs md:text-sm bg-white text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60 placeholder:text-slate-300"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-800 text-xs md:text-sm bg-slate-900/50 text-slate-100 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60 placeholder:text-slate-300"
             />
           </div>
 

@@ -341,10 +341,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     return (
       <>
         <section>
-          <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
+          <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
             Monitoring Ping
           </h2>
-          <p className="m-0 text-[12px] text-slate-500 mb-3.5">
+          <p className="m-0 text-[12px] text-slate-400 mb-3.5">
             Grafik latency ping perangkat yang sudah ditambahkan. Data diperbarui
             otomatis setiap beberapa detik dari backend.
           </p>
@@ -356,7 +356,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
           )}
 
           {pingDevices.length === 0 ? (
-            <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 px-3 py-4 text-center text-[11px] text-slate-400">
+            <div className="mt-2 rounded-xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg shadow-md shadow-black/20 px-3 py-4 text-center text-[11px] text-slate-400">
               {isLoadingPing
                 ? "Memuat data ping perangkat..."
                 : "Belum ada perangkat yang dimonitor atau belum ada data ping."}
@@ -396,16 +396,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         setExpandedPingDeviceId(device.id);
                       }
                     }}
-                    className="text-left rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5 p-3 hover:border-blue-400/70 hover:shadow-lg transition cursor-pointer"
+                    className="text-left rounded-xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg shadow-md shadow-black/20 p-3 hover:border-blue-400/70 hover:shadow-lg transition cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <p className="m-0 text-[11px] text-slate-500">Grafik latency (ms)</p>
-                        <p className="m-0 text-[13px] font-semibold text-slate-900">
+                        <p className="m-0 text-[11px] text-slate-400">Grafik latency (ms)</p>
+                        <p className="m-0 text-[13px] font-semibold text-slate-100">
                           {device.name} <span className="text-slate-400">· {device.ip}</span>
                         </p>
                       </div>
-                      <div className="flex flex-col items-end gap-1 text-[11px] text-slate-500">
+                      <div className="flex flex-col items-end gap-1 text-[11px] text-slate-400">
                         <div className="flex items-center gap-2">
                           <span>Status:</span>
                           <span
@@ -419,9 +419,9 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         </div>
                         <div className="flex flex-col gap-1 items-end">
                           <div className="flex items-center gap-1">
-                            <span className="text-slate-500">Interval:</span>
+                            <span className="text-slate-400">Interval:</span>
                             <select
-                              className="px-2 py-0.5 rounded-full border border-slate-200 bg-white text-[11px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                              className="px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/50 text-slate-100 text-[11px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                               value={devicePingIntervals[device.id] ?? 30000}
                               onChange={(e) => {
                                 const value = Number(e.target.value);
@@ -509,16 +509,16 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                           </ResponsiveContainer>
                         </div>
 
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
                           <span>
-                            Latency saat ini: <span className="font-semibold text-slate-700">{currentLabel}</span>
+                            Latency saat ini: <span className="font-semibold text-slate-300">{currentLabel}</span>
                           </span>
                           <span>
-                            Rata-rata: <span className="font-semibold text-slate-700">{avg.toFixed(1)} ms</span>
+                            Rata-rata: <span className="font-semibold text-slate-300">{avg.toFixed(1)} ms</span>
                             {" · "}
-                            Min: <span className="font-semibold text-slate-700">{min.toFixed(1)} ms</span>
+                            Min: <span className="font-semibold text-slate-300">{min.toFixed(1)} ms</span>
                             {" · "}
-                            Max: <span className="font-semibold text-slate-700">{max.toFixed(1)} ms</span>
+                            Max: <span className="font-semibold text-slate-300">{max.toFixed(1)} ms</span>
                           </span>
                         </div>
                       </>
@@ -532,13 +532,13 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
         {expandedDevice && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-            <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-slate-900/40">
+            <div className="w-full max-w-3xl rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-2xl shadow-black/60">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <h3 className="m-0 text-[15px] font-semibold text-slate-900">
+                  <h3 className="m-0 text-[15px] font-semibold text-slate-100">
                     Detail ping – {expandedDevice.name}
                   </h3>
-                  <p className="m-0 text-[11px] text-slate-500">
+                  <p className="m-0 text-[11px] text-slate-400">
                     {expandedDevice.ip} · status
                     {" "}
                     <span
@@ -556,7 +556,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                 <button
                   type="button"
                   onClick={() => setExpandedPingDeviceId(null)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
                 >
                   ✕
                 </button>
@@ -609,30 +609,30 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                     </ResponsiveContainer>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
                     <span>
                       Latency saat ini:
                       {" "}
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-slate-100">
                         {expandedStats.currentLabel}
                       </span>
                     </span>
                     <span>
                       Rata-rata:
                       {" "}
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-slate-100">
                         {expandedStats.avg.toFixed(1)} ms
                       </span>
                       {" · "}
                       Min:
                       {" "}
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-slate-100">
                         {expandedStats.min.toFixed(1)} ms
                       </span>
                       {" · "}
                       Max:
                       {" "}
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-slate-100">
                         {expandedStats.max.toFixed(1)} ms
                       </span>
                     </span>
@@ -645,27 +645,27 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
         {detailLogDeviceId !== null && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-            <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-900/40">
+            <div className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-5 shadow-2xl shadow-black/60">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h3 className="m-0 text-[16px] font-semibold text-slate-900">
+                  <h3 className="m-0 text-[16px] font-semibold text-slate-100">
                     Detail Log Monitoring
                   </h3>
-                  <p className="m-0 text-[12px] text-slate-500">
+                  <p className="m-0 text-[12px] text-slate-400">
                     Riwayat ping perangkat ({pingDevices.find(d => d.id === detailLogDeviceId)?.name})
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDetailLogDeviceId(null)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[12px]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[12px]"
                 >
                   ✕
                 </button>
               </div>
-              <div className="max-h-[360px] overflow-auto border border-slate-200 rounded-xl">
+              <div className="max-h-[360px] overflow-auto border border-slate-800 rounded-xl">
                 <table className="w-full text-left text-[12px]">
-                  <thead className="bg-slate-50 text-slate-500 sticky top-0 border-b border-slate-200 outline outline-1 outline-slate-200">
+                  <thead className="bg-slate-800/50 text-slate-400 sticky top-0 border-b border-slate-800 outline outline-1 outline-slate-200">
                     <tr>
                       <th className="px-5 py-3 font-semibold">Tanggal & Waktu</th>
                       <th className="px-5 py-3 font-semibold">Status</th>
@@ -683,8 +683,8 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                       </tr>
                     ) : (
                       detailLogs.map((log: any) => (
-                        <tr key={log.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition">
-                          <td className="px-5 py-2.5 text-slate-600 font-medium">
+                        <tr key={log.id} className="border-b border-slate-800 last:border-0 hover:bg-slate-800/50 transition">
+                          <td className="px-5 py-2.5 text-slate-400 font-medium">
                             {new Date(log.created_at.endsWith('Z') ? log.created_at.slice(0, -1) : log.created_at).toLocaleString('id-ID')}
                           </td>
                           <td className="px-5 py-2.5">
@@ -693,29 +693,29 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                               {log.status}
                             </span>
                           </td>
-                          <td className="px-5 py-2.5 font-medium text-slate-700">{log.latencyMs} ms</td>
+                          <td className="px-5 py-2.5 font-medium text-slate-300">{log.latencyMs} ms</td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
               </div>
-              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                <span className="text-[12px] text-slate-500 font-medium">
+              <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-4">
+                <span className="text-[12px] text-slate-400 font-medium">
                   Halaman {detailLogPage} dari {detailLogTotalPages}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     disabled={detailLogPage <= 1 || isLoadingLogs}
                     onClick={() => setDetailLogPage(p => p - 1)}
-                    className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-3.5 py-1.5 rounded-lg border border-slate-800 text-[11px] font-semibold text-slate-400 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:bg-slate-800/50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     Sebelumnya
                   </button>
                   <button
                     disabled={detailLogPage >= detailLogTotalPages || isLoadingLogs}
                     onClick={() => setDetailLogPage(p => p + 1)}
-                    className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-3.5 py-1.5 rounded-lg border border-slate-800 text-[11px] font-semibold text-slate-400 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:bg-slate-800/50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     Selanjutnya
                   </button>
@@ -732,31 +732,31 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
     return (
       <section>
         <div className="flex items-center justify-between gap-3 mb-1">
-          <h2 className="m-0 text-[18px] font-semibold text-slate-900">
+          <h2 className="m-0 text-[18px] font-semibold text-slate-100">
             Alert Monitoring (Real-time)
           </h2>
           {isLoadingAlerts && (
-            <div className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
+            <div className="w-4 h-4 rounded-full border-2 border-slate-800 border-t-blue-500 animate-spin"></div>
           )}
         </div>
-        <p className="m-0 text-[12px] text-slate-500 mb-4">
+        <p className="m-0 text-[12px] text-slate-400 mb-4">
           Riwayat kejadian status perangkat (UP/DOWN) yang terekam dalam sistem.
         </p>
 
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-md shadow-slate-900/5">
+        <div className="rounded-xl border border-slate-800 overflow-hidden bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg shadow-md shadow-black/20">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+              <tr className="bg-slate-800/50 border-b border-slate-800">
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-400">
                   Waktu
                 </th>
-                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-400">
                   Perangkat
                 </th>
-                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-400">
                   Kejadian
                 </th>
-                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-600">
+                <th className="px-4 py-2.5 text-[12px] font-semibold text-slate-400">
                   Status
                 </th>
               </tr>
@@ -777,9 +777,9 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                   return (
                     <tr
                       key={alert.id}
-                      className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                      className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
                     >
-                      <td className="px-4 py-3 text-[12px] text-slate-600">
+                      <td className="px-4 py-3 text-[12px] text-slate-400">
                         {new Date(alert.createdAt.endsWith('Z') ? alert.createdAt.slice(0, -1) : alert.createdAt).toLocaleString("id-ID", {
                           day: "2-digit",
                           month: "short",
@@ -789,10 +789,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                           second: "2-digit",
                         })}
                       </td>
-                      <td className="px-4 py-3 text-[12px] font-medium text-slate-800">
+                      <td className="px-4 py-3 text-[12px] font-medium text-slate-100">
                         {alert.deviceName}
                       </td>
-                      <td className="px-4 py-3 text-[12px] text-slate-600">
+                      <td className="px-4 py-3 text-[12px] text-slate-400">
                         {isDown
                           ? "Perangkat terdeteksi Mati"
                           : "Perangkat kembali Normal"}
@@ -814,22 +814,22 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
             </tbody>
           </table>
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-          <span className="text-[12px] text-slate-500 font-medium">
+        <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-4">
+          <span className="text-[12px] text-slate-400 font-medium">
             Halaman {alertPage} dari {alertTotalPages}
           </span>
           <div className="flex items-center gap-2">
             <button
               disabled={alertPage <= 1 || isLoadingAlerts}
               onClick={() => setAlertPage(p => p - 1)}
-              className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="px-3.5 py-1.5 rounded-lg border border-slate-800 text-[11px] font-semibold text-slate-400 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:bg-slate-800/50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               Sebelumnya
             </button>
             <button
               disabled={alertPage >= alertTotalPages || isLoadingAlerts}
               onClick={() => setAlertPage(p => p + 1)}
-              className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="px-3.5 py-1.5 rounded-lg border border-slate-800 text-[11px] font-semibold text-slate-400 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:bg-slate-800/50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               Selanjutnya
             </button>
@@ -843,15 +843,15 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
   const renderInterface = () => {
     return (
       <section>
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
+        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
           Monitoring Bandwidth per Interface
         </h2>
-        <p className="m-0 text-[12px] text-slate-500 mb-3.5">
+        <p className="m-0 text-[12px] text-slate-400 mb-3.5">
           Daftar grafik penggunaan bandwidth (rx/tx) untuk setiap router secara paralel.
         </p>
 
         {pingDevices.length === 0 ? (
-          <p className="text-[12px] text-slate-500">Belum ada perangkat yang ditambahkan.</p>
+          <p className="text-[12px] text-slate-400">Belum ada perangkat yang ditambahkan.</p>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("snmp")).map(d => {
@@ -861,7 +861,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
               if (interfaces.length === 0) {
                  return (
-                   <div key={d.id} className="rounded-2xl px-4 py-6 bg-slate-50/50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
+                   <div key={d.id} className="rounded-2xl px-4 py-6 bg-slate-800/50/50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
                       <p className="m-0 text-[13px] font-semibold text-slate-400">{d.name}</p>
                       <p className="m-0 text-[10px] text-slate-400">Tidak ada interface yang dipilih untuk dimonitor.</p>
                    </div>
@@ -892,7 +892,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                     return (
                       <div
                         key={`${d.id}-${ifaceName}`}
-                        className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
+                        className="rounded-2xl px-4 py-3 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/90 border border-slate-800 shadow-lg shadow-black/20 cursor-pointer hover:border-blue-300 transition-all group relative"
                         onClick={() => {
                           setSelectedDetailDeviceId(d.id);
                           setSelectedDetailQueueName(ifaceName);
@@ -901,12 +901,12 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                            <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
+                            <h3 className="m-0 text-[14px] font-bold text-slate-100">{d.name}</h3>
                             <span className="text-slate-300">/</span>
                             <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100">{ifaceName}</span>
                           </div>
                           
-                          <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                          <div className="flex items-center gap-3 text-[10px] text-slate-400">
                             <div className="flex items-center gap-1">
                               <span className="h-2 w-2 rounded-full bg-emerald-500" />
                               <span>RX</span>
@@ -919,7 +919,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         </div>
 
                         <div className="flex items-center gap-2 mb-2">
-                          <p className="m-0 text-[11px] text-slate-500">Statistik bandwidth interface</p>
+                          <p className="m-0 text-[11px] text-slate-400">Statistik bandwidth interface</p>
                           {isLoading && realBandwidthSamples.length === 0 && (
                             <span className="animate-pulse text-[9px] text-blue-500 font-bold uppercase tracking-widest">
                               Loading...
@@ -929,7 +929,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
                         <BandwidthSparkline data={bandwidthSamples} />
 
-                        <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
+                        <div className="mt-2 border-t border-slate-800 pt-2 text-[10px] text-slate-400">
                           <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
                             <span>
                               RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMax)} max
@@ -938,7 +938,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                               TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMax)} max
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-500">
+                          <div className="flex justify-between text-slate-400">
                             <span>
                               Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
                             </span>
@@ -964,14 +964,14 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
   const renderQueue = () => {
     return (
       <section>
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
+        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
           Monitoring Bandwidth per Queue (Mikrotik)
         </h2>
-        <p className="m-0 text-[12px] text-slate-500 mb-3.5">
+        <p className="m-0 text-[12px] text-slate-400 mb-3.5">
           Daftar grafik penggunaan bandwidth antrean (queue) Mikrotik secara paralel.
         </p>
         {pingDevices.length === 0 ? (
-          <p className="text-[12px] text-slate-500">Belum ada perangkat yang ditambahkan.</p>
+          <p className="text-[12px] text-slate-400">Belum ada perangkat yang ditambahkan.</p>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pingDevices.filter(d => d.integrationMode?.toLowerCase().includes("snmp")).map(d => {
@@ -981,7 +981,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
               if (queues.length === 0) {
                  return (
-                   <div key={d.id} className="rounded-2xl px-4 py-6 bg-slate-50/50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
+                   <div key={d.id} className="rounded-2xl px-4 py-6 bg-slate-800/50/50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
                       <p className="m-0 text-[13px] font-semibold text-slate-400">{d.name}</p>
                       <p className="m-0 text-[10px] text-slate-400">Tidak ada antrian yang dipilih untuk dimonitor.</p>
                    </div>
@@ -1014,7 +1014,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                     return (
                       <div
                         key={`${d.id}-${qName}`}
-                        className="rounded-2xl px-4 py-3 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5 cursor-pointer hover:border-blue-300 transition-all group relative"
+                        className="rounded-2xl px-4 py-3 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/90 border border-slate-800 shadow-lg shadow-black/20 cursor-pointer hover:border-blue-300 transition-all group relative"
                         onClick={() => {
                           setSelectedDetailDeviceId(d.id);
                           setSelectedDetailQueueName(qName);
@@ -1023,12 +1023,12 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 relative z-10">
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${isDown ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                            <h3 className="m-0 text-[14px] font-bold text-slate-800">{d.name}</h3>
+                            <h3 className="m-0 text-[14px] font-bold text-slate-100">{d.name}</h3>
                             <span className="text-slate-300">/</span>
                             <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100">{qName}</span>
                           </div>
                           
-                          <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                          <div className="flex items-center gap-3 text-[10px] text-slate-400">
                             <div className="flex items-center gap-1">
                               <span className="h-2 w-2 rounded-full bg-emerald-500" />
                               <span>RX</span>
@@ -1041,7 +1041,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                         </div>
 
                         <div className="flex items-center gap-2 mb-2">
-                          <p className="m-0 text-[11px] text-slate-500">Statistik bandwidth antrian</p>
+                          <p className="m-0 text-[11px] text-slate-400">Statistik bandwidth antrian</p>
                           {isLoading && realBandwidthSamples.length === 0 && (
                             <span className="animate-pulse text-[9px] text-blue-500 font-bold uppercase tracking-widest">
                               Loading...
@@ -1051,7 +1051,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
                         <BandwidthSparkline data={bandwidthSamples} />
 
-                        <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-600">
+                        <div className="mt-2 border-t border-slate-800 pt-2 text-[10px] text-slate-400">
                           <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
                             <span>
                               RX: {formatBandwidth(rxAvg)} avg, {formatBandwidth(rxMax)} max
@@ -1060,7 +1060,7 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                               TX: {formatBandwidth(txAvg)} avg, {formatBandwidth(txMax)} max
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-500">
+                          <div className="flex justify-between text-slate-400">
                             <span>
                               Cur: RX {formatBandwidth(lastSample.rx)} / TX {formatBandwidth(lastSample.tx)}
                             </span>
@@ -1130,15 +1130,15 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setSelectedDetailDeviceId(null); setSelectedDetailQueueName(null); }}>
-        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="w-full max-w-4xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/50/50">
             <div>
-              <h3 className="m-0 text-[18px] font-bold text-slate-900 line-clamp-1">{d.name}</h3>
-              <p className="m-0 text-[12px] text-slate-500 mt-0.5">{isQueueTab ? 'Queue' : 'Interface'} <span className="font-semibold text-slate-700">{selectedItemName}</span></p>
+              <h3 className="m-0 text-[18px] font-bold text-slate-100 line-clamp-1">{d.name}</h3>
+              <p className="m-0 text-[12px] text-slate-400 mt-0.5">{isQueueTab ? 'Queue' : 'Interface'} <span className="font-semibold text-slate-300">{selectedItemName}</span></p>
             </div>
             <button
               onClick={() => { setSelectedDetailDeviceId(null); setSelectedDetailQueueName(null); }}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1149,33 +1149,33 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
 
           <div className="p-6">
             <div className="flex flex-wrap items-center justify-between mb-5 gap-4">
-              <div className="flex items-center gap-5 text-[12px] text-slate-600 font-medium">
+              <div className="flex items-center gap-5 text-[12px] text-slate-400 font-medium">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>RX Average</div>
-                  <span className="text-[18px] font-bold text-slate-900">{formatBandwidth(rxAvg)}</span>
+                  <span className="text-[18px] font-bold text-slate-100">{formatBandwidth(rxAvg)}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>TX Average</div>
-                  <span className="text-[18px] font-bold text-slate-900">{formatBandwidth(txAvg)}</span>
+                  <span className="text-[18px] font-bold text-slate-100">{formatBandwidth(txAvg)}</span>
                 </div>
                 <div className="w-px h-10 bg-slate-200 mx-2 hidden sm:block"></div>
                 <div className="flex flex-col gap-1">
                   <div className="text-slate-400">Current RX</div>
-                  <span className="text-[15px] font-semibold text-slate-700">{formatBandwidth(lastSample.rx)}</span>
+                  <span className="text-[15px] font-semibold text-slate-300">{formatBandwidth(lastSample.rx)}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="text-slate-400">Current TX</div>
-                  <span className="text-[15px] font-semibold text-slate-700">{formatBandwidth(lastSample.tx)}</span>
+                  <span className="text-[15px] font-semibold text-slate-300">{formatBandwidth(lastSample.tx)}</span>
                 </div>
                 <div className="w-px h-10 bg-slate-200 mx-2 hidden sm:block"></div>
                 <div className="flex flex-col gap-1">
                   <div className="text-slate-400">Peak RX / TX</div>
-                  <span className="text-[13px] font-medium text-slate-600">{formatBandwidth(rxMax)} / {formatBandwidth(txMax)}</span>
+                  <span className="text-[13px] font-medium text-slate-400">{formatBandwidth(rxMax)} / {formatBandwidth(txMax)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-50 border border-slate-100 rounded-xl px-2 py-4 shadow-inner shadow-slate-100">
+            <div className="bg-slate-800/50 border border-slate-800 rounded-xl px-2 py-4 shadow-inner shadow-slate-100">
               {isLoading && bandwidthSamples.length <= 1 ? (
                 <div className="flex items-center justify-center h-[300px] text-slate-400 font-medium text-[13px]">Memuat data seketika...</div>
               ) : (
@@ -1191,10 +1191,10 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
   return (
     <section className="max-w-5xl mx-auto">
       <header className="mb-8">
-        <h1 className="m-0 mb-1 text-[22px] font-bold text-slate-900">
+        <h1 className="m-0 mb-1 text-[22px] font-bold text-slate-100">
           Monitoring Jaringan {workspaceName ? `- ${workspaceName}` : ""}
         </h1>
-        <p className="m-0 text-[13px] text-slate-500">
+        <p className="m-0 text-[13px] text-slate-400">
           Pantau ping, peringatan (alerts), dan penggunaan bandwidth perangkat secara keseluruhan.
         </p>
       </header>

@@ -47,7 +47,7 @@ const Switch = ({
       onClick={() => onChange(!checked)}
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-[12px] font-semibold text-slate-700">{label}</span>
+        <span className="text-[12px] font-semibold text-slate-300">{label}</span>
         {description && (
           <span className="text-[10px] text-slate-400 leading-tight">
             {description}
@@ -60,7 +60,7 @@ const Switch = ({
           }`}
       >
         <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-all duration-200 ease-in-out ${checked ? "translate-x-5" : "translate-x-0.5"
+          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg transition-all duration-200 ease-in-out ${checked ? "translate-x-5" : "translate-x-0.5"
             } shadow-sm`}
         />
       </button>
@@ -502,7 +502,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     }
     if (deviceType === "server") {
       return (
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-400 bg-slate-50 text-[10px] font-semibold text-slate-700">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-400 bg-slate-800/50 text-[10px] font-semibold text-slate-300">
           SRV
         </span>
       );
@@ -517,19 +517,19 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   return (
     <section className="max-w-5xl mx-auto">
       <header className="mb-4">
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-900">
+        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
           Devices & Endpoint monitoring {workspaceName ? `- ${workspaceName}` : ""}
         </h2>
-        <p className="m-0 text-[12px] text-slate-500">
+        <p className="m-0 text-[12px] text-slate-400">
           Tambah daftar perangkat router/switch/server dan konfigurasi
           endpoint monitoring (SNMP dan API Mikrotik) per perangkat.
         </p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-md shadow-slate-900/5">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 className="m-0 text-[13px] font-semibold text-slate-900">
+            <h3 className="m-0 text-[13px] font-semibold text-slate-100">
               Tambah perangkat
             </h3>
             <button
@@ -540,42 +540,42 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 setTestMessage("");
                 setTestIp(ip || "");
               }}
-              className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[11px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50"
             >
               Tes koneksi perangkat
             </button>
           </div>
           <form onSubmit={handleAddDevice} className="flex flex-col gap-2.5 text-[12px]">
             <div>
-              <label className="mb-1 block text-[11px] text-slate-600">
+              <label className="mb-1 block text-[11px] text-slate-400">
                 Nama perangkat
               </label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Misal: Router POP Bandung"
-                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-slate-600">
+              <label className="mb-1 block text-[11px] text-slate-400">
                 IP address / hostname
               </label>
               <input
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 placeholder="Misal: 10.10.0.1 atau pop-bandung"
-                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-slate-600">
+              <label className="mb-1 block text-[11px] text-slate-400">
                 Tipe perangkat
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as DeviceType)}
-                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
               >
                 <option value="router">Router</option>
                 <option value="switch">Switch</option>
@@ -586,10 +586,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
             </div>
 
             <div className="space-y-1">
-              <label className="mb-2 block text-[11px] text-slate-600 font-semibold">
+              <label className="mb-2 block text-[11px] text-slate-400 font-semibold">
                 Fitur Monitoring & Integrasi
               </label>
-              <div className="grid gap-2 p-2 rounded-xl border border-slate-100 bg-slate-50/50">
+              <div className="grid gap-2 p-2 rounded-xl border border-slate-800 bg-slate-800/50/50">
                 <Switch
                   label="SNMP Monitoring"
                   description="Tarik data interface, traffic, & resource via SNMP"
@@ -603,20 +603,20 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 />
               </div>
               <p className="mt-1.5 text-[10px] text-slate-400 px-1">
-                Mode <span className="text-slate-500 font-medium italic">ICMP Ping</span> selalu aktif sebagai monitoring dasar.
+                Mode <span className="text-slate-400 font-medium italic">ICMP Ping</span> selalu aktif sebagai monitoring dasar.
               </p>
             </div>
 
             {integrationMode === "snmp" && (
               <div className="flex gap-2">
                 <div className="w-28">
-                  <label className="mb-1 block text-[11px] text-slate-600">
+                  <label className="mb-1 block text-[11px] text-slate-400">
                     SNMP versi
                   </label>
                   <select
                     value={snmpVersion}
                     onChange={(e) => setSnmpVersion(e.target.value as SnmpVersion)}
-                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                   >
                     <option value="v1">v1</option>
                     <option value="v2c">v2c</option>
@@ -624,21 +624,21 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="mb-1 block text-[11px] text-slate-600">
+                  <label className="mb-1 block text-[11px] text-slate-400">
                     SNMP community
                   </label>
                   <input
                     value={snmpCommunity}
                     onChange={(e) => setSnmpCommunity(e.target.value)}
                     placeholder="public"
-                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="mb-1 block text-[11px] text-slate-600">
+              <label className="mb-1 block text-[11px] text-slate-400">
                 NetFlow Port (UDP)
               </label>
               <input
@@ -646,7 +646,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 value={netflowPort}
                 disabled={!netflowEnabled}
                 onChange={(e) => setNetflowPort(parseInt(e.target.value) || 10000)}
-                className={`h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!netflowEnabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : ""}`}
+                className={`h-8 w-full rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!netflowEnabled ? "bg-slate-800/50 text-slate-400 cursor-not-allowed" : ""}`}
               />
               {netflowEnabled && (
                 <p className="mt-1 text-[10px] text-slate-400">
@@ -655,7 +655,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               )}
             </div>
 
-            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
               <Switch
                 label="Aktifkan NetFlow"
                 description="Mulai merekam trafik data dari router ini"
@@ -664,7 +664,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               />
             </div>
 
-            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
               <Switch
                 label="Aktifkan Monitoring"
                 description="Mulai merekam log ping & data perangkat ini"
@@ -674,7 +674,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
             </div>
 
             {integrationMode === "snmp" && (
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
                 <Switch
                   label="Aktifkan Monitoring Queue"
                   description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
@@ -697,7 +697,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 {availableQueues.length > 0 ? (
                   <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                     {availableQueues.map((q) => (
-                      <label key={q} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
+                      <label key={q} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
                         <input
                           type="checkbox"
                           checked={monitoredQueues.includes(q)}
@@ -708,25 +708,25 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                               setMonitoredQueues(monitoredQueues.filter((mq) => mq !== q));
                             }
                           }}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
                         />
                         <span>{q}</span>
                       </label>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-500 italic leading-tight">
+                  <p className="text-[10px] text-slate-400 italic leading-tight">
                     Tes koneksi untuk memuat daftar antrian...
                   </p>
                 )}
-                <p className="mt-2 text-[10px] text-slate-500 italic leading-tight">
+                <p className="mt-2 text-[10px] text-slate-400 italic leading-tight">
                   Hanya antrian yang dicentang yang akan direkam datanya ke database.
                 </p>
               </div>
             )}
 
             {integrationMode === "snmp" && (
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
                 <Switch
                   label="Aktifkan Monitoring Interface"
                   description="Monitor traffic dari Network Interface (WAN/Local/dll)"
@@ -749,7 +749,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 {availableInterfaces.length > 0 ? (
                   <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                     {availableInterfaces.map((iface) => (
-                      <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
+                      <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
                         <input
                           type="checkbox"
                           checked={monitoredInterfaces.includes(iface)}
@@ -760,18 +760,18 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                               setMonitoredInterfaces(monitoredInterfaces.filter((mi) => mi !== iface));
                             }
                           }}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
                         />
                         <span>{iface}</span>
                       </label>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-500 italic leading-tight">
+                  <p className="text-[10px] text-slate-400 italic leading-tight">
                     Tes koneksi untuk memuat daftar interface...
                   </p>
                 )}
-                <p className="mt-2 text-[10px] text-slate-500 italic leading-tight">
+                <p className="mt-2 text-[10px] text-slate-400 italic leading-tight">
                   Hanya interface yang dicentang yang akan direkam datanya ke database.
                 </p>
               </div>
@@ -785,12 +785,12 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
           </form>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-md shadow-slate-900/5">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="m-0 text-[13px] font-semibold text-slate-900">
+            <h3 className="m-0 text-[13px] font-semibold text-slate-100">
               Daftar perangkat & endpoint
             </h3>
-            <p className="m-0 text-[11px] text-slate-500">
+            <p className="m-0 text-[11px] text-slate-400">
               Ringkasan IP, tipe, dan konfigurasi monitoring untuk setiap perangkat.
             </p>
           </div>
@@ -798,7 +798,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[11px]">
               <thead>
-                <tr className="bg-slate-50 text-slate-500">
+                <tr className="bg-slate-800/50 text-slate-400">
                   <th className="px-2.5 py-1.5 text-left">Perangkat</th>
                   <th className="px-2.5 py-1.5 text-left">IP / Hostname</th>
                   <th className="px-2.5 py-1.5 text-left">Tipe</th>
@@ -811,25 +811,25 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </thead>
               <tbody>
                 {devices.map((d) => (
-                  <tr key={d.id} className="border-t border-slate-200 hover:bg-slate-50">
+                  <tr key={d.id} className="border-t border-slate-800 hover:bg-slate-800/50">
                     <td className="px-2.5 py-1.5 align-top">
                       <div className="flex items-center gap-2">
                         {renderNodeIcon(d.type)}
-                        <span className="font-semibold text-slate-900">{d.name}</span>
+                        <span className="font-semibold text-slate-100">{d.name}</span>
                       </div>
                     </td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-700">{d.ip}</td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-600 capitalize">{d.type}</td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-600">
+                    <td className="px-2.5 py-1.5 align-top text-slate-300">{d.ip}</td>
+                    <td className="px-2.5 py-1.5 align-top text-slate-400 capitalize">{d.type}</td>
+                    <td className="px-2.5 py-1.5 align-top text-slate-400">
                       {d.integrationMode === "ping" && "Ping"}
                       {d.integrationMode === "snmp" && "SNMP"}
                     </td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-600">
+                    <td className="px-2.5 py-1.5 align-top text-slate-400">
                       {d.snmpVersion && d.snmpCommunity
                         ? `${d.snmpVersion} / ${d.snmpCommunity}`
                         : "-"}
                     </td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-600">
+                    <td className="px-2.5 py-1.5 align-top text-slate-400">
                       {d.netflowPort || 10000}
                       <span className={`ml-1 text-[9px] font-bold ${d.netflowEnabled ? "text-emerald-500" : "text-slate-400"}`}>
                         {d.netflowEnabled ? "(ON)" : "(OFF)"}
@@ -840,7 +840,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${d.monitoringEnabled
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-50 text-slate-500 border-slate-200"
+                          : "bg-slate-800/50 text-slate-400 border-slate-800"
                           }`}
                       >
                         {d.monitoringEnabled ? "Aktif" : "Nonaktif"}
@@ -851,7 +851,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                         <button
                           type="button"
                           onClick={() => openEditDevice(d)}
-                          className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                          className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-2 py-0.5 text-[10px] font-semibold text-slate-300 hover:bg-slate-800/50"
                         >
                           Edit
                         </button>
@@ -884,9 +884,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
       {isTestModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
-          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-4 shadow-xl shadow-slate-900/20">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="m-0 text-[14px] font-semibold text-slate-900">
+              <h3 className="m-0 text-[14px] font-semibold text-slate-100">
                 Tes koneksi perangkat
               </h3>
               <button
@@ -895,25 +895,25 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setIsTestModalOpen(false);
                   setIsTesting(false);
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
               >
                 ✕
               </button>
             </div>
-            <p className="mb-3 text-[11px] text-slate-500">
+            <p className="mb-3 text-[11px] text-slate-400">
               Masukkan IP / hostname yang ingin dites. Sistem akan melakukan
               tes koneksi sederhana menggunakan ICMP ping (untuk mode Ping/SNMP)
               atau cek port API (untuk mode API/SNMP+API).
             </p>
             <div className="mb-3">
-              <label className="mb-1 block text-[11px] text-slate-600">
+              <label className="mb-1 block text-[11px] text-slate-400">
                 IP address / hostname untuk tes
               </label>
               <input
                 value={testIp}
                 onChange={(e) => setTestIp(e.target.value)}
                 placeholder="Misal: 10.10.0.1 atau pop-bandung"
-                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
               />
             </div>
 
@@ -935,7 +935,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setIsTestModalOpen(false);
                   setIsTesting(false);
                 }}
-                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50"
               >
                 Tutup
               </button>
@@ -954,9 +954,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
       {isEditModalOpen && editingDevice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
-          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-4 shadow-xl shadow-slate-900/20">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="m-0 text-[14px] font-semibold text-slate-900">
+              <h3 className="m-0 text-[14px] font-semibold text-slate-100">
                 Edit perangkat
               </h3>
               <button
@@ -965,43 +965,43 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setIsEditModalOpen(false);
                   setEditingDevice(null);
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
               >
                 ✕
               </button>
             </div>
-            <p className="mb-3 text-[11px] text-slate-500">
+            <p className="mb-3 text-[11px] text-slate-400">
               Ubah nama, IP, dan konfigurasi monitoring untuk perangkat ini.
             </p>
 
             <form onSubmit={handleUpdateDevice} className="flex flex-col gap-2.5 text-[12px]">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-600">
+                <label className="mb-1 block text-[11px] text-slate-400">
                   Nama perangkat
                 </label>
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] text-slate-600">
+                <label className="mb-1 block text-[11px] text-slate-400">
                   IP address / hostname
                 </label>
                 <input
                   value={editIp}
                   onChange={(e) => setEditIp(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] text-slate-600">Tipe perangkat</label>
+                <label className="mb-1 block text-[11px] text-slate-400">Tipe perangkat</label>
                 <select
                   value={editType}
                   onChange={(e) => setEditType(e.target.value as DeviceType)}
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="router">Router</option>
                   <option value="switch">Switch</option>
@@ -1012,10 +1012,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
 
               <div className="space-y-1">
-                <label className="mb-2 block text-[11px] text-slate-600 font-semibold">
+                <label className="mb-2 block text-[11px] text-slate-400 font-semibold">
                   Fitur Monitoring & Integrasi
                 </label>
-                <div className="grid gap-2 p-2 rounded-xl border border-slate-100 bg-slate-50/50">
+                <div className="grid gap-2 p-2 rounded-xl border border-slate-800 bg-slate-800/50/50">
                   <Switch
                     label="SNMP Monitoring"
                     description="Tarik data interface, traffic, & resource via SNMP"
@@ -1030,13 +1030,13 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               {editIntegrationMode === "snmp" && (
                 <div className="flex gap-2">
                   <div className="w-28">
-                    <label className="mb-1 block text-[11px] text-slate-600">
+                    <label className="mb-1 block text-[11px] text-slate-400">
                       SNMP versi
                     </label>
                     <select
                       value={editSnmpVersion}
                       onChange={(e) => setEditSnmpVersion(e.target.value as SnmpVersion)}
-                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                     >
                       <option value="v1">v1</option>
                       <option value="v2c">v2c</option>
@@ -1044,20 +1044,20 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     </select>
                   </div>
                   <div className="flex-1">
-                    <label className="mb-1 block text-[11px] text-slate-600">
+                    <label className="mb-1 block text-[11px] text-slate-400">
                       SNMP community
                     </label>
                     <input
                       value={editSnmpCommunity}
                       onChange={(e) => setEditSnmpCommunity(e.target.value)}
-                      className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="mb-1 block text-[11px] text-slate-600">
+                <label className="mb-1 block text-[11px] text-slate-400">
                   NetFlow Port (UDP)
                 </label>
                 <input
@@ -1065,7 +1065,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   value={editNetflowPort}
                   disabled={!editNetflowEnabled}
                   onChange={(e) => setEditNetflowPort(parseInt(e.target.value) || 10000)}
-                  className={`h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!editNetflowEnabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : ""}`}
+                  className={`h-8 w-full rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!editNetflowEnabled ? "bg-slate-800/50 text-slate-400 cursor-not-allowed" : ""}`}
                 />
                 {editNetflowEnabled && (
                   <p className="mt-1 text-[10px] text-slate-400">
@@ -1074,7 +1074,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 )}
               </div>
 
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
                 <Switch
                   label="Aktifkan NetFlow"
                   description="Monitor trafik data dari router ini"
@@ -1084,7 +1084,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
 
 
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100">
+              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
                 <Switch
                   label="Aktifkan Monitoring"
                   description="Mulai merekam log ping & data perangkat ini"
@@ -1094,7 +1094,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
 
               {editIntegrationMode === "snmp" && (
-                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
+                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
                   <Switch
                     label="Aktifkan Monitoring Queue"
                     description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
@@ -1119,7 +1119,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       type="button"
                       onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true, "queues")}
                       disabled={isTesting}
-                      className="bg-white border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
+                      className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
                     >
                       {isTesting && fetchingTarget === "queues" ? "Memuat..." : "Refresh Daftar Queue"}
                     </button>
@@ -1128,7 +1128,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   {editAvailableQueues.length > 0 ? (
                     <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                       {editAvailableQueues.map((q) => (
-                        <label key={q} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
+                        <label key={q} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
                           <input
                             type="checkbox"
                             checked={editMonitoredQueues.includes(q)}
@@ -1139,14 +1139,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                                 setEditMonitoredQueues(editMonitoredQueues.filter((mq) => mq !== q));
                               }
                             }}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
                           />
                           <span>{q}</span>
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-500 italic leading-tight">
+                    <p className="text-[10px] text-slate-400 italic leading-tight">
                       {editMonitoredQueues.length > 0
                         ? `${editMonitoredQueues.length} queue terpilih. Klik refresh untuk melihat daftar lengkap.`
                         : "Klik refresh atau tes koneksi untuk melihat daftar antrian dari perangkat."}
@@ -1156,7 +1156,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               )}
 
               {editIntegrationMode === "snmp" && (
-                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-50/50 border border-slate-100 mb-2">
+                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
                   <Switch
                     label="Aktifkan Monitoring Interface"
                     description="Monitor traffic dari Network Interface"
@@ -1181,7 +1181,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       type="button"
                       onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true, "interfaces")}
                       disabled={isTesting}
-                      className="bg-white border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
+                      className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
                     >
                       {isTesting && fetchingTarget === "interfaces" ? "Memuat..." : "Refresh Interface"}
                     </button>
@@ -1189,7 +1189,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   {editAvailableInterfaces.length > 0 ? (
                     <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                       {editAvailableInterfaces.map((iface) => (
-                        <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer hover:text-blue-600 transition-colors">
+                        <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
                           <input
                             type="checkbox"
                             checked={editMonitoredInterfaces.includes(iface)}
@@ -1200,14 +1200,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                                 setEditMonitoredInterfaces(editMonitoredInterfaces.filter((mi) => mi !== iface));
                               }
                             }}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40"
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
                           />
                           <span>{iface}</span>
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-500 italic leading-tight">
+                    <p className="text-[10px] text-slate-400 italic leading-tight">
                       {editMonitoredInterfaces.length > 0
                         ? `${editMonitoredInterfaces.length} interface terpilih. Klik refresh untuk melihat daftar lengkap.`
                         : "Klik refresh atau tes koneksi untuk melihat daftar interface dari perangkat."}
@@ -1223,7 +1223,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     setIsEditModalOpen(false);
                     setEditingDevice(null);
                   }}
-                  className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50"
                 >
                   Batal
                 </button>
@@ -1241,9 +1241,9 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
       {isDeleteModalOpen && deviceToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
-          <div className="w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/20">
+          <div className="w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-4 shadow-xl shadow-slate-900/20">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="m-0 text-[14px] font-semibold text-slate-900">
+              <h3 className="m-0 text-[14px] font-semibold text-slate-100">
                 Konfirmasi hapus perangkat
               </h3>
               <button
@@ -1254,15 +1254,15 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setDeviceToDelete(null);
                   setDeleteError("");
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
               >
                 ✕
               </button>
             </div>
 
-            <p className="mb-3 text-[11px] text-slate-500">
+            <p className="mb-3 text-[11px] text-slate-400">
               Anda yakin ingin menghapus perangkat
-              <span className="font-semibold text-slate-800"> {deviceToDelete.name}</span>
+              <span className="font-semibold text-slate-100"> {deviceToDelete.name}</span>
               <span className="text-slate-400"> · {deviceToDelete.ip}</span>? Data perangkat akan
               dihapus dari daftar dan monitoring.
             </p>
@@ -1282,7 +1282,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setDeviceToDelete(null);
                   setDeleteError("");
                 }}
-                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50 disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isDeleting}
               >
                 Batal
@@ -1328,7 +1328,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               <button
                 type="button"
                 onClick={() => setFeedbackModal(null)}
-                className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50"
+                className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[11px] font-semibold text-slate-300 cursor-pointer hover:bg-slate-800/50"
               >
                 Tutup
               </button>

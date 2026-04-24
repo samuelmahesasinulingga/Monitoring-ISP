@@ -141,8 +141,23 @@ func main() {
 	e.GET("/api/analytics/top-talkers", state.handleGetTopTalkers)
 	e.GET("/api/analytics/top-protocols", state.handleGetProtocolBreakdown)
 	e.GET("/api/analytics/flow-logs", state.handleGetFlowLogs)
+	e.GET("/api/analytics/top-apps", state.handleGetApplicationBreakdown)
 	e.GET("/api/analytics/active-devices", state.handleGetActiveAnalyticsDevices)
 	e.GET("/api/monitoring/sla-stats", state.handleGetSLAStats)
+
+	// IP Management Component
+	e.GET("/api/ip-pools", state.handleListIPPools)
+	e.POST("/api/ip-pools", state.handleCreateIPPool)
+	e.PUT("/api/ip-pools/:id", state.handleUpdateIPPool)
+	e.DELETE("/api/ip-pools/:id", state.handleDeleteIPPool)
+	e.GET("/api/ipam/ips", state.handleListIPAddresses)
+	e.POST("/api/ipam/ips", state.handleCreateIPAddress)
+	e.PUT("/api/ipam/ips/:id", state.handleUpdateIPAddress)
+	e.DELETE("/api/ipam/ips/:id", state.handleDeleteIPAddress)
+	e.POST("/api/ipam/networks/:id/generate", state.handleGenerateIPs)
+
+	// System Info
+	e.GET("/api/system/metrics", state.handleSystemMetrics)
 
 	go startPingWorker(state)
 	go startServicePingWorker(state)

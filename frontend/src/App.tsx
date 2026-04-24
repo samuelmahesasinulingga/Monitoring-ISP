@@ -23,13 +23,13 @@ type AuthInfo = {
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window === "undefined") return "login";
-    const stored = window.localStorage.getItem("viewMode");
+    const stored = window.sessionStorage.getItem("viewMode");
     return stored === "superAdmin" || stored === "workspace" ? (stored as ViewMode) : "login";
   });
 
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(() => {
     if (typeof window === "undefined") return null;
-    const raw = window.localStorage.getItem("activeWorkspace");
+    const raw = window.sessionStorage.getItem("activeWorkspace");
     if (!raw) return null;
     try {
       return JSON.parse(raw) as Workspace;
@@ -40,7 +40,7 @@ function App() {
 
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(() => {
     if (typeof window === "undefined") return null;
-    const raw = window.localStorage.getItem("authInfo");
+    const raw = window.sessionStorage.getItem("authInfo");
     if (!raw) return null;
     try {
       return JSON.parse(raw) as AuthInfo;
@@ -53,24 +53,24 @@ function App() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem("viewMode", viewMode);
+    window.sessionStorage.setItem("viewMode", viewMode);
   }, [viewMode]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (activeWorkspace) {
-      window.localStorage.setItem("activeWorkspace", JSON.stringify(activeWorkspace));
+      window.sessionStorage.setItem("activeWorkspace", JSON.stringify(activeWorkspace));
     } else {
-      window.localStorage.removeItem("activeWorkspace");
+      window.sessionStorage.removeItem("activeWorkspace");
     }
   }, [activeWorkspace]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (authInfo) {
-      window.localStorage.setItem("authInfo", JSON.stringify(authInfo));
+      window.sessionStorage.setItem("authInfo", JSON.stringify(authInfo));
     } else {
-      window.localStorage.removeItem("authInfo");
+      window.sessionStorage.removeItem("authInfo");
     }
   }, [authInfo]);
   const performLogout = () => {

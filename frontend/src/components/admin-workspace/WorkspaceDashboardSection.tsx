@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import SystemInfoSection from "../super-admin/SystemInfoSection";
 
 type WorkspaceDashboardSectionProps = {
   workspaceName?: string;
@@ -43,10 +44,10 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12 mt-12 bg-white/50 backdrop-blur-sm rounded-2xl border border-slate-200">
+      <div className="flex items-center justify-center p-12 mt-12 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-medium text-sm">Memuat dashboard...</p>
+          <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+          <p className="text-slate-400 font-medium text-sm">Memuat dashboard...</p>
         </div>
       </div>
     );
@@ -54,7 +55,6 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
 
   const {
     activeCustomer,
-    activeTicket,
     unpaidInvoice,
     pingStatus,
     activeAlertCount,
@@ -67,43 +67,43 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
   return (
     <section className="max-w-5xl mx-auto">
       <header className="mb-6">
-        <h1 className="m-0 mb-1 text-[22px] font-bold text-slate-900">
+        <h1 className="m-0 mb-1 text-[22px] font-bold text-slate-100">
           {workspaceName ?? "Ringkasan Workspace"}
         </h1>
-        <p className="m-0 text-[13px] text-slate-500">
+        <p className="m-0 text-[13px] text-slate-400">
           Dashboard singkat aktivitas pelanggan, tiket, dan tagihan di
           workspace ini.
         </p>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/15 to-indigo-500/20 border border-blue-500/20 shadow-lg shadow-slate-900/10">
+        <div className="p-5 rounded-2xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[13px] font-semibold text-blue-700">
+            <span className="text-[13px] font-semibold text-blue-400">
               Pelanggan Aktif
             </span>
             <span className="text-[20px]">👥</span>
           </div>
-          <div className="text-[30px] font-bold text-slate-900">
+          <div className="text-[30px] font-bold text-slate-100">
             {activeCustomer}
           </div>
-          <p className="mt-1 text-[11px] text-slate-600">
+          <p className="mt-1 text-[11px] text-slate-400">
             Total pelanggan aktif di workspace.
           </p>
         </div>
 
 
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-400/15 to-teal-400/20 border border-emerald-500/20 shadow-lg shadow-slate-900/10">
+        <div className="p-5 rounded-2xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[13px] font-semibold text-emerald-700">
+            <span className="text-[13px] font-semibold text-emerald-400">
               Tagihan Belum Lunas
             </span>
             <span className="text-[20px]">💳</span>
           </div>
-          <div className="text-[30px] font-bold text-slate-900">
+          <div className="text-[30px] font-bold text-slate-100">
             {unpaidInvoice}
           </div>
-          <p className="mt-1 text-[11px] text-slate-600">
+          <p className="mt-1 text-[11px] text-slate-400">
             Jumlah invoice yang masih belum dibayar.
           </p>
         </div>
@@ -113,13 +113,13 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
         className="grid gap-5 mt-8"
         style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
       >
-        <div className="rounded-2xl px-4 py-4 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5">
+        <div className="rounded-2xl px-4 py-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-[13px] font-semibold text-slate-900">
+              <div className="text-[13px] font-semibold text-slate-100">
                 Status Ping & SLA
               </div>
-              <div className="text-[11px] text-slate-500">
+              <div className="text-[11px] text-slate-400">
                 Gambaran cepat kesehatan jaringan dan kualitas layanan.
               </div>
             </div>
@@ -136,27 +136,27 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <div className="text-[11px] text-slate-500">Rata-rata latency</div>
-              <div className="text-[18px] font-bold text-slate-900">
+              <div className="text-[11px] text-slate-400">Rata-rata latency</div>
+              <div className="text-[18px] font-bold text-slate-100">
                 {pingStatus.avgLatencyMs} ms
               </div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-500">Packet loss</div>
-              <div className="text-[18px] font-bold text-slate-900">
+              <div className="text-[11px] text-slate-400">Packet loss</div>
+              <div className="text-[18px] font-bold text-slate-100">
                 {pingStatus.packetLoss}%
               </div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-500">SLA bulan ini</div>
-              <div className="text-[18px] font-bold text-slate-900">
+              <div className="text-[11px] text-slate-400">SLA bulan ini</div>
+              <div className="text-[18px] font-bold text-slate-100">
                 {typeof slaThisMonth === 'number' ? slaThisMonth.toFixed(3) : slaThisMonth}%
               </div>
             </div>
           </div>
 
-          <div className="mt-3 pt-2.5 border-t border-dashed border-slate-200 flex items-center justify-between gap-2.5">
-            <div className="text-[11px] text-slate-500">
+          <div className="mt-3 pt-2.5 border-t border-dashed border-slate-800 flex items-center justify-between gap-2.5">
+            <div className="text-[11px] text-slate-400">
               Status invoice bulan ini:
               <span
                 className={`ml-1.5 font-semibold ${
@@ -169,13 +169,13 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
           </div>
         </div>
 
-        <div className="rounded-2xl px-4 py-4 bg-white/90 border border-slate-200 shadow-lg shadow-slate-900/5">
+        <div className="rounded-2xl px-4 py-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
           <div className="flex items-center justify-between mb-2.5">
             <div>
-              <div className="text-[13px] font-semibold text-slate-900">
-                Alert & IP Teratas
+              <div className="text-[13px] font-semibold text-slate-100">
+                Alert & Usage
               </div>
-              <div className="text-[11px] text-slate-500">
+              <div className="text-[11px] text-slate-400">
                 Ringkasan alert aktif dan penggunaan data (Top Talkers).
               </div>
             </div>
@@ -192,48 +192,52 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <div className="text-[11px] font-semibold text-slate-600">
-                IP Pelanggan Teratas (24 jam)
+              <div className="text-[11px] font-semibold text-slate-400">
+                Top Interfaces
               </div>
-              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-500">
+              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-400">
                 {topInterfaces.length > 0 ? topInterfaces.map((iface) => (
                   <li
                     key={iface.name}
                     className="flex justify-between mb-1"
                   >
                     <span>{iface.name}</span>
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-slate-100">
                       {iface.usageMbps} MB
                     </span>
                   </li>
                 )) : (
-                  <li className="text-slate-400 italic">Belum ada data NetFlow.</li>
+                  <li className="text-slate-500 italic">No NetFlow data.</li>
                 )}
               </ul>
             </div>
 
             <div>
-              <div className="text-[11px] font-semibold text-slate-600">
-                Queue Mikrotik teratas
+              <div className="text-[11px] font-semibold text-slate-400">
+                Top Queues
               </div>
-              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-500">
+              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-400">
                 {topQueues.length > 0 ? topQueues.map((queue) => (
                   <li
                     key={queue.name}
                     className="flex justify-between mb-1"
                   >
                     <span>{queue.name}</span>
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-slate-100">
                       {queue.usageMbps} Mbps
                     </span>
                   </li>
                 )) : (
-                  <li className="text-slate-400 italic">Belum ada data Queue.</li>
+                  <li className="text-slate-500 italic">No Queue data.</li>
                 )}
               </ul>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <SystemInfoSection />
       </div>
     </section>
   );

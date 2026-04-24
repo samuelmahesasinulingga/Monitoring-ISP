@@ -288,6 +288,95 @@ func (a *appState) handleGetFlowLogs(c echo.Context) error {
 	})
 }
 
+func (a *appState) handleGetApplicationBreakdown(c echo.Context) error {
+	ctx := c.Request().Context()
+	wsIDStr := c.QueryParam("workspaceId")
+	wsID, _ := strconv.Atoi(wsIDStr)
+	if wsID <= 0 {
+		return c.String(http.StatusBadRequest, "invalid workspace id")
+	}
+
+	deviceIDStr := c.QueryParam("deviceId")
+	deviceID, _ := strconv.Atoi(deviceIDStr)
+	customerIDStr := c.QueryParam("customerId")
+	customerID, _ := strconv.Atoi(customerIDStr)
+
+	durationStr := c.QueryParam("duration")
+	duration, _ := strconv.Atoi(durationStr)
+
+	since := time.Now().Add(-24 * time.Hour)
+	if duration > 0 {
+		since = time.Now().Add(-time.Duration(duration) * time.Minute)
+	}
+
+	query := `
+		SELECT dst_port, SUM(bytes) as total_bytes
+		FROM flow_logs
+		WHERE workspace_id = $1 AND captured_at >= $2
+	`
+	args := []interface{}{wsID, since}
+	
+	if deviceID > 0 {
+		query += " AND (device_id = $3 OR agent_ip::text = (SELECT ip FROM devices WHERE id = $3))"
+		args = append(args, deviceID)
+	} else if customerID > 0 {
+		query += " AND (src_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3) OR dst_ip IN (SELECT monitoring_ip FROM services WHERE customer_id = $3))"
+		args = append(args, customerID)
+	}
+
+	query += " GROUP BY dst_port ORDER BY total_bytes DESC LIMIT 10"
+
+	rows, err := a.db.Query(ctx, query, args...)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "failed to query apps")
+	}
+	defer rows.Close()
+
+	type AppData struct {
+		Port  int    `json:"port"`
+		Name  string `json:"name"`
+		Bytes int64  `json:"bytes"`
+	}
+
+	var results []AppData
+	for rows.Next() {
+		var d AppData
+		if err := rows.Scan(&d.Port, &d.Bytes); err != nil {
+			continue
+		}
+
+		// Map common ports to names
+		switch d.Port {
+		case 80, 443: d.Name = "Web (HTTP/S)"
+		case 53: d.Name = "DNS"
+		case 22: d.Name = "SSH"
+		case 21: d.Name = "FTP"
+		case 8291: d.Name = "Winbox"
+		case 161, 162: d.Name = "SNMP"
+		case 123: d.Name = "NTP"
+		case 3389: d.Name = "RDP"
+		case 25, 465, 587, 993, 995: d.Name = "Email"
+		case 1701, 1723, 500, 4500: d.Name = "VPN"
+		case 1812, 1813: d.Name = "Radius"
+		case 5678: d.Name = "MikroTik MNDP"
+		case 67, 68: d.Name = "DHCP"
+		case 137, 138, 139: d.Name = "NetBIOS"
+		case 20561: d.Name = "BW Test"
+		case 1900: d.Name = "SSDP"
+		case 5353: d.Name = "mDNS"
+		default: d.Name = strconv.Itoa(d.Port)
+		}
+		
+		results = append(results, d)
+	}
+
+	if results == nil {
+		results = []AppData{}
+	}
+
+	return c.JSON(http.StatusOK, results)
+}
+
 func (a *appState) handleGetActiveAnalyticsDevices(c echo.Context) error {
 	ctx := c.Request().Context()
 	wsIDStr := c.QueryParam("workspaceId")

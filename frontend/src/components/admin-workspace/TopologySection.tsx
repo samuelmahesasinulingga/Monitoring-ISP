@@ -116,10 +116,10 @@ const CustomDeviceNode = ({ data }: { data: any }) => {
       </div>
 
       <div className="mt-1 flex flex-col items-center">
-        <div className="text-[11px] font-bold text-slate-800 bg-white/80 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-slate-200 shadow-sm whitespace-nowrap text-center max-w-[130px] truncate">
+        <div className="text-[11px] font-bold text-slate-100 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/80 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-slate-800 shadow-sm whitespace-nowrap text-center max-w-[130px] truncate">
           {data.deviceName || data.label}
         </div>
-        <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {nodeConfig.label.split('/')[0].trim()}
         </div>
       </div>
@@ -394,10 +394,10 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
       <section className="animate-fade-in">
         <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="m-0 mb-1 text-[22px] font-bold text-slate-800">
+            <h2 className="m-0 mb-1 text-[22px] font-bold text-slate-100">
               🗺️ Proyek Topologi {workspaceName ? `- ${workspaceName}` : ""}
             </h2>
-            <p className="m-0 text-[13px] text-slate-500">
+            <p className="m-0 text-[13px] text-slate-400">
               Kelola dan gambar berbagai versi arsitektur jaringan untuk workspace ini.
             </p>
           </div>
@@ -412,15 +412,15 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
         {isLoadingLayouts ? (
           <div className="flex items-center justify-center h-40 text-slate-400">Memuat peta...</div>
         ) : layouts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
+          <div className="flex flex-col items-center justify-center p-12 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-3xl border border-dashed border-slate-300">
             <div className="text-4xl mb-4 opacity-50">🧭</div>
-            <h3 className="text-lg font-bold text-slate-700 m-0 mb-1">Belum Ada Peta Topologi</h3>
-            <p className="text-[13px] text-slate-500 max-w-sm text-center mb-6">
+            <h3 className="text-lg font-bold text-slate-300 m-0 mb-1">Belum Ada Peta Topologi</h3>
+            <p className="text-[13px] text-slate-400 max-w-sm text-center mb-6">
               Mulai dokumentasikan desain arsitektur jaringan Anda dengan membuat peta pertama.
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[13px] font-semibold transition-colors"
+              className="px-6 py-2.5 rounded-xl border border-slate-800 bg-slate-800/50 hover:bg-slate-800 text-slate-300 text-[13px] font-semibold transition-colors"
             >
               Buat Peta Sekarang
             </button>
@@ -431,7 +431,7 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
               <div
                 key={layout.id}
                 onClick={() => setActiveLayout(layout)}
-                className="group relative bg-white rounded-3xl border border-slate-200 p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all cursor-pointer flex flex-col h-48"
+                className="group relative bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-3xl border border-slate-800 p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all cursor-pointer flex flex-col h-48"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center border border-indigo-100 group-hover:scale-110 transition-transform">
@@ -445,7 +445,7 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
                     🗑️
                   </button>
                 </div>
-                <h3 className="mt-auto m-0 text-lg font-bold text-slate-800 line-clamp-2">
+                <h3 className="mt-auto m-0 text-lg font-bold text-slate-100 line-clamp-2">
                   {layout.name}
                 </h3>
                 <p className="m-0 mt-2 text-[11px] text-slate-400 font-medium">
@@ -459,10 +459,10 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
         {/* Modal Create Layout */}
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-sm rounded-3xl bg-white border border-slate-200 p-6 shadow-2xl animate-fade-in">
-              <h3 className="m-0 mb-4 text-[18px] font-bold text-slate-800">Buat Peta Topologi Baru</h3>
+            <div className="w-full max-w-sm rounded-3xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 p-6 shadow-2xl animate-fade-in">
+              <h3 className="m-0 mb-4 text-[18px] font-bold text-slate-100">Buat Peta Topologi Baru</h3>
               <form onSubmit={handleCreateLayout}>
-                <label className="block text-[12px] font-medium text-slate-600 mb-1.5">
+                <label className="block text-[12px] font-medium text-slate-400 mb-1.5">
                   Nama Peta
                 </label>
                 <input
@@ -472,13 +472,13 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
                   placeholder="Misal: Topologi Core, Distribusi Area B..."
                   value={newLayoutName}
                   onChange={(e) => setNewLayoutName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-[13px] outline-none focus:ring-2 focus:ring-blue-500/20 mb-6 bg-slate-50"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 text-[13px] outline-none focus:ring-2 focus:ring-blue-500/20 mb-6 bg-slate-800/50 text-slate-100"
                 />
                 <div className="flex gap-3 justify-end">
                   <button
                     type="button"
                     onClick={() => { setShowCreateModal(false); setNewLayoutName(""); }}
-                    className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-[13px] font-semibold hover:bg-slate-50 transition-colors"
+                    className="px-4 py-2 rounded-xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-slate-400 text-[13px] font-semibold hover:bg-slate-800/50 transition-colors"
                   >
                     Batal
                   </button>
@@ -505,16 +505,16 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
         <div className="flex items-center gap-4">
           <button
             onClick={() => setActiveLayout(null)}
-            className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-200 border border-slate-800 flex items-center justify-center text-slate-400 transition-colors cursor-pointer"
             title="Selesai / Kembali"
           >
             ←
           </button>
           <div>
-            <h2 className="m-0 mb-1 text-[20px] font-bold text-slate-900">
+            <h2 className="m-0 mb-1 text-[20px] font-bold text-slate-100">
               {activeLayout.name}
             </h2>
-            <p className="m-0 text-[12px] text-slate-500">
+            <p className="m-0 text-[12px] text-slate-400">
               Tarik dari panel kiri untuk menambah, klik perangkat untuk edit, seret garis antar bulatan.
             </p>
           </div>
@@ -528,17 +528,17 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
           <button
             onClick={onSaveCanvas}
             disabled={isSaving || isLoadingCanvas}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-black/40 disabled:opacity-50"
           >
             {isSaving ? "Menyimpan..." : "💾 Simpan Perubahan"}
           </button>
         </div>
       </header>
 
-      <div className="flex-1 rounded-3xl border border-slate-200 bg-slate-50 overflow-hidden shadow-inner relative flex">
+      <div className="flex-1 rounded-3xl border border-slate-800 bg-slate-800/50 overflow-hidden shadow-inner relative flex">
         {isLoadingCanvas && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-            <span className="text-slate-500 font-medium">Memuat elemen topologi...</span>
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/50 backdrop-blur-sm">
+            <span className="text-slate-400 font-medium">Memuat elemen topologi...</span>
           </div>
         )}
         
@@ -561,23 +561,23 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
 
         {/* Floating Draggable Panel */}
         <div 
-          className={`absolute z-[10] bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xl overflow-hidden transition-all duration-300 select-none ${isPanelExpanded ? "w-56" : "w-14"}`}
+          className={`absolute z-[10] bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 backdrop-blur-md rounded-2xl border border-slate-800 shadow-xl overflow-hidden transition-all duration-300 select-none ${isPanelExpanded ? "w-56" : "w-14"}`}
           style={{ left: panelPos.x, top: panelPos.y }}
         >
           {/* Header/Drag Handle */}
           <div 
-            className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-move group"
+            className="px-3 py-2 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between cursor-move group"
             onMouseDown={onPanelMouseDown}
           >
             {isPanelExpanded ? (
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">Elemen</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-100 transition-colors">Elemen</span>
             ) : (
-              <span className="text-[11px] font-bold text-slate-400 group-hover:text-slate-600">☰</span>
+              <span className="text-[11px] font-bold text-slate-400 group-hover:text-slate-400">☰</span>
             )}
             <button 
               onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking button
               onClick={() => setIsPanelExpanded(!isPanelExpanded)}
-              className="text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded px-1.5 py-0.5 ml-auto transition-colors cursor-pointer"
+              className="text-slate-400 hover:text-slate-300 hover:bg-slate-200 rounded px-1.5 py-0.5 ml-auto transition-colors cursor-pointer"
             >
                {isPanelExpanded ? "−" : "＋"}
             </button>
@@ -590,14 +590,14 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
                 key={t.type}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); addNode(t.type, t.label); }}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 hover:border-slate-300 text-[12px] font-semibold text-slate-700 shadow-sm active:scale-95 transition-all text-left cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:bg-slate-800/50 hover:border-slate-300 text-[12px] font-semibold text-slate-300 shadow-sm active:scale-95 transition-all text-left cursor-pointer"
               >
                 <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[12px] ${t.color} text-white shadow-sm shrink-0`}>{t.icon}</span>
                 <span className="flex-1 whitespace-nowrap">{t.label}</span>
                 <span className="text-slate-300">+</span>
               </button>
             ))}
-            <div className="mt-2 pt-3 border-t border-slate-100 text-[10px] text-slate-400 font-medium text-center leading-relaxed">
+            <div className="mt-2 pt-3 border-t border-slate-800 text-[10px] text-slate-400 font-medium text-center leading-relaxed">
                Gunakan ikon untuk menambah perangkat.<br/>Tarik garis antar bulatan untuk koneksi.
             </div>
           </div>
@@ -610,7 +610,7 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); addNode(t.type, t.label); }}
                   title={t.label}
-                  className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-100 bg-white hover:bg-slate-50 shadow-sm active:scale-95 transition-all cursor-pointer"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:bg-slate-800/50 shadow-sm active:scale-95 transition-all cursor-pointer"
                 >
                   <span className={`w-full h-full rounded-md flex items-center justify-center text-[11px] ${t.color} text-white shadow-sm`}>{t.icon}</span>
                 </button>
@@ -622,34 +622,34 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
         {/* Node Editor Modal Component */}
         {editingNode && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-sm rounded-3xl bg-white border border-slate-200 p-6 shadow-2xl animate-fade-in">
+            <div className="w-full max-w-sm rounded-3xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 p-6 shadow-2xl animate-fade-in">
               <div className="flex justify-between items-center mb-5">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center border border-orange-200 text-orange-600">
                     ⚙️
                   </div>
-                  <h3 className="m-0 text-[16px] font-bold text-slate-800">Edit Perangkat</h3>
+                  <h3 className="m-0 text-[16px] font-bold text-slate-100">Edit Perangkat</h3>
                 </div>
-                <button onClick={() => setEditingNode(null)} className="w-8 h-8 rounded-full border border-slate-100 flex items-center justify-center hover:bg-slate-50 cursor-pointer text-slate-400 font-bold transition-colors">✕</button>
+                <button onClick={() => setEditingNode(null)} className="w-8 h-8 rounded-full border border-slate-800 flex items-center justify-center hover:bg-slate-800/50 cursor-pointer text-slate-400 font-bold transition-colors">✕</button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[12px] font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Nama / Label Tampil</label>
+                  <label className="block text-[12px] font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Nama / Label Tampil</label>
                   <input
                     type="text"
                     value={editingNode.data.label}
                     onChange={(e) => setEditingNode({...editingNode, data: {...editingNode.data, label: e.target.value}})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-800 text-[13px] font-medium outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-800/50 text-slate-100"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-bold text-slate-600 mb-1.5 uppercase tracking-wide">🔗 Tautan ke Perangkat Asli</label>
+                  <label className="block text-[12px] font-bold text-slate-400 mb-1.5 uppercase tracking-wide">🔗 Tautan ke Perangkat Asli</label>
                   <select
                     value={editingNode.data.deviceId || ""}
                     onChange={(e) => setEditingNode({...editingNode, data: {...editingNode.data, deviceId: e.target.value ? Number(e.target.value) : null}})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none bg-slate-50 focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-800 text-[13px] font-medium outline-none bg-slate-800/50 focus:ring-2 focus:ring-blue-500/20 text-slate-100"
                   >
                     <option value="">-- Tidak Ada / Abstrak --</option>
                     {devices.map(d => (
@@ -659,7 +659,7 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
                   <p className="mt-1.5 text-[10px] text-slate-400 font-medium">Jika dihubungkan, metrik jaringan dapat muncul secara real-time di atas node (TBA).</p>
                 </div>
 
-                <div className="flex gap-2 pt-4 mt-4 border-t border-slate-100">
+                <div className="flex gap-2 pt-4 mt-4 border-t border-slate-800">
                   <button
                     onClick={() => {
                         setNodes(nds => nds.filter(n => n.id !== editingNode.id));
@@ -677,7 +677,7 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
                          deviceName: dev ? dev.name : null
                        });
                     }}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-black/40"
                   >
                     Simpan Perubahan
                   </button>

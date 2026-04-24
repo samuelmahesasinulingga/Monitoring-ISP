@@ -12,6 +12,12 @@ type ProtoData = {
   bytes: number;
 };
 
+type AppData = {
+  port: number;
+  name: string;
+  bytes: number;
+};
+
 type FlowLog = {
   srcIp: string;
   dstIp: string;
@@ -41,6 +47,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
   const [topTalkers, setTopTalkers] = useState<Talker[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [protoBreakdown, setProtoBreakdown] = useState<ProtoData[]>([]);
+  const [appBreakdown, setAppBreakdown] = useState<AppData[]>([]);
   const [flowLogs, setFlowLogs] = useState<FlowLog[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -114,26 +121,29 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
       const customerParam = selectedCustomerId ? `&customerId=${selectedCustomerId}` : "";
       const durationParam = selectedDuration !== "0" ? `&duration=${selectedDuration}` : "";
 
-      const [topRes, protoRes, logsRes] = await Promise.all([
+      const [topRes, protoRes, appRes, logsRes] = await Promise.all([
         fetch(`/api/analytics/top-talkers?workspaceId=${workspaceId}&limit=5${deviceParam}${customerParam}${durationParam}`),
         fetch(`/api/analytics/top-protocols?workspaceId=${workspaceId}${deviceParam}${customerParam}${durationParam}`),
+        fetch(`/api/analytics/top-apps?workspaceId=${workspaceId}${deviceParam}${customerParam}${durationParam}`),
         fetch(`/api/analytics/flow-logs?workspaceId=${workspaceId}${deviceParam}${customerParam}&page=${currentPage}&limit=30`)
       ]);
 
       const topData = await topRes.json();
       const protoData = await protoRes.json();
+      const appData = await appRes.json();
       const logsData = await logsRes.json();
 
-      setTopTalkers(topData || []);
-      setProtoBreakdown(protoData || []);
-      if (logsData) {
+      if (topRes.ok) setTopTalkers(topData || []);
+      if (protoRes.ok) setProtoBreakdown(protoData || []);
+      if (appRes.ok) setAppBreakdown(appData || []);
+      if (logsRes.ok && logsData) {
         setFlowLogs(logsData.logs || []);
         setTotalPages(logsData.totalPages || 1);
       } else {
         setFlowLogs([]);
       }
     } catch (err) {
-      console.error("Traffic Analytics fetch error", err);
+      console.error("Traffic Analytics fetch error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -216,15 +226,15 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-3xl border border-slate-200 shadow-sm gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Traffic Analytics</h2>
-          <p className="text-[13px] text-slate-500">Analisis trafik real-time menggunakan metadata sFlow & Traffic Flow.</p>
+          <h2 className="text-xl font-bold text-slate-100">Traffic Analytics</h2>
+          <p className="text-[13px] text-slate-400">Analisis trafik real-time menggunakan metadata sFlow & Traffic Flow.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Device Filter */}
-          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-xl border border-slate-800">
             <span className="text-[11px] font-bold text-slate-400 uppercase">Device:</span>
             <select
               value={selectedDeviceId}
@@ -237,7 +247,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                   localStorage.setItem(`selectedDeviceId_${workspaceId}`, val);
                 }
               }}
-              className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+              className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
             >
               <option value="">Semua Perangkat</option>
               {allDevices.map(dev => (
@@ -249,7 +259,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
           </div>
 
           {/* Customer Filter */}
-          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-xl border border-slate-800">
             <span className="text-[11px] font-bold text-slate-400 uppercase">Customer:</span>
             <select
               value={selectedCustomerId}
@@ -259,7 +269,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 setCurrentPage(1);
                 setSelectedCustomerId(val);
               }}
-              className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+              className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
             >
               <option value="">Semua Pelanggan</option>
               {customers.map(c => (
@@ -271,7 +281,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
           </div>
 
           {/* Window Filter (Sampling) */}
-          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-xl border border-slate-800">
             <span className="text-[11px] font-bold text-slate-400 uppercase">Window:</span>
             <select
               value={selectedDuration}
@@ -282,7 +292,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 setSelectedDuration(val);
                 updateMonitoringMode(val);
               }}
-              className="bg-transparent border-none text-[12px] font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+              className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
             >
               <option value="0">Continuous (Real-time)</option>
               <option value="1">Snapshot 1 Menit</option>
@@ -298,7 +308,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 {activeDevices.length} ACTIVE
               </div>
             ) : (
-              <div className="px-3 py-1 bg-slate-50 text-slate-500 text-[11px] font-bold rounded-full border border-slate-200 flex items-center gap-1.5 h-full">
+              <div className="px-3 py-1 bg-slate-800/50 text-slate-400 text-[11px] font-bold rounded-full border border-slate-800 flex items-center gap-1.5 h-full">
                 OFFLINE
               </div>
             )
@@ -308,7 +318,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               ACTIVE
             </div>
           ) : (
-            <div className="px-3 py-1 bg-slate-50 text-slate-500 text-[11px] font-bold rounded-full border border-slate-200 flex items-center gap-1.5 h-full">
+            <div className="px-3 py-1 bg-slate-800/50 text-slate-400 text-[11px] font-bold rounded-full border border-slate-800 flex items-center gap-1.5 h-full">
               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
               NO TRAFFIC
             </div>
@@ -319,7 +329,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               fetchData();
               fetchDeviceMetadata();
             }} 
-            className="p-2 bg-slate-50 text-slate-700 text-[11px] font-bold rounded-xl border border-slate-200 hover:bg-white transition-all disabled:opacity-50"
+            className="p-2 bg-slate-800/50 text-slate-300 text-[11px] font-bold rounded-xl border border-slate-800 hover:bg-slate-700 transition-all disabled:opacity-50"
             disabled={isLoading}
             title="Refresh Data"
           >
@@ -330,9 +340,9 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Talkers List */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
+        <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl flex flex-col h-[400px]">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-[14px] font-bold text-slate-800 uppercase tracking-wider">Top Talkers (Last 1h)</h3>
+            <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider">Top Talkers (Last 1h)</h3>
             <span className="text-[11px] text-slate-400">Total Consumption</span>
           </div>
           <div className="flex-1 space-y-5 overflow-y-auto pr-2 custom-scrollbar">
@@ -342,10 +352,10 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               return (
                 <div key={talker.ip} className="space-y-1.5">
                   <div className="flex justify-between text-[12px]">
-                    <span className="font-mono text-slate-700 font-semibold">{talker.ip}</span>
+                    <span className="font-mono text-slate-300 font-semibold">{talker.ip}</span>
                     <span className="font-bold text-blue-600">{formatBytes(talker.bytes)}</span>
                   </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000"
                       style={{ width: `${percentage}%` }}
@@ -363,8 +373,8 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         </div>
 
         {/* Protocol Breakdown Chart */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
-          <h3 className="text-[14px] font-bold text-slate-800 uppercase tracking-wider mb-2">Protocol Breakdown</h3>
+        <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl flex flex-col h-[400px]">
+          <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider mb-2">Protocol Breakdown</h3>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -384,20 +394,69 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 </Pie>
                 <Tooltip
                   formatter={(value: any) => formatBytes(value)}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  contentStyle={{ 
+                    backgroundColor: '#0f172a', 
+                    borderRadius: '12px', 
+                    border: '1px solid #1e293b', 
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    color: '#f1f5f9'
+                  }}
+                  itemStyle={{ color: '#f1f5f9' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Application Distribution Chart */}
+        <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl flex flex-col h-[400px] lg:col-span-2">
+          <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider mb-6">Application Distribution (by Destination Port)</h3>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={appBreakdown} layout="vertical" margin={{ left: 40, right: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                  width={120}
+                />
+                <Tooltip
+                  formatter={(value: any) => formatBytes(value)}
+                  contentStyle={{ 
+                    backgroundColor: '#0f172a', 
+                    borderRadius: '12px', 
+                    border: '1px solid #1e293b', 
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    color: '#f1f5f9'
+                  }}
+                  itemStyle={{ color: '#f1f5f9' }}
+                  cursor={{ fill: '#1e293b', opacity: 0.4 }}
+                />
+                <Bar 
+                  dataKey="bytes" 
+                  radius={[0, 4, 4, 0]}
+                  barSize={20}
+                >
+                  {appBreakdown.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       {/* Real-time Flow Stream */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-3xl overflow-hidden">
+        <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h3 className="text-[14px] font-bold text-slate-800 uppercase tracking-wider">
+            <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider">
               {selectedDuration === "0" ? "Real-time Traffic Flow (Log)" : `Snapshot Traffic Flow (${selectedDuration} Min)`}
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
@@ -418,7 +477,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[12px]">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 uppercase tracking-tighter font-bold">
+              <tr className="bg-slate-800/50 text-slate-400 uppercase tracking-tighter font-bold">
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Source IP</th>
                 <th className="px-6 py-3">Dest IP</th>
@@ -427,25 +486,27 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 <th className="px-6 py-3 text-right">Size</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-800">
               {flowLogs.length > 0 ? flowLogs.map((log, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-3 font-mono text-slate-400">
-                    {new Date(log.capturedAt).toLocaleTimeString()}
+                <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="px-6 py-3 font-mono text-slate-400 whitespace-nowrap">
+                    {new Date(log.capturedAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} {new Date(log.capturedAt).toLocaleTimeString('id-ID', { hour12: false })}
                   </td>
-                  <td className="px-6 py-3 font-mono font-medium text-slate-700">{log.srcIp}</td>
-                  <td className="px-6 py-3 font-mono text-slate-500">{log.dstIp}</td>
+                  <td className="px-6 py-3 font-mono font-medium text-slate-300">{log.srcIp}</td>
+                  <td className="px-6 py-3 font-mono text-slate-400">{log.dstIp}</td>
                   <td className="px-6 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${log.protocol === 'TCP' ? 'bg-blue-100 text-blue-700' :
-                      log.protocol === 'UDP' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'
-                      }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      log.protocol === 'TCP' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                      log.protocol === 'UDP' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 
+                      'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                    }`}>
                       {log.protocol}
                     </span>
                   </td>
-                  <td className="px-6 py-3 font-mono text-slate-500 text-[11px]">
+                  <td className="px-6 py-3 font-mono text-slate-400 text-[11px]">
                     {log.srcPort} → {log.dstPort}
                   </td>
-                  <td className="px-6 py-3 text-right font-bold text-slate-800">
+                  <td className="px-6 py-3 text-right font-bold text-slate-100">
                     {formatBytes(log.bytes)}
                   </td>
                 </tr>
@@ -461,20 +522,20 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         </div>
 
         {totalPages > 1 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-[12px]">
-            <span className="text-slate-500 font-medium">Halaman <strong className="text-slate-700">{currentPage}</strong> dari <strong className="text-slate-700">{totalPages}</strong></span>
+          <div className="p-4 border-t border-slate-800 flex items-center justify-between text-[12px]">
+            <span className="text-slate-400 font-medium">Halaman <strong className="text-slate-300">{currentPage}</strong> dari <strong className="text-slate-300">{totalPages}</strong></span>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                className="px-3 py-1.5 rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-slate-300 hover:bg-slate-800/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 Sebelumnya
               </button>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                className="px-3 py-1.5 rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-slate-300 hover:bg-slate-800/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 Selanjutnya
               </button>
