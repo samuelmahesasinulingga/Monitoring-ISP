@@ -249,9 +249,9 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               }}
               className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
             >
-              <option value="">Semua Perangkat</option>
+              <option value="" className="bg-slate-900 text-slate-100">Semua Perangkat</option>
               {allDevices.map(dev => (
-                <option key={dev.id} value={dev.id.toString()}>
+                <option key={dev.id} value={dev.id.toString()} className="bg-slate-900 text-slate-100">
                   {dev.name} {activeDevices.includes(dev.id) ? "●" : ""}
                 </option>
               ))}
@@ -271,9 +271,9 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               }}
               className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
             >
-              <option value="">Semua Pelanggan</option>
+              <option value="" className="bg-slate-900 text-slate-100">Semua Pelanggan</option>
               {customers.map(c => (
-                <option key={c.id} value={c.id.toString()}>
+                <option key={c.id} value={c.id.toString()} className="bg-slate-900 text-slate-100">
                   {c.name}
                 </option>
               ))}
@@ -294,10 +294,10 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               }}
               className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
             >
-              <option value="0">Continuous (Real-time)</option>
-              <option value="1">Snapshot 1 Menit</option>
-              <option value="3">Snapshot 3 Menit</option>
-              <option value="5">Snapshot 5 Menit</option>
+              <option value="0" className="bg-slate-900 text-slate-100">Continuous (Real-time)</option>
+              <option value="1" className="bg-slate-900 text-slate-100">Snapshot 1 Menit</option>
+              <option value="3" className="bg-slate-900 text-slate-100">Snapshot 3 Menit</option>
+              <option value="5" className="bg-slate-900 text-slate-100">Snapshot 5 Menit</option>
             </select>
           </div>
 

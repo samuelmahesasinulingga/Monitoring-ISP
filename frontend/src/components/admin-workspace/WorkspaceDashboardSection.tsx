@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import SystemInfoSection from "../super-admin/SystemInfoSection";
+import SystemInfoSection from "./SystemInfoSection";
 
 type WorkspaceDashboardSectionProps = {
   workspaceName?: string;

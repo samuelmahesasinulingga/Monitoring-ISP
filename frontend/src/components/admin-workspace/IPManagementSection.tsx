@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 interface IPPool {
   id: number;
@@ -45,6 +46,32 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
   
   const [editIPMode, setEditIPMode] = useState(false);
   const [editingIPId, setEditingIPId] = useState<number | null>(null);
+  const [selectedIPIds, setSelectedIPIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Custom Confirm Dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: "danger" | "warning" | "info";
+    isLoading?: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showConfirm = (opts: Omit<typeof confirmDialog, "isOpen" | "isLoading">) => {
+    setConfirmDialog({ ...opts, isOpen: true, isLoading: false });
+  };
+
+  const closeConfirm = () => {
+    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+  };
   
   const [newPool, setNewPool] = useState({ 
     name: "", 
@@ -65,10 +92,29 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
     description: ""
   });
 
+  const calculateMaxHosts = (cidr: string): number => {
+    const parts = cidr.split("/");
+    if (parts.length !== 2) return 0;
+    const mask = parseInt(parts[1]);
+    if (isNaN(mask) || mask < 0 || mask > 32) return 0;
+    // Formula: 2^(32-mask) - 2 (subtract network and broadcast)
+    if (mask >= 31) return 0; 
+    return Math.pow(2, 32 - mask) - 2;
+  };
+
+  const handleSubnetChange = (val: string) => {
+    const maxHosts = calculateMaxHosts(val);
+    setNewPool(prev => ({
+      ...prev,
+      subnet: val,
+      total: maxHosts > 0 ? maxHosts : prev.total
+    }));
+  };
+
   // Persistence: Restore selected pool from localStorage
   useEffect(() => {
     const savedPoolId = localStorage.getItem("selectedIPPoolId");
-    if (savedPoolId && ipPools.length > 0) {
+    if (savedPoolId && ipPools.length > 0 && !selectedPool) {
       const pool = ipPools.find(p => p.id === Number(savedPoolId));
       if (pool) setSelectedPool(pool);
     }
@@ -78,8 +124,6 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
   useEffect(() => {
     if (selectedPool) {
       localStorage.setItem("selectedIPPoolId", selectedPool.id.toString());
-    } else {
-      localStorage.removeItem("selectedIPPoolId");
     }
   }, [selectedPool]);
 
@@ -91,6 +135,15 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
       if (res.ok) {
         const data = await res.json();
         setIpPools(data);
+        
+        // Auto-refresh selectedPool stats if it is currently open
+        setSelectedPool(prev => {
+          if (!prev) return null;
+          const updated = data.find((p: IPPool) => p.id === prev.id);
+          return updated ? updated : prev;
+        });
+        
+        return data;
       }
     } catch (err) {
       console.error("fetch pools error", err);
@@ -141,8 +194,29 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
     try {
       const res = await fetch(`/api/ipam/networks/${selectedPool.id}/generate`, { method: "POST" });
       if (res.ok) {
+        const data = await res.json();
+        
+        if (data.count === 0) {
+          showConfirm({
+            title: "Informasi Network",
+            message: data.message || "Kapasitas network sudah penuh. Tidak ada IP baru yang dibuat.",
+            confirmLabel: "Tutup",
+            variant: "info",
+            onConfirm: () => closeConfirm()
+          });
+        }
+        
         fetchIPs(selectedPool.id);
         fetchPools(); // Update used count
+      } else {
+        const errText = await res.text();
+        showConfirm({
+          title: "Gagal Generate IP",
+          message: errText,
+          confirmLabel: "Tutup",
+          variant: "danger",
+          onConfirm: () => closeConfirm()
+        });
       }
     } catch (err) {
       console.error("generate ips error", err);
@@ -192,16 +266,71 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
     setShowIPModal(true);
   };
 
-  const handleDeleteIP = async (id: number) => {
-    if (!confirm("Hapus entri IP ini?")) return;
-    try {
-      const res = await fetch(`/api/ipam/ips/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        if (selectedPool) fetchIPs(selectedPool.id);
-        fetchPools();
-      }
-    } catch (err) {
-      console.error("delete ip error", err);
+  const handleDeleteIP = (id: number) => {
+    showConfirm({
+      title: "Hapus IP Address",
+      message: "Apakah Anda yakin ingin menghapus entri IP ini?",
+      confirmLabel: "Hapus",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/ipam/ips/${id}`, { method: "DELETE" });
+          if (res.ok) {
+            if (selectedPool) fetchIPs(selectedPool.id);
+            fetchPools();
+          }
+        } catch (err) {
+          console.error("delete ip error", err);
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIPIds.size === 0) return;
+    showConfirm({
+      title: `Hapus ${selectedIPIds.size} IP Sekaligus`,
+      message: `Anda akan menghapus ${selectedIPIds.size} IP address yang dipilih. Tindakan ini tidak bisa dibatalkan.`,
+      confirmLabel: `Hapus ${selectedIPIds.size} IP`,
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        setIsBulkDeleting(true);
+        try {
+          await Promise.all(
+            Array.from(selectedIPIds).map(id =>
+              fetch(`/api/ipam/ips/${id}`, { method: "DELETE" })
+            )
+          );
+          setSelectedIPIds(new Set());
+          if (selectedPool) fetchIPs(selectedPool.id);
+          fetchPools();
+        } catch (err) {
+          console.error("bulk delete error", err);
+        } finally {
+          setIsBulkDeleting(false);
+          closeConfirm();
+        }
+      },
+    });
+  };
+
+  const toggleSelectIP = (id: number) => {
+    setSelectedIPIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIPIds.size === ipAddresses.length) {
+      setSelectedIPIds(new Set());
+    } else {
+      setSelectedIPIds(new Set(ipAddresses.map(ip => ip.id)));
     }
   };
 
@@ -264,14 +393,24 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
     }
   };
 
-  const handleDeletePool = async (id: number) => {
-    if (!confirm("Hapus IP Network ini?")) return;
-    try {
-      const res = await fetch(`/api/ip-pools/${id}`, { method: "DELETE" });
-      if (res.ok) fetchPools();
-    } catch (err) {
-      console.error("delete pool error", err);
-    }
+  const handleDeletePool = (id: number) => {
+    showConfirm({
+      title: "Hapus IP Network",
+      message: "Apakah Anda yakin ingin menghapus network ini? Semua IP address di dalamnya juga akan terhapus.",
+      confirmLabel: "Hapus Network",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/ip-pools/${id}`, { method: "DELETE" });
+          if (res.ok) fetchPools();
+        } catch (err) {
+          console.error("delete pool error", err);
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
   };
 
   return (
@@ -379,7 +518,10 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
               <p className="text-slate-400">Managing IP addresses for network: <span className="text-blue-400 font-mono">{selectedPool.subnet}</span></p>
             </div>
             <button 
-              onClick={() => setSelectedPool(null)}
+              onClick={() => {
+                setSelectedPool(null);
+                localStorage.removeItem("selectedIPPoolId");
+              }}
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -404,7 +546,30 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
 
           <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden">
             <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-              <h3 className="font-bold text-white">IP Addresses</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="font-bold text-white">IP Addresses</h3>
+                {selectedIPIds.size > 0 && (
+                  <div className="flex items-center gap-2 animate-in fade-in duration-200">
+                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-full border border-blue-500/20">
+                      {selectedIPIds.size} dipilih
+                    </span>
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isBulkDeleting}
+                      className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-[10px] font-bold border border-red-500/20 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      {isBulkDeleting ? "Menghapus..." : "Hapus Pilihan"}
+                    </button>
+                    <button
+                      onClick={() => setSelectedIPIds(new Set())}
+                      className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-[10px] font-bold border border-slate-700 transition-all"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-3">
                 <button 
                   onClick={() => setShowIPModal(true)}
@@ -426,25 +591,49 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
             <table className="w-full text-left">
               <thead className="bg-slate-800/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                 <tr>
-                  <th className="px-6 py-4">IP Address</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Device Name</th>
-                  <th className="px-6 py-4">MAC Address</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-4 py-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={ipAddresses.length > 0 && selectedIPIds.size === ipAddresses.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 accent-blue-500 cursor-pointer"
+                      title="Pilih Semua"
+                    />
+                  </th>
+                  <th className="px-4 py-4">IP Address</th>
+                  <th className="px-4 py-4">Status</th>
+                  <th className="px-4 py-4">Device Name</th>
+                  <th className="px-4 py-4">MAC Address</th>
+                  <th className="px-4 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-sm">
                 {ipAddresses.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500 italic">
                       No IP addresses found. Add manually or generate from available IPs.
                     </td>
                   </tr>
                 ) : (
                   ipAddresses.map(ip => (
-                    <tr key={ip.id} className="hover:bg-slate-800/30 text-slate-300">
-                      <td className="px-6 py-4 font-mono font-bold text-blue-400">{ip.ipAddress}</td>
-                      <td className="px-6 py-4">
+                    <tr
+                      key={ip.id}
+                      className={`transition-colors text-slate-300 ${
+                        selectedIPIds.has(ip.id)
+                          ? "bg-blue-500/5 border-l-2 border-blue-500"
+                          : "hover:bg-slate-800/30"
+                      }`}
+                    >
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIPIds.has(ip.id)}
+                          onChange={() => toggleSelectIP(ip.id)}
+                          className="w-4 h-4 rounded border-slate-600 bg-slate-800 accent-blue-500 cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-4 py-4 font-mono font-bold text-blue-400">{ip.ipAddress}</td>
+                      <td className="px-4 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                           ip.status === 'available' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
                           ip.status === 'assigned' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
@@ -453,12 +642,12 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
                           {ip.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="font-medium text-slate-200">{ip.deviceName || "-"}</div>
                         <div className="text-[10px] text-slate-500 uppercase">{ip.deviceType}</div>
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs">{ip.macAddress || "-"}</td>
-                      <td className="px-6 py-4 text-right space-x-2">
+                      <td className="px-4 py-4 font-mono text-xs">{ip.macAddress || "-"}</td>
+                      <td className="px-4 py-4 text-right space-x-2">
                         <button 
                           onClick={() => handleEditIP(ip)}
                           className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-all"
@@ -508,8 +697,11 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
                     placeholder="192.168.1.0/24"
                     className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-mono"
                     value={newPool.subnet}
-                    onChange={e => setNewPool({...newPool, subnet: e.target.value})}
+                    onChange={e => handleSubnetChange(e.target.value)}
                   />
+                  {calculateMaxHosts(newPool.subnet) > 0 && (
+                    <p className="text-[10px] text-blue-400 ml-1">Kapasitas maksimal: {calculateMaxHosts(newPool.subnet)} Host</p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -570,9 +762,14 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
                     <input 
                       type="number" 
                       required
+                      max={calculateMaxHosts(newPool.subnet) || undefined}
                       className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                       value={newPool.total}
-                      onChange={e => setNewPool({...newPool, total: Number(e.target.value)})}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        const max = calculateMaxHosts(newPool.subnet);
+                        setNewPool({...newPool, total: (max > 0 && val > max) ? max : val});
+                      }}
                     />
                   </div>
                 </div>
@@ -705,6 +902,18 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
         </div>
       </div>
       )}
+
+      {/* Custom Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        isLoading={confirmDialog.isLoading}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 };

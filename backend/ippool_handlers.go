@@ -207,9 +207,22 @@ func (a *appState) handleGenerateIPs(c echo.Context) error {
 	poolID, _ := strconv.Atoi(poolIDStr)
 
 	var pool IPPool
-	err := a.db.QueryRow(ctx, "SELECT id, subnet, gateway FROM ip_pools WHERE id = $1", poolID).Scan(&pool.ID, &pool.Subnet, &pool.Gateway)
+	err := a.db.QueryRow(ctx, "SELECT id, subnet, gateway, total_ips FROM ip_pools WHERE id = $1", poolID).Scan(&pool.ID, &pool.Subnet, &pool.Gateway, &pool.TotalIPs)
 	if err != nil {
 		return c.String(http.StatusNotFound, "pool not found")
+	}
+
+	// Count how many IPs already exist in this pool
+	var existingCount int
+	_ = a.db.QueryRow(ctx, "SELECT COUNT(*) FROM ip_addresses WHERE pool_id = $1", poolID).Scan(&existingCount)
+
+	// Calculate remaining slots
+	remaining := pool.TotalIPs - existingCount
+	if remaining <= 0 {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"message": fmt.Sprintf("Pool sudah penuh. Total: %d, Sudah ada: %d IP.", pool.TotalIPs, existingCount),
+			"count":   0,
+		})
 	}
 
 	// Parse CIDR
@@ -218,27 +231,30 @@ func (a *appState) handleGenerateIPs(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "invalid subnet format")
 	}
 
-	// Simple generator for /24 or smaller for now
-	// For production, we'd need a more robust IP math library
-	ips := generateIPList(ipNet)
-	
-	// Insert only if not exists
+	// Generate all possible IPs from subnet, then slice to the remaining limit
+	allIPs := generateIPList(ipNet)
+
+	// Insert only if not exists, up to the remaining limit
 	count := 0
-	for _, ipAddr := range ips {
+	for _, ipAddr := range allIPs {
+		if count >= remaining {
+			break
+		}
+
 		status := "available"
 		if ipAddr == pool.Gateway {
 			status = "reserved"
 		}
-		
-		_, err := a.db.Exec(ctx, "INSERT INTO ip_addresses (pool_id, ip_address, status) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", pool.ID, ipAddr, status)
-		if err == nil {
+
+		res, err := a.db.Exec(ctx, "INSERT INTO ip_addresses (pool_id, ip_address, status) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", pool.ID, ipAddr, status)
+		if err == nil && res.RowsAffected() > 0 {
 			count++
 		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": fmt.Sprintf("Successfully generated %d IP addresses", count),
-		"count": count,
+		"message": fmt.Sprintf("Berhasil membuat %d IP address. (Sisa slot: %d)", count, remaining-count),
+		"count":   count,
 	})
 }
 

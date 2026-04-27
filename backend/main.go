@@ -100,6 +100,9 @@ func main() {
 	// Monitoring & Traffic
 	e.GET("/api/monitoring/ping", state.handlePingDevices)
 	e.GET("/api/monitoring/ping-logs/:id", state.handleGetDevicePingLogs)
+	e.GET("/api/monitoring/ping-history/:id", state.handleGetPingHistory)
+	e.GET("/api/monitoring/ping-history/:id/export", state.handleExportPingHistoryCSV)
+	e.GET("/api/monitoring/uptime-report/:id", state.handleGetYearlyUptimeReport)
 	e.PUT("/api/devices/:id/ping-interval", state.handleUpdatePingInterval)
 	e.GET("/api/monitoring/interfaces/:id", state.handleListDeviceInterfaces)
 	e.GET("/api/monitoring/traffic/:id", state.handleGetInterfaceTraffic)
@@ -164,6 +167,7 @@ func main() {
 	go startSnmpWorker(state)
 	go startBillingAutomationWorker(state)
 	go startNetFlowCollector(state)
+	go startPingAggregatorWorker(state)
 	go startSLAReportWorker(state)
 
 	log.Println("Backend running on :8080")

@@ -2,8 +2,7 @@ import React from "react";
 import "./Sidebar.css";
 
 export type MenuKey = 
-  | "dashboard" | "monitoring" | "analytics" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings" | "ipManagement"
-  | "overview" | "workspace" | "roles" | "users" | "profile";
+  | "dashboard" | "monitoring" | "analytics" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings" | "ipManagement";
 
 interface SidebarProps {
   activeMenu: MenuKey;
@@ -12,14 +11,9 @@ interface SidebarProps {
   onTabChange?: (tab: any) => void;
   workspaceName?: string;
   workspaceId?: number;
-  fetchedWorkspaces?: any[];
-  isLoadingWorkspaces?: boolean;
-  onChangeWorkspace?: (ws: any) => void;
   onLogout: () => void;
   currentUserEmail?: string;
   currentUserRole?: string;
-  onBackToSuperAdmin?: () => void;
-  sideMode?: "admin" | "superAdmin";
   isOpen?: boolean;
   onClose?: () => void;
 }
@@ -58,20 +52,8 @@ const Icons = {
   Bell: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
   ),
-  ChevronLeft: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-  ),
   ChevronDown: () => (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-  ),
-  Diagnostics: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="8" x="2" y="2" rx="2"/><path d="M10 10 2 2"/><rect width="8" height="8" x="14" y="14" rx="2"/><path d="m22 22-8-8"/><rect width="8" height="8" x="2" y="14" rx="2"/><path d="m10 14-8 8"/><rect width="8" height="8" x="14" y="2" rx="2"/><path d="M14 10 22 2"/></svg>
-  ),
-  Roles: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-  ),
-  User: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
   ),
   IP: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><path d="M7 22V14"/><path d="M17 22V14"/><path d="M2 14h20"/></svg>
@@ -85,28 +67,22 @@ const Sidebar: React.FC<SidebarProps> = ({
   onTabChange,
   workspaceName,
   workspaceId,
-  fetchedWorkspaces = [],
-  isLoadingWorkspaces = false,
-  onChangeWorkspace,
   onLogout,
   currentUserEmail,
   currentUserRole,
-  onBackToSuperAdmin,
-  sideMode = "admin",
   isOpen = false,
   onClose
 }) => {
   const [expandedMenus, setExpandedMenus] = React.useState<Record<string, boolean>>({
     monitoring: activeMenu === "monitoring"
   });
-  const [showWSMenu, setShowWSMenu] = React.useState(false);
 
   const initials = (workspaceName || currentUserEmail || "U")
     .trim()
     .charAt(0)
     .toUpperCase();
 
-  const adminMenuItems = [
+  const menuItems = [
     { key: "dashboard", label: "Dashboard", icon: Icons.Dashboard, color: "#3b82f6", group: "OPERATIONS" },
     { 
       key: "monitoring", 
@@ -131,17 +107,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { key: "settings", label: "Pengaturan", icon: Icons.Settings, color: "#94a3b8", group: "SYSTEM" },
   ];
 
-  const superAdminMenuItems = [
-    { key: "overview", label: "Dashboard", icon: Icons.Dashboard, color: "#3b82f6", group: "CENTRAL" },
-    { key: "workspace", label: "Workspace", icon: Icons.Devices, color: "#10b981", group: "MANAGEMENT" },
-    { key: "roles", label: "Role & Akses", icon: Icons.Roles, color: "#f59e0b", group: "MANAGEMENT" },
-    { key: "users", label: "Pengguna", icon: Icons.User, color: "#6366f1", group: "MANAGEMENT" },
-    { key: "settings", label: "Pengaturan Sistem", icon: Icons.Settings, color: "#94a3b8", group: "SYSTEM" },
-    { key: "profile", label: "Profil Saya", icon: Icons.User, color: "#ec4899", group: "SYSTEM" },
-  ];
-
-  const menuItems = sideMode === "superAdmin" ? superAdminMenuItems : adminMenuItems;
-
   const groupedItems = menuItems.reduce((acc, item) => {
     if (!acc[item.group]) acc[item.group] = [];
     acc[item.group].push(item);
@@ -159,73 +124,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside 
-        className={`sidebar-container ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+        className={`sidebar-container ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="sidebar-header">
         <div className="logo-container">
           <span className="logo-text">NOCS</span>
         </div>
-        <div className="header-info" style={{ position: "relative" }}>
+        <div className="header-info">
           <h1 className="app-title">NOC System</h1>
-          {onBackToSuperAdmin || onChangeWorkspace ? (
-            <button 
-              className="org-select-btn" 
-              onClick={() => setShowWSMenu(!showWSMenu)}
-              style={{ marginTop: "4px" }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <p className="org-name" style={{ color: "#f8fafc", fontWeight: 600 }}>{workspaceName || "Pilih Workspace"}</p>
-                <p className="user-role" style={{ fontSize: "10px" }}>Admin Workspace</p>
-              </div>
-              <Icons.ChevronDown />
-            </button>
-          ) : (
-            <div style={{ marginTop: "4px" }}>
-              <p className="org-name">{workspaceName || "PT. Jaringan Datamedia"}</p>
-              <span className="app-version">v1.0.12</span>
-            </div>
-          )}
-
-          {showWSMenu && (
-            <div className="workspace-dropdown">
-              {onBackToSuperAdmin && (
-                <button 
-                  className="platform-central-btn"
-                  onClick={() => {
-                    onBackToSuperAdmin();
-                    setShowWSMenu(false);
-                  }}
-                >
-                  ← Platform Central (Super Admin)
-                </button>
-              )}
-              
-              <div className="ws-label">Workspaces</div>
-              
-              <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-                {fetchedWorkspaces.map((ws) => (
-                  <button
-                    key={ws.id}
-                    className={`workspace-item ${ws.id === workspaceId ? "active" : ""}`}
-                    onClick={() => {
-                      onChangeWorkspace && onChangeWorkspace(ws);
-                      setShowWSMenu(false);
-                    }}
-                  >
-                    <div className="ws-avatar-sm">{ws.name.charAt(0).toUpperCase()}</div>
-                    <span style={{ fontSize: "12px" }}>{ws.name}</span>
-                  </button>
-                ))}
-                {isLoadingWorkspaces && <div className="ws-label" style={{ textAlign: "center" }}>Memuat...</div>}
-              </div>
-            </div>
-          )}
+          <div style={{ marginTop: "4px" }}>
+            <p className="org-name">{workspaceName || "Main Workspace"}</p>
+            <span className="app-version">v1.0.12</span>
+          </div>
         </div>
-        {onBackToSuperAdmin && (
-          <button className="back-button" onClick={onBackToSuperAdmin}>
-            <Icons.ChevronLeft />
-          </button>
-        )}
       </div>
 
       <div className="nav-scroll">
@@ -298,16 +209,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="user-card">
           <div 
             className="user-avatar" 
-            style={{ 
-              cursor: "pointer",
-              background: sideMode === "superAdmin" ? "linear-gradient(135deg, #ec4899 0%, #be185d 100%)" : undefined 
-            }}
-            onClick={() => sideMode === "superAdmin" && onMenuChange("profile")}
+            style={{ cursor: "default" }}
           >
             {initials}
           </div>
           <div className="user-info">
-            <p className="user-name">{sideMode === "superAdmin" ? "Super Admin" : "IDN"}</p>
+            <p className="user-name">IDN</p>
             <p className="user-role">{currentUserRole || "Admin"}</p>
           </div>
           <div className="footer-actions">
@@ -315,7 +222,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <Icons.Bell />
               <span className="badge">99+</span>
             </div>
-            <div className="action-btn" onClick={onLogout}>
+            <div className="action-btn" onClick={onLogout} style={{ cursor: "pointer" }}>
               <Icons.Logout />
             </div>
           </div>

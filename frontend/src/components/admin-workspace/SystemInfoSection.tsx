@@ -13,7 +13,7 @@ interface ServerInfo {
   hostname: string;
   os: string;
   kernel: string;
-  uptime: number; // in seconds
+  uptime: number;
   cpuCores: number;
 }
 
@@ -129,10 +129,44 @@ const DonutChart = ({ percent, color, label, subLabel }: { percent: number, colo
 };
 
 const SystemInfoSection: React.FC = () => {
-  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
-  const [history, setHistory] = useState<ChartDataPoint[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const [isActive, setIsActive] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("systemInfoActive") === "true";
+    }
+    return false;
+  });
+
+  const handleActivate = () => {
+    setIsActive(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("systemInfoActive", "true");
+    }
+  };
+  const [metrics, setMetrics] = useState<SystemMetrics | null>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("systemInfoMetrics");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return null;
+  });
+  const [history, setHistory] = useState<ChartDataPoint[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("systemInfoHistory");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !sessionStorage.getItem("systemInfoMetrics");
+    }
+    return true;
+  });
+
   // Previous counters for calculating speed (rates per second)
   const [prevNet, setPrevNet] = useState<NetworkIO | null>(null);
   const [prevDisk, setPrevDisk] = useState<DiskIO | null>(null);
@@ -142,6 +176,8 @@ const SystemInfoSection: React.FC = () => {
   const [rates, setRates] = useState({ rx: 0, tx: 0, read: 0, write: 0 });
 
   useEffect(() => {
+    if (!isActive) return;
+
     let intervalId: ReturnType<typeof setInterval>;
 
     const fetchMetrics = async () => {
@@ -150,10 +186,13 @@ const SystemInfoSection: React.FC = () => {
         if (res.ok) {
           const data: SystemMetrics = await res.json();
           setMetrics(data);
-          
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("systemInfoMetrics", JSON.stringify(data));
+          }
+
           const now = Date.now();
           const timeLabel = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          
+
           let rxRate = 0;
           let txRate = 0;
           let readRate = 0;
@@ -184,10 +223,13 @@ const SystemInfoSection: React.FC = () => {
               write: writeRate
             }];
             // Keep last 20 data points
-            if (newHistory.length > 20) return newHistory.slice(newHistory.length - 20);
-            return newHistory;
+            const finalHistory = newHistory.length > 20 ? newHistory.slice(newHistory.length - 20) : newHistory;
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("systemInfoHistory", JSON.stringify(finalHistory));
+            }
+            return finalHistory;
           });
-          
+
           if (isLoading) setIsLoading(false);
         }
       } catch (err) {
@@ -199,8 +241,30 @@ const SystemInfoSection: React.FC = () => {
     intervalId = setInterval(fetchMetrics, 3000); // Poll every 3 seconds
 
     return () => clearInterval(intervalId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prevNet, prevDisk, lastFetchTime, isLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, prevNet, prevDisk, lastFetchTime, isLoading]);
+
+  if (!isActive) {
+    return (
+      <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-8 md:p-12 flex flex-col items-center justify-center shadow-lg text-center">
+        <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-4 border border-indigo-500/20">
+          <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+          </svg>
+        </div>
+        <h2 className="text-lg font-bold text-slate-100 mb-2">Monitor Sistem Server</h2>
+        <p className="text-[13px] text-slate-400 max-w-md mb-6 leading-relaxed">
+          Aktifkan modul ini untuk memantau penggunaan CPU, Memory, Storage, dan performa I/O jaringan server secara <span className="text-slate-300 font-semibold">real-time</span>.
+        </p>
+        <button 
+          onClick={handleActivate} 
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold rounded-full transition-all shadow-lg shadow-indigo-500/20 border border-indigo-400/50 cursor-pointer"
+        >
+          Aktifkan Monitor Sistem
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading || !metrics) {
     return (
@@ -214,7 +278,7 @@ const SystemInfoSection: React.FC = () => {
   }
 
   const { serverInfo, memory, storage, cpu } = metrics;
-  
+
   const memPercent = (memory.used / memory.total) * 100;
   const storagePercent = storage.total > 0 ? (storage.used / storage.total) * 100 : 0;
 
@@ -225,7 +289,7 @@ const SystemInfoSection: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* Server Info Card */}
         <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-blue-500/10 transition-all duration-700" />
@@ -233,7 +297,7 @@ const SystemInfoSection: React.FC = () => {
             <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" /></svg>
             <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Server Info</h3>
           </div>
-          
+
           <div className="space-y-4 text-sm">
             <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
               <span className="text-slate-400">Hostname</span>
@@ -266,10 +330,10 @@ const SystemInfoSection: React.FC = () => {
             <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Memory</h3>
           </div>
           <div className="flex-1 flex items-center justify-center z-10">
-            <DonutChart 
-              percent={memPercent} 
-              color="#a855f7" 
-              label={`${formatBytes(memory.used)} / ${formatBytes(memory.total)}`} 
+            <DonutChart
+              percent={memPercent}
+              color="#a855f7"
+              label={`${formatBytes(memory.used)} / ${formatBytes(memory.total)}`}
               subLabel="Used"
             />
           </div>
@@ -283,10 +347,10 @@ const SystemInfoSection: React.FC = () => {
             <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Storage (/)</h3>
           </div>
           <div className="flex-1 flex items-center justify-center z-10">
-            <DonutChart 
-              percent={storagePercent} 
-              color="#f59e0b" 
-              label={`${formatBytes(storage.used)} / ${formatBytes(storage.total)}`} 
+            <DonutChart
+              percent={storagePercent}
+              color="#f59e0b"
+              label={`${formatBytes(storage.used)} / ${formatBytes(storage.total)}`}
               subLabel="Used"
             />
           </div>
@@ -296,7 +360,7 @@ const SystemInfoSection: React.FC = () => {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* CPU Usage Chart */}
         <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-1000 pointer-events-none" />
@@ -319,8 +383,8 @@ const SystemInfoSection: React.FC = () => {
                   </linearGradient>
                 </defs>
                 <YAxis hide domain={[0, 100]} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }} 
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }}
                   itemStyle={{ color: '#60a5fa' }}
                   labelStyle={{ color: '#94a3b8' }}
                 />
@@ -353,8 +417,8 @@ const SystemInfoSection: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={history} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                 <YAxis hide domain={['auto', 'auto']} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }} 
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }}
                   labelStyle={{ color: '#94a3b8' }}
                   formatter={(value: any) => formatSpeed(value)}
                 />
@@ -388,7 +452,7 @@ const SystemInfoSection: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={history} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                 <YAxis hide domain={['auto', 'auto']} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }}
                   labelStyle={{ color: '#94a3b8' }}
                   formatter={(value: any) => formatSpeed(value)}

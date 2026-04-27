@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import SuperAdminDashboard from "./components/SuperAdminDashboard";
 import AdminWorkspaceDashboard from "./components/admin-workspace/AdminWorkspaceDashboard";
 import LoginPage from "./components/LoginPage";
 
@@ -10,7 +9,7 @@ type Workspace = {
   iconUrl?: string;
 };
 
-type ViewMode = "login" | "superAdmin" | "workspace";
+type ViewMode = "login" | "workspace";
 
 type AuthInfo = {
   email: string;
@@ -24,7 +23,7 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window === "undefined") return "login";
     const stored = window.sessionStorage.getItem("viewMode");
-    return stored === "superAdmin" || stored === "workspace" ? (stored as ViewMode) : "login";
+    return stored === "workspace" ? "workspace" : "login";
   });
 
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(() => {
@@ -73,6 +72,7 @@ function App() {
       window.sessionStorage.removeItem("authInfo");
     }
   }, [authInfo]);
+
   const performLogout = () => {
     setActiveWorkspace(null);
     setAuthInfo(null);
@@ -85,57 +85,26 @@ function App() {
   if (viewMode === "login") {
     content = (
       <LoginPage
-		onLoginSuccess={(payload) => {
-		  setAuthInfo(payload);
-		  if (payload.role === "super_admin" || payload.role === "Super Admin") {
-			setViewMode("superAdmin");
-			setActiveWorkspace(null);
-		  } else {
-			// Admin Workspace: langsung ke workspace yang dimiliki
-			if (payload.workspaceId) {
-			  setActiveWorkspace({
-				id: payload.workspaceId,
-				name: payload.workspaceName || "Workspace",
-				address: payload.workspaceAddress || "",
-				iconUrl: undefined,
-			  });
-			} else {
-			  setActiveWorkspace(null);
-			}
-			setViewMode("workspace");
-		  }
-		}}
-      />
-    );
-  } else if (viewMode === "workspace") {
-    const isSuperAdmin = authInfo?.role === "super_admin" || authInfo?.role === "Super Admin";
-    content = (
-      <AdminWorkspaceDashboard
-        workspaceName={activeWorkspace?.name}
-        workspaceId={activeWorkspace?.id}
-        onChangeWorkspace={
-          isSuperAdmin
-            ? (ws) => setActiveWorkspace(ws)
-            : undefined
-        }
-        onBackToSuperAdmin={
-          isSuperAdmin
-            ? () => setViewMode("superAdmin")
-            : undefined
-        }
-        onLogout={() => setShowLogoutConfirm(true)}
-        currentUserEmail={authInfo?.email}
-        currentUserRole={authInfo?.role}
+        onLoginSuccess={(payload) => {
+          setAuthInfo(payload);
+          setActiveWorkspace({
+            id: payload.workspaceId || 1,
+            name: payload.workspaceName || "Main Workspace",
+            address: payload.workspaceAddress || "",
+            iconUrl: undefined,
+          });
+          setViewMode("workspace");
+        }}
       />
     );
   } else {
     content = (
-      <SuperAdminDashboard
-        onOpenWorkspace={(ws) => {
-          setActiveWorkspace(ws);
-          setViewMode("workspace");
-        }}
+      <AdminWorkspaceDashboard
+        workspaceName={activeWorkspace?.name}
+        workspaceId={activeWorkspace?.id}
         onLogout={() => setShowLogoutConfirm(true)}
+        currentUserEmail={authInfo?.email}
+        currentUserRole={authInfo?.role}
       />
     );
   }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 export type Customer = {
   id: number;
@@ -36,6 +37,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
   const [address, setAddress] = useState("");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -54,6 +56,16 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
   const [serviceMonitoringIp, setServiceMonitoringIp] = useState("");
   const [serviceMonitoringEnabled, setServiceMonitoringEnabled] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+
+  // Custom Confirm Dialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    confirmLabel?: string; variant?: "danger" | "warning" | "info";
+    isLoading?: boolean; onConfirm: () => void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+  const showConfirm = (opts: Omit<typeof confirmDialog, "isOpen" | "isLoading">) =>
+    setConfirmDialog({ ...opts, isOpen: true, isLoading: false });
+  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
 
   const fetchCustomers = async () => {
     setIsLoading(true);
@@ -96,6 +108,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
       if (res.ok) {
         const created = await res.json();
         setCustomers((prev) => [...prev, created]);
+        setIsAddModalOpen(false);
         setName("");
         setEmail("");
         setAddress("");
@@ -250,94 +263,51 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
     setServiceMonitoringEnabled(svc.monitoringEnabled);
   };
 
-  const handleDeleteService = async (id: number) => {
-    if (!confirm("Hapus layanan ini?")) return;
-    try {
-      const res = await fetch(`/api/services/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setCustomerServices(prev => prev.filter(s => s.id !== id));
-      }
-    } catch (err) {
-      console.error("delete service error", err);
-    }
+  const handleDeleteService = (id: number) => {
+    showConfirm({
+      title: "Hapus Layanan",
+      message: "Apakah Anda yakin ingin menghapus layanan ini?",
+      confirmLabel: "Hapus",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/services/${id}`, { method: "DELETE" });
+          if (res.ok) setCustomerServices(prev => prev.filter(s => s.id !== id));
+        } catch (err) { console.error("delete service error", err); }
+        finally { closeConfirm(); }
+      },
+    });
   };
 
   return (
+    <>
     <section className="max-w-5xl mx-auto">
-      <header className="mb-4">
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
-          Data Pelanggan {workspaceName ? `- ${workspaceName}` : ""}
-        </h2>
-        <p className="m-0 text-[12px] text-slate-400">
-          Kelola data diri pelanggan ISP pada workspace ini.
-        </p>
+      <header className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
+            Data Pelanggan {workspaceName ? `- ${workspaceName}` : ""}
+          </h2>
+          <p className="m-0 text-[12px] text-slate-400">
+            Kelola data diri pelanggan ISP pada workspace ini.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setName("");
+            setEmail("");
+            setAddress("");
+            setIsAddModalOpen(true);
+          }}
+          className="inline-flex h-9 items-center justify-center rounded-full bg-blue-600 px-4 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
+        >
+          + Tambah Pelanggan
+        </button>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
-        {/* Sidebar Form */}
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20 h-fit">
-          <h3 className="m-0 mb-3 text-[13px] font-semibold text-slate-100">
-            {isEditModalOpen ? "Edit Pelanggan" : "Tambah Pelanggan Baru"}
-          </h3>
-          <form onSubmit={isEditModalOpen ? handleUpdateCustomer : handleAddCustomer} className="flex flex-col gap-3 text-[12px]">
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-400">Nama Pelanggan (Wajib)</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Misal: PT Maju Bersama"
-                required
-                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-400">Email Utama</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Misal: info@majubersama.com"
-                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-400">Alamat Lengkap</label>
-              <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Alamat kantor atau lokasi pemasangan..."
-                className="w-full min-h-[80px] rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 p-2.5 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 resize-y"
-              />
-            </div>
-            
-            <div className="flex gap-2 mt-2">
-              {isEditModalOpen && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditModalOpen(false);
-                    setEditingCustomer(null);
-                    setName("");
-                    setEmail("");
-                    setAddress("");
-                  }}
-                  className="inline-flex h-8 w-full items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50 cursor-pointer"
-                >
-                  Batal
-                </button>
-              )}
-              <button
-                type="submit"
-                className="inline-flex h-8 w-full items-center justify-center rounded-full border-0 bg-blue-600 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
-              >
-                {isEditModalOpen ? "Simpan Perbaikan" : "+ Tambah"}
-              </button>
-            </div>
-          </form>
-        </div>
-
+      <div className="flex flex-col gap-4">
         {/* Tabel Data */}
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-lg/95 p-4 shadow-md shadow-black/20">
           <div className="mb-4">
             <h3 className="m-0 text-[13px] font-semibold text-slate-100">
               Daftar Pelanggan Terdaftar
@@ -414,6 +384,74 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
           </div>
         </div>
       </div>
+
+      {(isAddModalOpen || isEditModalOpen) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-800">
+              <h3 className="m-0 text-[15px] font-bold text-slate-100">
+                {isEditModalOpen ? "Edit Pelanggan" : "Tambah Pelanggan Baru"}
+              </h3>
+            </div>
+            <div className="p-4 overflow-y-auto custom-scrollbar">
+              <form id="customerForm" onSubmit={isEditModalOpen ? handleUpdateCustomer : handleAddCustomer} className="flex flex-col gap-4 text-[12px]">
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-slate-400">Nama Pelanggan (Wajib)</label>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Misal: PT Maju Bersama"
+                    required
+                    className="h-9 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-slate-400">Email Utama</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Misal: info@majubersama.com"
+                    className="h-9 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-slate-400">Alamat Lengkap</label>
+                  <textarea
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Alamat kantor atau lokasi pemasangan..."
+                    className="w-full min-h-[100px] rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 p-3 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 resize-y"
+                  />
+                </div>
+              </form>
+            </div>
+            <div className="p-4 border-t border-slate-800 flex justify-end gap-2 bg-slate-900/30">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setIsEditModalOpen(false);
+                  setEditingCustomer(null);
+                  setName("");
+                  setEmail("");
+                  setAddress("");
+                }}
+                className="px-4 py-2 rounded-full border border-slate-700 bg-transparent text-[12px] font-semibold text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                form="customerForm"
+                className="px-4 py-2 rounded-full border-0 bg-blue-600 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
+              >
+                {isEditModalOpen ? "Simpan Perbaikan" : "Simpan Pelanggan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isDeleteModalOpen && customerToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
@@ -576,6 +614,18 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         </div>
       )}
     </section>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        isLoading={confirmDialog.isLoading}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
+    </>
   );
 };
 

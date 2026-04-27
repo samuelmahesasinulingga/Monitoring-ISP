@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import ReactFlow, {
   addEdge,
   Background,
@@ -150,6 +151,16 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
   const [isLoadingCanvas, setIsLoadingCanvas] = useState(false);
   const [editingNode, setEditingNode] = useState<Node | null>(null);
 
+  // Custom Confirm Dialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    confirmLabel?: string; variant?: "danger" | "warning" | "info";
+    isLoading?: boolean; onConfirm: () => void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+  const showConfirm = (opts: Omit<typeof confirmDialog, "isOpen" | "isLoading">) =>
+    setConfirmDialog({ ...opts, isOpen: true, isLoading: false });
+  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+
   // Panel Drag & Expand State
   const [panelPos, setPanelPos] = useState({ x: 20, y: 20 });
   const [isDraggingNodePanel, setIsDraggingNodePanel] = useState(false);
@@ -249,21 +260,22 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
     }
   };
 
-  const handleDeleteLayout = async (layoutId: number, e: React.MouseEvent) => {
+  const handleDeleteLayout = (layoutId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Yakin ingin menghapus peta topologi ini?")) return;
-    try {
-      const res = await fetch(`/api/workspaces/${workspaceId}/topology-layouts/${layoutId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        fetchLayouts();
-      } else {
-        alert("Gagal menghapus peta.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    showConfirm({
+      title: "Hapus Peta Topologi",
+      message: "Apakah Anda yakin ingin menghapus peta topologi ini? Semua node dan koneksi di dalamnya juga akan terhapus.",
+      confirmLabel: "Hapus Peta",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/workspaces/${workspaceId}/topology-layouts/${layoutId}`, { method: 'DELETE' });
+          if (res.ok) fetchLayouts();
+        } catch (err) { console.error(err); }
+        finally { closeConfirm(); }
+      },
+    });
   };
 
   // Fetch Canvas Data
@@ -687,6 +699,17 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        isLoading={confirmDialog.isLoading}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </section>
   );
 };

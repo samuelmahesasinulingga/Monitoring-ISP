@@ -119,6 +119,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [deviceToDelete, setDeviceToDelete] = useState<DeviceRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string>("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const [feedbackModal, setFeedbackModal] = useState<
     | null
@@ -227,6 +228,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     setIsTesting(false);
     setTestStatus("idle");
     setTestMessage("");
+    setIsAddModalOpen(false);
   };
 
   const handleTestConnection = async () => {
@@ -516,274 +518,26 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
   return (
     <section className="max-w-5xl mx-auto">
-      <header className="mb-4">
-        <h2 className="m-0 mb-1 text-[18px] font-semibold text-slate-100">
-          Devices & Endpoint monitoring {workspaceName ? `- ${workspaceName}` : ""}
-        </h2>
-        <p className="m-0 text-[12px] text-slate-400">
-          Tambah daftar perangkat router/switch/server dan konfigurasi
-          endpoint monitoring (SNMP dan API Mikrotik) per perangkat.
-        </p>
+      <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="m-0 mb-1 text-[20px] font-bold text-slate-100">
+            🖥️ Perangkat & Monitoring
+          </h2>
+          <p className="m-0 text-[12px] text-slate-400">
+            Kelola router, switch, dan endpoint monitoring per perangkat.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsAddModalOpen(true)}
+          className="px-4 py-2 rounded-full bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 cursor-pointer shadow-sm transition-colors"
+        >
+          + Tambah Perangkat
+        </button>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 className="m-0 text-[13px] font-semibold text-slate-100">
-              Tambah perangkat
-            </h3>
-            <button
-              type="button"
-              onClick={() => {
-                setIsTestModalOpen(true);
-                setTestStatus("idle");
-                setTestMessage("");
-                setTestIp(ip || "");
-              }}
-              className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[11px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50"
-            >
-              Tes koneksi perangkat
-            </button>
-          </div>
-          <form onSubmit={handleAddDevice} className="flex flex-col gap-2.5 text-[12px]">
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-400">
-                Nama perangkat
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Misal: Router POP Bandung"
-                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-400">
-                IP address / hostname
-              </label>
-              <input
-                value={ip}
-                onChange={(e) => setIp(e.target.value)}
-                placeholder="Misal: 10.10.0.1 atau pop-bandung"
-                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-400">
-                Tipe perangkat
-              </label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as DeviceType)}
-                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-              >
-                <option value="router">Router</option>
-                <option value="switch">Switch</option>
-                <option value="ap">Access Point</option>
-                <option value="server">Server</option>
-                <option value="client">Client / Network</option>
-              </select>
-            </div>
+      <div className="flex flex-col gap-4">
 
-            <div className="space-y-1">
-              <label className="mb-2 block text-[11px] text-slate-400 font-semibold">
-                Fitur Monitoring & Integrasi
-              </label>
-              <div className="grid gap-2 p-2 rounded-xl border border-slate-800 bg-slate-800/50/50">
-                <Switch
-                  label="SNMP Monitoring"
-                  description="Tarik data interface, traffic, & resource via SNMP"
-                  checked={integrationMode === "snmp"}
-                  onChange={(val) => {
-                    setIntegrationMode(val ? "snmp" : "ping");
-                    if (val && ip.trim()) {
-                      autoFetchQueues(ip, snmpCommunity, snmpVersion);
-                    }
-                  }}
-                />
-              </div>
-              <p className="mt-1.5 text-[10px] text-slate-400 px-1">
-                Mode <span className="text-slate-400 font-medium italic">ICMP Ping</span> selalu aktif sebagai monitoring dasar.
-              </p>
-            </div>
-
-            {integrationMode === "snmp" && (
-              <div className="flex gap-2">
-                <div className="w-28">
-                  <label className="mb-1 block text-[11px] text-slate-400">
-                    SNMP versi
-                  </label>
-                  <select
-                    value={snmpVersion}
-                    onChange={(e) => setSnmpVersion(e.target.value as SnmpVersion)}
-                    className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                  >
-                    <option value="v1">v1</option>
-                    <option value="v2c">v2c</option>
-                    <option value="v3">v3</option>
-                  </select>
-                </div>
-                <div className="flex-1">
-                  <label className="mb-1 block text-[11px] text-slate-400">
-                    SNMP community
-                  </label>
-                  <input
-                    value={snmpCommunity}
-                    onChange={(e) => setSnmpCommunity(e.target.value)}
-                    placeholder="public"
-                    className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="mb-1 block text-[11px] text-slate-400">
-                NetFlow Port (UDP)
-              </label>
-              <input
-                type="number"
-                value={netflowPort}
-                disabled={!netflowEnabled}
-                onChange={(e) => setNetflowPort(parseInt(e.target.value) || 10000)}
-                className={`h-8 w-full rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!netflowEnabled ? "bg-slate-800/50 text-slate-400 cursor-not-allowed" : ""}`}
-              />
-              {netflowEnabled && (
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Gunakan port berbeda (10000-20000) jika ada beberapa router di balik NAT yang sama.
-                </p>
-              )}
-            </div>
-
-            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
-              <Switch
-                label="Aktifkan NetFlow"
-                description="Mulai merekam trafik data dari router ini"
-                checked={netflowEnabled}
-                onChange={setNetflowEnabled}
-              />
-            </div>
-
-            <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
-              <Switch
-                label="Aktifkan Monitoring"
-                description="Mulai merekam log ping & data perangkat ini"
-                checked={monitoringEnabled}
-                onChange={setMonitoringEnabled}
-              />
-            </div>
-
-            {integrationMode === "snmp" && (
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
-                <Switch
-                  label="Aktifkan Monitoring Queue"
-                  description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
-                  checked={queueMonitoringEnabled}
-                  onChange={(val) => {
-                    setQueueMonitoringEnabled(val);
-                    if (val && ip.trim() && availableQueues.length === 0) {
-                      autoFetchQueues(ip, snmpCommunity, snmpVersion);
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            {queueMonitoringEnabled && integrationMode === "snmp" && (
-              <div className="mt-2 p-3 rounded-xl border border-blue-100 bg-blue-50/30">
-                <label className="mb-2 block text-[11px] font-semibold text-blue-700">
-                  Pilih Antrian (Queues) untuk Dimonitor:
-                </label>
-                {availableQueues.length > 0 ? (
-                  <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
-                    {availableQueues.map((q) => (
-                      <label key={q} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={monitoredQueues.includes(q)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setMonitoredQueues([...monitoredQueues, q]);
-                            } else {
-                              setMonitoredQueues(monitoredQueues.filter((mq) => mq !== q));
-                            }
-                          }}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
-                        />
-                        <span>{q}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-400 italic leading-tight">
-                    Tes koneksi untuk memuat daftar antrian...
-                  </p>
-                )}
-                <p className="mt-2 text-[10px] text-slate-400 italic leading-tight">
-                  Hanya antrian yang dicentang yang akan direkam datanya ke database.
-                </p>
-              </div>
-            )}
-
-            {integrationMode === "snmp" && (
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
-                <Switch
-                  label="Aktifkan Monitoring Interface"
-                  description="Monitor traffic dari Network Interface (WAN/Local/dll)"
-                  checked={interfaceMonitoringEnabled}
-                  onChange={(val) => {
-                    setInterfaceMonitoringEnabled(val);
-                    if (val && ip.trim() && availableInterfaces.length === 0) {
-                      autoFetchQueues(ip, snmpCommunity, snmpVersion);
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            {interfaceMonitoringEnabled && integrationMode === "snmp" && (
-              <div className="mt-2 p-3 rounded-xl border border-blue-100 bg-blue-50/30">
-                <label className="mb-2 block text-[11px] font-semibold text-blue-700">
-                  Pilih Interface untuk Dimonitor:
-                </label>
-                {availableInterfaces.length > 0 ? (
-                  <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
-                    {availableInterfaces.map((iface) => (
-                      <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={monitoredInterfaces.includes(iface)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setMonitoredInterfaces([...monitoredInterfaces, iface]);
-                            } else {
-                              setMonitoredInterfaces(monitoredInterfaces.filter((mi) => mi !== iface));
-                            }
-                          }}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
-                        />
-                        <span>{iface}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-400 italic leading-tight">
-                    Tes koneksi untuk memuat daftar interface...
-                  </p>
-                )}
-                <p className="mt-2 text-[10px] text-slate-400 italic leading-tight">
-                  Hanya interface yang dicentang yang akan direkam datanya ke database.
-                </p>
-              </div>
-            )}
-            <button
-              type="submit"
-              className="mt-2 inline-flex h-8 items-center justify-center rounded-full border-0 bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
-            >
-              + Tambah perangkat
-            </button>
-          </form>
-        </div>
 
         <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20">
           <div className="mb-2 flex items-center justify-between">
@@ -881,6 +635,245 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
           </div>
         </div>
       </div>
+
+      {/* MODAL TAMBAH PERANGKAT */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="m-0 text-[15px] font-bold text-slate-100">
+                Tambah Perangkat Baru
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTestModalOpen(true);
+                  setTestStatus("idle");
+                  setTestMessage("");
+                  setTestIp(ip || "");
+                }}
+                className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800 text-[10px] font-bold text-slate-300 hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                ⚡ Tes Koneksi
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto custom-scrollbar">
+              <form id="add-device-form" onSubmit={handleAddDevice} className="flex flex-col gap-4 text-[12px]">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-400 font-medium">
+                      Nama Perangkat
+                    </label>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Contoh: Router Core"
+                      className="h-10 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-400 font-medium">
+                      IP / Hostname
+                    </label>
+                    <input
+                      value={ip}
+                      onChange={(e) => setIp(e.target.value)}
+                      placeholder="192.168.88.1"
+                      className="h-10 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] text-slate-400 font-medium">
+                    Tipe Perangkat
+                  </label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as DeviceType)}
+                    className="h-10 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  >
+                    <option value="router">Router</option>
+                    <option value="switch">Switch</option>
+                    <option value="ap">Access Point</option>
+                    <option value="server">Server</option>
+                    <option value="client">Client / Network</option>
+                  </select>
+                </div>
+
+                <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/50">
+                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Monitoring & Integrasi</h4>
+                  <div className="space-y-3">
+                    <Switch
+                      label="SNMP Monitoring"
+                      description="Tarik data interface, traffic, & resource via SNMP"
+                      checked={integrationMode === "snmp"}
+                      onChange={(val) => {
+                        setIntegrationMode(val ? "snmp" : "ping");
+                        if (val && ip.trim()) {
+                          autoFetchQueues(ip, snmpCommunity, snmpVersion);
+                        }
+                      }}
+                    />
+                    
+                    {integrationMode === "snmp" && (
+                      <div className="grid grid-cols-2 gap-3 pl-2 border-l-2 border-blue-500/30 ml-1 py-1">
+                        <div>
+                          <label className="mb-1 block text-[10px] text-slate-500">Versi</label>
+                          <select
+                            value={snmpVersion}
+                            onChange={(e) => setSnmpVersion(e.target.value as SnmpVersion)}
+                            className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-2 text-[11px] outline-none"
+                          >
+                            <option value="v1">v1</option>
+                            <option value="v2c">v2c</option>
+                            <option value="v3">v3</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] text-slate-500">Community</label>
+                          <input
+                            value={snmpCommunity}
+                            onChange={(e) => setSnmpCommunity(e.target.value)}
+                            placeholder="public"
+                            className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-2 text-[11px] outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <Switch
+                      label="NetFlow Monitoring"
+                      description="Rekam trafik data dari router (UDP Port)"
+                      checked={netflowEnabled}
+                      onChange={setNetflowEnabled}
+                    />
+
+                    {netflowEnabled && (
+                      <div className="pl-2 border-l-2 border-emerald-500/30 ml-1 py-1">
+                         <label className="mb-1 block text-[10px] text-slate-500">UDP Port (10000-20000)</label>
+                         <input
+                           type="number"
+                           value={netflowPort}
+                           onChange={(e) => setNetflowPort(parseInt(e.target.value) || 10000)}
+                           className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-2 text-[11px] outline-none"
+                         />
+                      </div>
+                    )}
+
+                    <Switch
+                      label="Status Monitoring"
+                      description="Aktifkan pencatatan log PING & Status UP/DOWN"
+                      checked={monitoringEnabled}
+                      onChange={setMonitoringEnabled}
+                    />
+                  </div>
+                </div>
+
+                {integrationMode === "snmp" && (
+                  <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/50">
+                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Antrian & Interface</h4>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Switch
+                          label="Monitor Queues"
+                          description="Pantau traffic Mikrotik Simple Queue"
+                          checked={queueMonitoringEnabled}
+                          onChange={(val) => {
+                            setQueueMonitoringEnabled(val);
+                            if (val && ip.trim() && availableQueues.length === 0) {
+                              autoFetchQueues(ip, snmpCommunity, snmpVersion);
+                            }
+                          }}
+                        />
+                        {queueMonitoringEnabled && (
+                          <div className="mt-2 pl-2 border-l-2 border-blue-500/20 ml-1">
+                            {availableQueues.length > 0 ? (
+                              <div className="max-h-24 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                {availableQueues.map((q) => (
+                                  <label key={q} className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer hover:text-blue-500 transition-colors">
+                                    <input
+                                      type="checkbox"
+                                      checked={monitoredQueues.includes(q)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) setMonitoredQueues([...monitoredQueues, q]);
+                                        else setMonitoredQueues(monitoredQueues.filter((mq) => mq !== q));
+                                      }}
+                                      className="rounded border-slate-800 bg-slate-900/50"
+                                    />
+                                    <span>{q}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-slate-500 italic">Klik Tes Koneksi untuk memuat daftar...</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Switch
+                          label="Monitor Interfaces"
+                          description="Pantau traffic Network Interface"
+                          checked={interfaceMonitoringEnabled}
+                          onChange={(val) => {
+                            setInterfaceMonitoringEnabled(val);
+                            if (val && ip.trim() && availableInterfaces.length === 0) {
+                              autoFetchQueues(ip, snmpCommunity, snmpVersion);
+                            }
+                          }}
+                        />
+                        {interfaceMonitoringEnabled && (
+                          <div className="mt-2 pl-2 border-l-2 border-emerald-500/20 ml-1">
+                            {availableInterfaces.length > 0 ? (
+                              <div className="max-h-24 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                {availableInterfaces.map((iface) => (
+                                  <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer hover:text-emerald-500 transition-colors">
+                                    <input
+                                      type="checkbox"
+                                      checked={monitoredInterfaces.includes(iface)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) setMonitoredInterfaces([...monitoredInterfaces, iface]);
+                                        else setMonitoredInterfaces(monitoredInterfaces.filter((mi) => mi !== iface));
+                                      }}
+                                      className="rounded border-slate-800 bg-slate-900/50"
+                                    />
+                                    <span>{iface}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-slate-500 italic">Klik Tes Koneksi untuk memuat daftar...</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </form>
+            </div>
+            <div className="p-4 border-t border-slate-800 flex justify-end gap-2 bg-slate-900/30">
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="px-4 py-2 rounded-full border border-slate-700 bg-transparent text-[12px] font-semibold text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                form="add-device-form"
+                className="px-6 py-2 rounded-full border-0 bg-blue-600 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors cursor-pointer"
+              >
+                Simpan Perangkat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isTestModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">

@@ -58,6 +58,73 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
   const [detailLogTotalPages, setDetailLogTotalPages] = useState<number>(1);
   const [detailLogs, setDetailLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  
+  // MRTG States
+  const [mrtgPeriod, setMrtgPeriod] = useState<"live" | "daily" | "weekly" | "monthly" | "yearly">("live");
+  const [mrtgHistoryData, setMrtgHistoryData] = useState<any[]>([]);
+  const [isLoadingMrtg, setIsLoadingMrtg] = useState(false);
+  const [mrtgMonth, setMrtgMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const chartScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to latest data (right side)
+  useEffect(() => {
+    if (chartScrollRef.current) {
+      setTimeout(() => {
+        if (chartScrollRef.current) {
+          chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+        }
+      }, 100);
+    }
+  }, [mrtgHistoryData, pingHistory, mrtgPeriod, expandedPingDeviceId]);
+
+  const [uptimeReportData, setUptimeReportData] = useState<any>(null);
+  const [isLoadingUptime, setIsLoadingUptime] = useState(false);
+
+  const fetchMrtgHistory = (deviceId: number, period: string, date?: string) => {
+    if (period === "live") return;
+    setIsLoadingMrtg(true);
+    let url = `/api/monitoring/ping-history/${deviceId}?period=${period}`;
+    if (period === "monthly" && date) {
+      url += `&date=${date}`;
+    }
+    fetch(url)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        setMrtgHistoryData(data.map((p: any) => ({
+          ...p,
+          time: new Date(p.timestamp).toLocaleString('id-ID', {
+            day: period === 'yearly' ? '2-digit' : '2-digit',
+            month: period === 'yearly' ? 'short' : '2-digit',
+            hour: period === 'yearly' ? undefined : '2-digit',
+            minute: period === 'yearly' ? undefined : '2-digit',
+          })
+        })));
+      })
+      .catch(err => console.error("Fetch MRTG history error", err))
+      .finally(() => setIsLoadingMrtg(false));
+  };
+
+  useEffect(() => {
+    if (expandedPingDeviceId && mrtgPeriod !== "live") {
+      fetchMrtgHistory(expandedPingDeviceId, mrtgPeriod, mrtgMonth);
+    }
+  }, [expandedPingDeviceId, mrtgPeriod, mrtgMonth]);
+
+  const fetchUptimeReport = (deviceId: number) => {
+    setIsLoadingUptime(true);
+    fetch(`/api/monitoring/uptime-report/${deviceId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setUptimeReportData(data))
+      .catch(err => console.error("Fetch uptime report error", err))
+      .finally(() => setIsLoadingUptime(false));
+  };
+
+  useEffect(() => {
+    if (expandedPingDeviceId && mrtgPeriod === "yearly") {
+      fetchUptimeReport(expandedPingDeviceId);
+    }
+  }, [expandedPingDeviceId, mrtgPeriod]);
+
   const [devicePingIntervals, setDevicePingIntervals] = useState<Record<number, number>>({});
   const devicePingIntervalsRef = useRef<Record<number, number>>({});
   const lastSampleTimeRef = useRef<Record<number, number>>({});
@@ -555,25 +622,107 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                 </div>
                 <button
                   type="button"
-                  onClick={() => setExpandedPingDeviceId(null)}
+                  onClick={() => {
+                    setExpandedPingDeviceId(null);
+                    setMrtgPeriod("live");
+                  }}
                   className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
                 >
                   ✕
                 </button>
               </div>
 
-              {expandedHistory.length === 0 ? (
+              {/* MRTG Period Selector */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800">
+                  {(["live", "daily", "weekly", "monthly", "yearly"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setMrtgPeriod(p)}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                        mrtgPeriod === p
+                          ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {mrtgPeriod === "monthly" && (
+                  <input
+                    type="month"
+                    value={mrtgMonth}
+                    onChange={(e) => setMrtgMonth(e.target.value)}
+                    className="bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-1 text-[11px] text-slate-200 outline-none focus:border-blue-500/50"
+                  />
+                )}
+
+                {isLoadingMrtg && (
+                  <div className="ml-auto flex items-center gap-2 text-[11px] text-slate-400">
+                    <div className="w-3 h-3 border-2 border-slate-800 border-t-blue-500 rounded-full animate-spin"></div>
+                    Loading history...
+                  </div>
+                )}
+
+                {mrtgPeriod !== "live" && !isLoadingMrtg && (
+                  <button
+                    onClick={() => {
+                      const url = `/api/monitoring/ping-history/${expandedPingDeviceId}/export?period=${mrtgPeriod}&date=${mrtgMonth}`;
+                      window.open(url, "_blank");
+                    }}
+                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all text-[11px] font-semibold"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download CSV
+                  </button>
+                )}
+              </div>
+
+              {(mrtgPeriod === "live" ? expandedHistory : mrtgHistoryData).length === 0 ? (
                 <div className="flex h-40 items-center justify-center text-[11px] text-slate-400">
-                  Belum ada sampel ping untuk perangkat ini.
+                  {isLoadingMrtg ? "Memuat data history..." : "Belum ada data untuk periode ini."}
                 </div>
               ) : (
                 <>
-                  <div className="h-56 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={expandedHistory}
-                        margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
-                      >
+                  <style>
+                    {`
+                      .custom-chart-scrollbar::-webkit-scrollbar {
+                        height: 6px;
+                      }
+                      .custom-chart-scrollbar::-webkit-scrollbar-track {
+                        background: #0f172a;
+                        border-radius: 10px;
+                      }
+                      .custom-chart-scrollbar::-webkit-scrollbar-thumb {
+                        background: #1e293b;
+                        border-radius: 10px;
+                        border: 1px solid #334155;
+                      }
+                      .custom-chart-scrollbar::-webkit-scrollbar-thumb:hover {
+                        background: #334155;
+                      }
+                    `}
+                  </style>
+                  <div 
+                    ref={chartScrollRef}
+                    className="h-64 w-full overflow-x-auto overflow-y-hidden custom-chart-scrollbar pb-2"
+                  >
+                    <div style={{ 
+                      width: `${Math.max(100, (mrtgPeriod === "live" ? expandedHistory.length : mrtgHistoryData.length) * (mrtgPeriod === 'daily' ? 1.5 : 2.5))}%`,
+                      height: '100%',
+                      minWidth: '100%'
+                    }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={mrtgPeriod === "live" ? expandedHistory : mrtgHistoryData}
+                          margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+                        >
                         <defs>
                           <linearGradient id="pingLatencyGradientExpanded" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.45} />
@@ -581,63 +730,163 @@ const MonitoringSection: React.FC<MonitoringSectionProps> = ({ workspaceName, wo
                           </linearGradient>
                         </defs>
                         <CartesianGrid
-                          stroke="#e5e7eb"
-                          strokeWidth={0.75}
+                          stroke="#1e293b"
+                          strokeWidth={1}
                           vertical={false}
+                          strokeDasharray="3 3"
                         />
-                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} />
+                        <XAxis 
+                          dataKey="time" 
+                          tick={{ fontSize: 10, fill: "#64748b" }} 
+                          axisLine={{ stroke: "#1e293b" }}
+                          tickLine={{ stroke: "#1e293b" }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: "#64748b" }} 
+                          axisLine={{ stroke: "#1e293b" }}
+                          tickLine={{ stroke: "#1e293b" }}
+                          label={{ value: 'ms', angle: -90, position: 'insideLeft', offset: 10, fill: '#64748b', fontSize: 10 }}
+                        />
                         <Tooltip
-                          cursor={{ stroke: "#cbd5f5", strokeWidth: 1 }}
+                          cursor={{ stroke: "#334155", strokeWidth: 1 }}
                           contentStyle={{
-                            fontSize: 11,
-                            borderRadius: 12,
-                            borderColor: "#e5e7eb",
+                            backgroundColor: "#0f172a",
+                            border: "1px solid #1e293b",
+                            borderRadius: "12px",
+                            fontSize: "11px",
+                            color: "#f1f5f9"
                           }}
-                          labelStyle={{ fontSize: 11, color: "#6b7280" }}
-                          formatter={(value: any) => [`${value} ms`, "Latency"]}
+                          itemStyle={{ padding: "2px 0" }}
                         />
-                        <Area
-                          type="monotone"
-                          dataKey="latencyMs"
-                          stroke="#0ea5e9"
-                          strokeWidth={1.2}
-                          fill="url(#pingLatencyGradientExpanded)"
-                          isAnimationActive={false}
-                        />
+                        {mrtgPeriod === "live" ? (
+                          <Area
+                            type="monotone"
+                            dataKey="latencyMs"
+                            name="Latency"
+                            stroke="#0ea5e9"
+                            strokeWidth={1.5}
+                            fill="url(#pingLatencyGradientExpanded)"
+                            isAnimationActive={false}
+                          />
+                        ) : (
+                          <>
+                            <Area
+                              type="monotone"
+                              dataKey="max"
+                              name="Max Latency"
+                              stroke="#f43f5e"
+                              fill="#f43f5e"
+                              fillOpacity={0.1}
+                              strokeWidth={1}
+                              isAnimationActive={false}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="avg"
+                              name="Avg Latency"
+                              stroke="#0ea5e9"
+                              fill="#0ea5e9"
+                              fillOpacity={0.3}
+                              strokeWidth={2}
+                              isAnimationActive={false}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="min"
+                              name="Min Latency"
+                              stroke="#10b981"
+                              fill="#10b981"
+                              fillOpacity={0.1}
+                              strokeWidth={1}
+                              isAnimationActive={false}
+                            />
+                          </>
+                        )}
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
+                </div>
 
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
                     <span>
-                      Latency saat ini:
-                      {" "}
-                      <span className="font-semibold text-slate-100">
-                        {expandedStats.currentLabel}
-                      </span>
+                      {mrtgPeriod === "live" ? (
+                        <>
+                          Latency saat ini:{" "}
+                          <span className="font-semibold text-slate-100">
+                            {expandedStats.currentLabel}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          Periode:{" "}
+                          <span className="font-semibold text-slate-100">
+                            {mrtgPeriod.toUpperCase()}
+                          </span>
+                        </>
+                      )}
                     </span>
                     <span>
-                      Rata-rata:
-                      {" "}
+                      Rata-rata:{" "}
                       <span className="font-semibold text-slate-100">
-                        {expandedStats.avg.toFixed(1)} ms
+                        {(mrtgPeriod === "live" ? expandedStats.avg : (mrtgHistoryData.reduce((acc, curr) => acc + curr.avg, 0) / mrtgHistoryData.length || 0)).toFixed(1)} ms
                       </span>
                       {" · "}
-                      Min:
-                      {" "}
+                      Min:{" "}
                       <span className="font-semibold text-slate-100">
-                        {expandedStats.min.toFixed(1)} ms
+                        {(mrtgPeriod === "live" ? expandedStats.min : (Math.min(...mrtgHistoryData.map(d => d.min)) || 0)).toFixed(1)} ms
                       </span>
                       {" · "}
-                      Max:
-                      {" "}
+                      Max:{" "}
                       <span className="font-semibold text-slate-100">
-                        {expandedStats.max.toFixed(1)} ms
+                        {(mrtgPeriod === "live" ? expandedStats.max : (Math.max(...mrtgHistoryData.map(d => d.max)) || 0)).toFixed(1)} ms
                       </span>
                     </span>
                   </div>
                 </>
+              )}
+
+              {mrtgPeriod === "yearly" && uptimeReportData && (
+                <div className="mt-4 p-4 rounded-xl bg-slate-900/50 border border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                    <h4 className="text-[13px] font-semibold text-slate-100">Yearly Availability Report ({new Date().getFullYear()})</h4>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-800/50">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Total Recorded</p>
+                      <p className="text-[14px] font-semibold text-slate-100">{uptimeReportData.totalHours.toFixed(1)} <span className="text-[11px] text-slate-400 font-normal">Hours</span></p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                      <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-wider mb-1">Uptime (Ready)</p>
+                      <p className="text-[14px] font-semibold text-emerald-400">{uptimeReportData.uptimeHours.toFixed(1)} <span className="text-[11px] text-emerald-500/60 font-normal">Hours</span></p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-rose-500/5 border border-rose-500/20">
+                      <p className="text-[10px] text-rose-500 uppercase font-bold tracking-wider mb-1">Downtime</p>
+                      <p className="text-[14px] font-semibold text-rose-400">{uptimeReportData.downtimeHours.toFixed(1)} <span className="text-[11px] text-rose-500/60 font-normal">Hours</span></p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                      <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider mb-1">SLA Achievement</p>
+                      <p className="text-[14px] font-semibold text-blue-400">{uptimeReportData.uptimePercentage.toFixed(3)}%</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 overflow-x-auto">
+                    <div className="flex items-center gap-2 mb-2">
+                       <p className="text-[11px] font-semibold text-slate-400">Monthly Breakdown</p>
+                    </div>
+                    <div className="flex gap-2 pb-2">
+                      {uptimeReportData.monthlyUptime.map((m: any) => (
+                        <div key={m.month} className="flex-1 min-w-[60px] p-2 rounded-lg bg-slate-800/20 border border-slate-800/50 text-center">
+                          <p className="text-[10px] font-bold text-slate-300 mb-1">{m.month}</p>
+                          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-1">
+                            <div className="h-full bg-emerald-500" style={{ width: `${m.uptimePct}%` }}></div>
+                          </div>
+                          <p className="text-[9px] text-slate-400">{m.uptimePct.toFixed(1)}%</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>

@@ -67,7 +67,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mb-4 max-w-md">
             Pantau kualitas jaringan, SLA, dan aktivitas pelanggan dalam satu panel terpusat.
-            Gunakan akun Super Admin atau Admin Workspace untuk melanjutkan.
+            Silakan masuk untuk melanjutkan ke dashboard Anda.
           </p>
           <div className="hidden md:flex items-center gap-3 text-[11px] text-slate-400 mt-2">
             <div className="flex items-center gap-1">
@@ -80,7 +80,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-indigo-500" />
-              <span>Multi-workspace</span>
+              <span>Manajemen terpusat</span>
             </div>
           </div>
         </div>

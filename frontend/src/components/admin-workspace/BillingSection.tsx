@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import type { Customer } from "./CustomerSection";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 interface BillingSectionProps {
   workspaceName?: string;
@@ -42,14 +43,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   const [periodMonth, setPeriodMonth] = useState("");
   const [price, setPrice] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreateInvoiceModalOpen, setIsCreateInvoiceModalOpen] = useState(false);
 
-  // Auto Billing Dummy State
-  const [autoSendEnabled, setAutoSendEnabled] = useState(false);
-  const [scheduleDay, setScheduleDay] = useState(1);
-  const [scheduleHour, setScheduleHour] = useState(8);
-  const [scheduleMinute, setScheduleMinute] = useState(0);
-  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
-  const [autoSaveResult, setAutoSaveResult] = useState<string | null>(null);
+
 
   // Invoice Management Modal State
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
@@ -69,15 +65,25 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   // Animation State
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
+  // Custom Confirm Dialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    confirmLabel?: string; variant?: "danger" | "warning" | "info";
+    isLoading?: boolean; onConfirm: () => void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+
+  const showConfirm = (opts: Omit<typeof confirmDialog, "isOpen" | "isLoading">) =>
+    setConfirmDialog({ ...opts, isOpen: true, isLoading: false });
+  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
       const wsQuery = workspaceId ? `?workspaceId=${workspaceId}` : "";
-      const [custRes, invRes, pkgRes, wsRes] = await Promise.all([
+      const [custRes, invRes, pkgRes] = await Promise.all([
         fetch(`/api/customers${wsQuery}`),
         fetch(`/api/invoices${wsQuery}`),
-        fetch(`/api/packages${wsQuery}`),
-        workspaceId ? fetch(`/api/workspaces`) : Promise.resolve(null)
+        fetch(`/api/packages${wsQuery}`)
       ]);
 
       if (custRes.ok) {
@@ -88,16 +94,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       if (invRes.ok) setInvoices(await invRes.json());
       if (pkgRes.ok) setPackages(await pkgRes.json());
       
-      if (wsRes && wsRes.ok) {
-        const workspaces = await wsRes.json();
-        const currentWs = workspaces.find((w: any) => w.id === workspaceId);
-        if (currentWs) {
-          setAutoSendEnabled(currentWs.autoBillingEnabled);
-          setScheduleDay(currentWs.billingIssueDay || 10);
-          setScheduleHour(currentWs.billingIssueHour || 8);
-          setScheduleMinute(currentWs.billingIssueMinute || 0);
-        }
-      }
+
     } catch (err) {
       console.error("fetch billing data err", err);
     } finally {
@@ -155,6 +152,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         setInvoices((prev) => [created, ...prev]);
         setSelectedPackageId("");
         setPrice(0);
+        setIsCreateInvoiceModalOpen(false);
       } else {
         const text = await res.text();
         alert("Gagal membuat tagihan: " + text);
@@ -166,37 +164,47 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     }
   };
 
-  const handleDeleteInvoice = async (id: number) => {
-    if (!confirm("Hapus tagihan ini?")) return;
-    try {
-      const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
-      if (res.ok) setInvoices((prev) => prev.filter((i) => i.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteInvoice = (id: number) => {
+    showConfirm({
+      title: "Hapus Tagihan",
+      message: "Apakah Anda yakin ingin menghapus tagihan ini?",
+      confirmLabel: "Hapus",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+          if (res.ok) setInvoices((prev) => prev.filter((i) => i.id !== id));
+        } catch (err) { console.error(err); }
+        finally { closeConfirm(); }
+      },
+    });
   };
 
   const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
 
-  const handleSendInvoiceEmail = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin mengirim invoice ini ke email pelanggan?")) return;
-    
-    setSendingEmailId(id);
-    try {
-      const res = await fetch(`/api/invoices/${id}/send-email`, { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        setShowSuccessToast(true);
-        setTimeout(() => setShowSuccessToast(false), 3000);
-      } else {
-        alert("Gagal kirim email: " + data.error);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan sistem saat menghubungi backend.");
-    } finally {
-      setSendingEmailId(null);
-    }
+  const handleSendInvoiceEmail = (id: number) => {
+    showConfirm({
+      title: "Kirim Invoice ke Email",
+      message: "Apakah Anda yakin ingin mengirim invoice ini ke email pelanggan?",
+      confirmLabel: "Kirim Email",
+      variant: "info",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        setSendingEmailId(id);
+        try {
+          const res = await fetch(`/api/invoices/${id}/send-email`, { method: "POST" });
+          const data = await res.json();
+          if (res.ok) {
+            setShowSuccessToast(true);
+            setTimeout(() => setShowSuccessToast(false), 3000);
+          } else {
+            alert("Gagal kirim email: " + data.error);
+          }
+        } catch (err) { console.error(err); }
+        finally { setSendingEmailId(null); closeConfirm(); }
+      },
+    });
   };
 
   const handleOpenStatusModal = (inv: Invoice) => {
@@ -281,49 +289,29 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     }
   };
 
-  const handleDeletePackage = async (id: number) => {
-    if (!confirm("Hapus paket ini?")) return;
-    try {
-      const res = await fetch(`/api/packages/${id}`, { method: "DELETE" });
-      if (res.ok) setPackages(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeletePackage = (id: number) => {
+    showConfirm({
+      title: "Hapus Paket",
+      message: "Apakah Anda yakin ingin menghapus paket layanan ini?",
+      confirmLabel: "Hapus",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/packages/${id}`, { method: "DELETE" });
+          if (res.ok) setPackages(prev => prev.filter(p => p.id !== id));
+        } catch (err) { console.error(err); }
+        finally { closeConfirm(); }
+      },
+    });
   };
 
-  const handleSaveAutoBilling = async () => {
-    if (!workspaceId) return;
-    
-    setIsSavingStatus(true);
-    try {
-      const res = await fetch(`/api/workspaces/${workspaceId}/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          autoBillingEnabled: autoSendEnabled,
-          billingIssueDay: Number(scheduleDay),
-          billingIssueHour: Number(scheduleHour),
-          billingIssueMinute: Number(scheduleMinute)
-        })
-      });
 
-      if (res.ok) {
-        setAutoSaveResult("Pengaturan auto billing berhasil disimpan.");
-        setTimeout(() => setAutoSaveResult(null), 3000);
-      } else {
-        alert("Gagal menyimpan pengaturan auto billing.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan.");
-    } finally {
-      setIsSavingStatus(false);
-    }
-  };
 
   const days = Array.from({ length: 28 }, (_, i) => i + 1);
 
   return (
+    <>
     <section className="max-w-5xl mx-auto">
       <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
@@ -331,102 +319,28 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
             💳 Billing & Invoice
           </h1>
           <p className="m-0 text-[12px] text-slate-400">
-            Buat manual invoice dan pantau tagihan untuk workspace
-            {workspaceName ? ` "${workspaceName}"` : " ini"}.
+            Kelola tagihan dan daftar paket layanan ISP.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsPackageModalOpen(true)}
-          className="px-3.5 py-2 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-[12px] font-semibold hover:bg-blue-100 cursor-pointer shadow-sm transition-colors"
-        >
-          ⚙️ Kelola Daftar Paket Layanan
-        </button>
-      </header>
-
-      <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)] gap-4 mb-4 items-start">
-        {/* Form invoice manual */}
-        <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
-          <h2 className="m-0 mb-3 text-[15px] font-semibold text-slate-100">
-            Buat Tagihan Manual
-          </h2>
-
-          <div className="grid gap-3 mb-4">
-            <div>
-              <div className="text-[12px] font-medium text-slate-400 mb-1">
-                Klien / Pelanggan
-              </div>
-              <select
-                value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(Number(e.target.value))}
-                className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
-              >
-                <option value="" disabled>-- Pilih Pelanggan --</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[12px] font-medium text-slate-400 mb-1">
-                  Periode Tagihan
-                </div>
-                <input
-                  type="month"
-                  value={periodMonth}
-                  onChange={(e) => setPeriodMonth(e.target.value)}
-                  className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-800/50 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
-                />
-              </div>
-              <div>
-                <div className="text-[12px] font-medium text-slate-400 mb-1">
-                  Pilih Paket Layanan
-                </div>
-                <select
-                  value={selectedPackageId}
-                  onChange={handlePackageSelect}
-                  className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] bg-slate-800/50 outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 text-slate-100"
-                >
-                  <option value="" disabled>-- Setur Manual --</option>
-                  {packages.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.bandwidthMbps} Mbps)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[12px] font-medium text-slate-400 mb-1">
-                Total Tagihan (Rp)
-              </div>
-              <input
-                type="number"
-                min={0}
-                value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full px-2.5 py-2 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-800/50 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
-              />
-              <div className="mt-1 text-[10px] text-slate-400">
-                Nilai ini bisa disesuaikan manual meskipun sudah memilih paket (mis. ada diskon).
-              </div>
-            </div>
-          </div>
-
+        <div className="flex gap-2">
           <button
             type="button"
-            disabled={isGenerating || customers.length === 0}
-            onClick={handleGenerateInvoice}
-            className="w-full px-3.5 py-2.5 rounded-lg border-0 bg-blue-600 text-white text-[13px] font-semibold shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            onClick={() => setIsPackageModalOpen(true)}
+            className="px-4 py-2 rounded-full border border-slate-700 bg-slate-800 text-slate-100 text-[12px] font-semibold hover:bg-slate-700 cursor-pointer shadow-sm transition-colors"
           >
-            {isGenerating ? "Menyimpan..." : "Publish Invoice"}
+            ⚙️ Kelola Paket
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsCreateInvoiceModalOpen(true)}
+            className="px-4 py-2 rounded-full bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 cursor-pointer shadow-sm transition-colors"
+          >
+            + Buat Tagihan Baru
           </button>
         </div>
+      </header>
+
+      <div className="flex flex-col gap-4 mb-4">
 
         {/* Tabel Invoice */}
         <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-0 shadow-md shadow-black/20 h-fit overflow-hidden">
@@ -520,133 +434,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         </div>
       </div>
 
-      {/* Auto kirim tagihan */}
-      <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20 mt-4">
-        <h2 className="m-0 mb-1 text-[14px] font-semibold text-slate-100">
-          Auto Kirim Email Tagihan
-        </h2>
-        <p className="m-0 text-[12px] text-slate-400 mb-3">
-          Atur agar invoice dikirim otomatis ke email pelanggan berdasarkan jadwal yang ditentukan.
-        </p>
 
-        <div className="flex flex-wrap gap-4 items-center mb-3">
-          <label className="flex items-center gap-2 text-[12px] font-medium text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoSendEnabled}
-              onChange={(e) => setAutoSendEnabled(e.target.checked)}
-              className="rounded border-slate-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 bg-slate-900/50 text-slate-100"
-            />
-            <span>Aktifkan auto billing otomatis (Terbit & Kirim Email)</span>
-          </label>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] text-slate-400">Terbit tiap tanggal:</span>
-            <select
-              value={scheduleDay}
-              onChange={(e) => setScheduleDay(Number(e.target.value))}
-              className="px-2 py-1 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
-            >
-              {days.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 relative">
-            <span className="text-[12px] text-slate-400">Jam Terbit:</span>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-800/50 text-[12px] font-medium text-slate-300 hover:border-blue-400 hover:bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg transition-all shadow-sm min-w-[80px] justify-between"
-              >
-                <span>{scheduleHour.toString().padStart(2, '0')}:{scheduleMinute.toString().padStart(2, '0')}</span>
-                <span className="text-[10px] text-slate-400">▼</span>
-              </button>
-
-              {isTimePickerOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-[60]" 
-                    onClick={() => setIsTimePickerOpen(false)}
-                  />
-                  <div className="absolute bottom-full left-0 mb-2 z-[70] w-[260px] bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-2xl border border-slate-800 shadow-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="text-[11px] font-bold text-slate-100 uppercase tracking-wider">Pilih Waktu (WIB)</h4>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="text"
-                          maxLength={5}
-                          placeholder="00:00"
-                          className="w-14 px-1.5 py-0.5 border border-slate-800 rounded text-[11px] text-center outline-none focus:border-blue-500 bg-slate-900/50 text-slate-100"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const val = (e.target as HTMLInputElement).value;
-                              if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val)) {
-                                const [h, m] = val.split(':').map(Number);
-                                setScheduleHour(h);
-                                setScheduleMinute(m);
-                                setIsTimePickerOpen(false);
-                              }
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-4 gap-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
-                      {Array.from({ length: 48 }, (_, i) => {
-                        const h = Math.floor(i / 2);
-                        const m = (i % 2) * 30;
-                        const isSelected = h === scheduleHour && m === scheduleMinute;
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setScheduleHour(h);
-                              setScheduleMinute(m);
-                              setIsTimePickerOpen(false);
-                            }}
-                            className={`py-1.5 rounded-lg text-[11px] font-medium transition-all ${
-                              isSelected 
-                                ? "bg-blue-600 text-white shadow-md shadow-blue-200" 
-                                : "text-slate-400 hover:bg-slate-800"
-                            }`}
-                          >
-                            {h.toString().padStart(2, '0')}:{m.toString().padStart(2, '0')}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center">
-                      <span className="text-[10px] text-slate-400">Tap jam untuk memilih</span>
-                      <button 
-                        type="button"
-                        onClick={() => setIsTimePickerOpen(false)}
-                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700"
-                      >
-                        TUTUP
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleSaveAutoBilling}
-          disabled={isSavingStatus}
-          className="px-3 py-1.5 rounded-lg border-0 bg-slate-800 text-slate-100 text-[12px] font-medium hover:bg-slate-700 cursor-pointer transition-colors disabled:opacity-50"
-        >
-          {isSavingStatus ? "Menyimpan..." : "Simpan Pengaturan"}
-        </button>
-        {autoSaveResult && (
-          <span className="ml-3 text-[12px] text-emerald-600 font-medium animate-fade-in">{autoSaveResult}</span>
-        )}
-      </div>
 
       {/* MODAL KELOLA PAKET */}
       {isPackageModalOpen && (
@@ -759,6 +547,104 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                 className="px-4 py-2 rounded border border-slate-300 text-slate-300 text-[12px] font-medium hover:bg-slate-800/50 cursor-pointer"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL BUAT TAGIHAN MANUAL */}
+      {isCreateInvoiceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-800">
+              <h3 className="m-0 text-[15px] font-bold text-slate-100">
+                Buat Tagihan Manual Baru
+              </h3>
+            </div>
+            <div className="p-4 overflow-y-auto custom-scrollbar">
+              <div className="flex flex-col gap-4 text-[12px]">
+                <div>
+                  <div className="text-[11px] font-medium text-slate-400 mb-1">
+                    Pilih Klien / Pelanggan
+                  </div>
+                  <select
+                    value={selectedCustomerId}
+                    onChange={(e) => setSelectedCustomerId(Number(e.target.value))}
+                    className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] bg-slate-900/80 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
+                  >
+                    <option value="" disabled>-- Pilih Pelanggan --</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-[11px] font-medium text-slate-400 mb-1">
+                      Periode Tagihan
+                    </div>
+                    <input
+                      type="month"
+                      value={periodMonth}
+                      onChange={(e) => setPeriodMonth(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/80 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-medium text-slate-400 mb-1">
+                      Pilih Paket Layanan
+                    </div>
+                    <select
+                      value={selectedPackageId}
+                      onChange={handlePackageSelect}
+                      className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] bg-slate-900/80 outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 text-slate-100"
+                    >
+                      <option value="" disabled>-- Atur Manual --</option>
+                      {packages.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.bandwidthMbps} Mbps)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[11px] font-medium text-slate-400 mb-1">
+                    Total Tagihan (Rp)
+                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    value={price}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/80 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
+                  />
+                  <p className="mt-1.5 text-[10px] text-slate-500 leading-relaxed">
+                    * Nilai ini bisa disesuaikan manual meskipun sudah memilih paket jika ada diskon khusus.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-800 flex justify-end gap-2 bg-slate-900/30">
+              <button
+                type="button"
+                onClick={() => setIsCreateInvoiceModalOpen(false)}
+                className="px-4 py-2 rounded-full border border-slate-700 bg-transparent text-[12px] font-semibold text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isGenerating || customers.length === 0}
+                onClick={handleGenerateInvoice}
+                className="px-4 py-2 rounded-full border-0 bg-blue-600 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              >
+                {isGenerating ? "Menyimpan..." : "Publish Invoice"}
               </button>
             </div>
           </div>
@@ -1003,6 +889,18 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         }
       `}} />
     </section>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        isLoading={confirmDialog.isLoading}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
+    </>
   );
 };
 

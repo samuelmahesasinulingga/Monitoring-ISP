@@ -5,12 +5,13 @@ interface WorkspaceSettingsSectionProps {
   workspaceId?: number;
 }
 
-const AnalogTimePicker = ({ value, onChange, disabled }: { value: string, onChange: (v: string) => void, disabled?: boolean }) => {
+const AnalogTimePicker = ({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<"hour" | "minute">("hour");
 
-  const currentHour = parseInt(value.split(":")[0] || "0", 10);
-  const currentMinute = parseInt(value.split(":")[1] || "0", 10);
+  const parts = (value || "00:00").split(":");
+  const currentHour = parseInt(parts[0] || "0", 10);
+  const currentMinute = parseInt(parts[1] || "0", 10);
 
   const handleHourClick = (h: number) => {
     const newHour = h.toString().padStart(2, "0");
@@ -46,12 +47,12 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string, onChan
             : "bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:border-indigo-300"
         }`}
       >
-        <span className="font-medium text-slate-300">{value}</span>
+        <span className="font-medium text-slate-300">{value || "00:00"}</span>
         <span className="text-[14px]">🕒</span>
       </div>
 
       {isOpen && !disabled && (
-        <div className="absolute top-full right-0 md:left-0 mt-2 p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 w-[240px]">
+        <div className="absolute top-full right-0 md:left-0 mt-2 p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 w-[240px]">
           <div className="flex items-center justify-center gap-2 mb-4 text-[24px] font-bold text-slate-300">
             <span
               className={`cursor-pointer px-3 py-1 rounded-xl transition-colors ${
@@ -75,7 +76,6 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string, onChan
           <div className="relative w-48 h-48 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto shadow-inner">
             {mode === "hour" ? (
               <>
-                {/* Outer Ring (1-12) */}
                 {[...Array(12)].map((_, i) => {
                   const h = i === 0 ? 12 : i;
                   const angle = (i * 30 - 90) * (Math.PI / 180);
@@ -97,7 +97,6 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string, onChan
                     </button>
                   );
                 })}
-                {/* Inner Ring (13-00) */}
                 {[...Array(12)].map((_, i) => {
                   const h = i === 0 ? 0 : i + 12;
                   const displayH = h === 0 ? "00" : h;
@@ -122,7 +121,6 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string, onChan
                 })}
               </>
             ) : (
-              // Minutes (0, 5, 10...)
               [...Array(12)].map((_, i) => {
                 const m = i * 5;
                 const angle = (i * 30 - 90) * (Math.PI / 180);
@@ -146,7 +144,6 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string, onChan
               })
             )}
 
-            {/* Hand */}
             <div className="w-2 h-2 rounded-full bg-indigo-500 z-30 shadow-sm" />
             <div
               className="absolute w-0.5 bg-indigo-400 origin-bottom transition-all duration-300 pointer-events-none"
@@ -198,6 +195,14 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   const [autoReportPeriod, setAutoReportPeriod] = useState("weekly");
   const [autoReportTime, setAutoReportTime] = useState("08:00");
   const [slaSaveMessage, setSlaSaveMessage] = useState<string | null>(null);
+  
+  // Auto Billing Settings
+  const [autoBillingEnabled, setAutoBillingEnabled] = useState(false);
+  const [billingIssueDay, setBillingIssueDay] = useState(1);
+  const [billingIssueHour, setBillingIssueHour] = useState(8);
+  const [billingIssueMinute, setBillingIssueMinute] = useState(0);
+  const [autoBillingSaveMessage, setAutoBillingSaveMessage] = useState<string | null>(null);
+  const [isSavingAutoBilling, setIsSavingAutoBilling] = useState(false);
 
   // Telegram Alerting
   const [telegramBotToken, setTelegramBotToken] = useState("");
@@ -234,6 +239,11 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
             if (thisWs.autoReportEnabled !== undefined) setAutoReportEnabled(thisWs.autoReportEnabled ? "enabled" : "disabled");
             if (thisWs.autoReportPeriod) setAutoReportPeriod(thisWs.autoReportPeriod);
             if (thisWs.autoReportTime) setAutoReportTime(thisWs.autoReportTime);
+
+            if (thisWs.autoBillingEnabled !== undefined) setAutoBillingEnabled(thisWs.autoBillingEnabled);
+            if (thisWs.billingIssueDay) setBillingIssueDay(thisWs.billingIssueDay);
+            if (thisWs.billingIssueHour !== undefined) setBillingIssueHour(thisWs.billingIssueHour);
+            if (thisWs.billingIssueMinute !== undefined) setBillingIssueMinute(thisWs.billingIssueMinute);
           }
         }
       } catch (err) {
@@ -359,6 +369,38 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
 
     setTimeout(() => setSlaSaveMessage(null), 3000);
   };
+
+  const handleSaveAutoBilling = async () => {
+    if (!workspaceId) return;
+    setIsSavingAutoBilling(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          autoBillingEnabled: autoBillingEnabled,
+          billingIssueDay: Number(billingIssueDay),
+          billingIssueHour: Number(billingIssueHour),
+          billingIssueMinute: Number(billingIssueMinute),
+        }),
+      });
+
+      if (res.ok) {
+        setAutoBillingSaveMessage("Pengaturan auto billing berhasil disimpan!");
+      } else {
+        setAutoBillingSaveMessage("Gagal menyimpan pengaturan auto billing.");
+      }
+    } catch (err) {
+      console.error(err);
+      setAutoBillingSaveMessage("Terjadi kesalahan sistem.");
+    } finally {
+      setIsSavingAutoBilling(false);
+      setTimeout(() => setAutoBillingSaveMessage(null), 3000);
+    }
+  };
+
+  const days = Array.from({ length: 28 }, (_, i) => i + 1);
+  const currentTimeStr = `${billingIssueHour.toString().padStart(2, "0")}:${billingIssueMinute.toString().padStart(2, "0")}`;
 
   const exampleSubject = invoiceSubjectTemplate
     .replace("{{customer_name}}", "PT Contoh Pelanggan")
@@ -690,6 +732,73 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
             {slaSaveMessage && (
               <span className="text-[11px] font-medium text-emerald-600 animate-pulse">
                 {slaSaveMessage}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Automated Billing Schedule */}
+        <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-100">
+            Konfigurasi Auto Billing (Tagihan & Email)
+          </h2>
+          <p className="m-0 mb-3 text-[12px] text-slate-400">
+            Atur pengiriman invoice otomatis ke email pelanggan setiap bulan sesuai jadwal yang ditentukan.
+          </p>
+
+          <div className="grid gap-4 mb-4 md:grid-cols-4 items-end">
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 text-[12px] font-medium text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoBillingEnabled}
+                  onChange={(e) => setAutoBillingEnabled(e.target.checked)}
+                  className="rounded border-slate-800 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 bg-slate-900/50"
+                />
+                <span>Aktifkan pengiriman tagihan otomatis</span>
+              </label>
+            </div>
+            <div>
+              <div className="mb-1 text-[12px] text-slate-400">Terbit tiap tanggal:</div>
+              <select
+                value={billingIssueDay}
+                onChange={(e) => setBillingIssueDay(Number(e.target.value))}
+                disabled={!autoBillingEnabled}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50"
+              >
+                {days.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div className="mb-1 text-[12px] text-slate-400">Jam Terbit (WIB):</div>
+              <AnalogTimePicker
+                value={currentTimeStr}
+                onChange={(val) => {
+                  const [h, m] = val.split(":").map(Number);
+                  setBillingIssueHour(h);
+                  setBillingIssueMinute(m);
+                }}
+                disabled={!autoBillingEnabled}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveAutoBilling}
+              disabled={isSavingAutoBilling}
+              className="px-4 py-2 rounded-full border border-blue-500 bg-blue-500 text-[12px] font-semibold text-white hover:bg-blue-600 transition-colors shadow-sm disabled:opacity-50"
+            >
+              {isSavingAutoBilling ? "Menyimpan..." : "Simpan Pengaturan Billing"}
+            </button>
+            {autoBillingSaveMessage && (
+              <span className="text-[11px] font-medium text-emerald-600 animate-pulse">
+                {autoBillingSaveMessage}
               </span>
             )}
           </div>
