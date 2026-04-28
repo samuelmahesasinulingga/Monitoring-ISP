@@ -226,16 +226,16 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg p-6 rounded-3xl gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Traffic Analytics</h2>
-          <p className="text-[13px] text-slate-400">Analisis trafik real-time menggunakan metadata sFlow & Traffic Flow.</p>
+          <h2 className="text-xl font-bold text-[var(--text-main-primary)]">Traffic Analytics</h2>
+          <p className="text-[13px] text-[var(--text-main-secondary)]">Analisis trafik real-time menggunakan metadata sFlow & Traffic Flow.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Device Filter */}
-          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-xl border border-slate-800">
-            <span className="text-[11px] font-bold text-slate-400 uppercase">Device:</span>
+          <div className="flex items-center gap-2 bg-[var(--bg-main)] px-3 py-1.5 rounded-xl border border-[var(--border-main)]">
+            <span className="text-[11px] font-bold text-[var(--text-main-secondary)] uppercase">Device:</span>
             <select
               value={selectedDeviceId}
               onChange={(e) => {
@@ -247,11 +247,11 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                   localStorage.setItem(`selectedDeviceId_${workspaceId}`, val);
                 }
               }}
-              className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
+              className="bg-transparent border-none text-[12px] font-bold text-[var(--text-main-secondary)] focus:ring-0 cursor-pointer outline-none text-[var(--text-main-primary)]"
             >
-              <option value="" className="bg-slate-900 text-slate-100">Semua Perangkat</option>
+              <option value="" className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">Semua Perangkat</option>
               {allDevices.map(dev => (
-                <option key={dev.id} value={dev.id.toString()} className="bg-slate-900 text-slate-100">
+                <option key={dev.id} value={dev.id.toString()} className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">
                   {dev.name} {activeDevices.includes(dev.id) ? "●" : ""}
                 </option>
               ))}
@@ -259,8 +259,8 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
           </div>
 
           {/* Customer Filter */}
-          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-xl border border-slate-800">
-            <span className="text-[11px] font-bold text-slate-400 uppercase">Customer:</span>
+          <div className="flex items-center gap-2 bg-[var(--bg-main)] px-3 py-1.5 rounded-xl border border-[var(--border-main)]">
+            <span className="text-[11px] font-bold text-[var(--text-main-secondary)] uppercase">Customer:</span>
             <select
               value={selectedCustomerId}
               onChange={(e) => {
@@ -269,11 +269,11 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 setCurrentPage(1);
                 setSelectedCustomerId(val);
               }}
-              className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
+              className="bg-transparent border-none text-[12px] font-bold text-[var(--text-main-secondary)] focus:ring-0 cursor-pointer outline-none text-[var(--text-main-primary)]"
             >
-              <option value="" className="bg-slate-900 text-slate-100">Semua Pelanggan</option>
+              <option value="" className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">Semua Pelanggan</option>
               {customers.map(c => (
-                <option key={c.id} value={c.id.toString()} className="bg-slate-900 text-slate-100">
+                <option key={c.id} value={c.id.toString()} className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">
                   {c.name}
                 </option>
               ))}
@@ -281,8 +281,8 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
           </div>
 
           {/* Window Filter (Sampling) */}
-          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-xl border border-slate-800">
-            <span className="text-[11px] font-bold text-slate-400 uppercase">Window:</span>
+          <div className="flex items-center gap-2 bg-[var(--bg-main)] px-3 py-1.5 rounded-xl border border-[var(--border-main)]">
+            <span className="text-[11px] font-bold text-[var(--text-main-secondary)] uppercase">Window:</span>
             <select
               value={selectedDuration}
               onChange={(e) => {
@@ -292,12 +292,12 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 setSelectedDuration(val);
                 updateMonitoringMode(val);
               }}
-              className="bg-transparent border-none text-[12px] font-bold text-slate-300 focus:ring-0 cursor-pointer outline-none text-slate-100"
+              className="bg-transparent border-none text-[12px] font-bold text-[var(--text-main-secondary)] focus:ring-0 cursor-pointer outline-none text-[var(--text-main-primary)]"
             >
-              <option value="0" className="bg-slate-900 text-slate-100">Continuous (Real-time)</option>
-              <option value="1" className="bg-slate-900 text-slate-100">Snapshot 1 Menit</option>
-              <option value="3" className="bg-slate-900 text-slate-100">Snapshot 3 Menit</option>
-              <option value="5" className="bg-slate-900 text-slate-100">Snapshot 5 Menit</option>
+              <option value="0" className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">Continuous (Real-time)</option>
+              <option value="1" className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">Snapshot 1 Menit</option>
+              <option value="3" className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">Snapshot 3 Menit</option>
+              <option value="5" className="bg-[var(--card-main-bg)] text-[var(--text-main-primary)]">Snapshot 5 Menit</option>
             </select>
           </div>
 
@@ -308,7 +308,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 {activeDevices.length} ACTIVE
               </div>
             ) : (
-              <div className="px-3 py-1 bg-slate-800/50 text-slate-400 text-[11px] font-bold rounded-full border border-slate-800 flex items-center gap-1.5 h-full">
+              <div className="px-3 py-1 bg-[var(--bg-main)] text-[var(--text-main-secondary)] text-[11px] font-bold rounded-full border border-[var(--border-main)] flex items-center gap-1.5 h-full">
                 OFFLINE
               </div>
             )
@@ -318,7 +318,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               ACTIVE
             </div>
           ) : (
-            <div className="px-3 py-1 bg-slate-800/50 text-slate-400 text-[11px] font-bold rounded-full border border-slate-800 flex items-center gap-1.5 h-full">
+            <div className="px-3 py-1 bg-[var(--bg-main)] text-[var(--text-main-secondary)] text-[11px] font-bold rounded-full border border-[var(--border-main)] flex items-center gap-1.5 h-full">
               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
               NO TRAFFIC
             </div>
@@ -329,7 +329,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               fetchData();
               fetchDeviceMetadata();
             }} 
-            className="p-2 bg-slate-800/50 text-slate-300 text-[11px] font-bold rounded-xl border border-slate-800 hover:bg-slate-700 transition-all disabled:opacity-50"
+            className="p-2 bg-[var(--bg-main)] text-[var(--text-main-secondary)] text-[11px] font-bold rounded-xl border border-[var(--border-main)] hover:opacity-80 transition-all disabled:opacity-50"
             disabled={isLoading}
             title="Refresh Data"
           >
@@ -340,10 +340,10 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Talkers List */}
-        <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl flex flex-col h-[400px]">
+        <div className="bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg p-6 rounded-3xl flex flex-col h-[400px]">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider">Top Talkers (Last 1h)</h3>
-            <span className="text-[11px] text-slate-400">Total Consumption</span>
+            <h3 className="text-[14px] font-bold text-[var(--text-main-primary)] uppercase tracking-wider">Top Talkers (Last 1h)</h3>
+            <span className="text-[11px] text-[var(--text-main-secondary)]">Total Consumption</span>
           </div>
           <div className="flex-1 space-y-5 overflow-y-auto pr-2 custom-scrollbar">
             {topTalkers.length > 0 ? topTalkers.map((talker, idx) => {
@@ -352,10 +352,10 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
               return (
                 <div key={talker.ip} className="space-y-1.5">
                   <div className="flex justify-between text-[12px]">
-                    <span className="font-mono text-slate-300 font-semibold">{talker.ip}</span>
+                    <span className="font-mono text-[var(--text-main-secondary)] font-semibold">{talker.ip}</span>
                     <span className="font-bold text-blue-600">{formatBytes(talker.bytes)}</span>
                   </div>
-                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-[var(--bg-main)] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000"
                       style={{ width: `${percentage}%` }}
@@ -373,8 +373,8 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         </div>
 
         {/* Protocol Breakdown Chart */}
-        <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl flex flex-col h-[400px]">
-          <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider mb-2">Protocol Breakdown</h3>
+        <div className="bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg p-6 rounded-3xl flex flex-col h-[400px]">
+          <h3 className="text-[14px] font-bold text-[var(--text-main-primary)] uppercase tracking-wider mb-2">Protocol Breakdown</h3>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -395,23 +395,23 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 <Tooltip
                   formatter={(value: any) => formatBytes(value)}
                   contentStyle={{ 
-                    backgroundColor: '#0f172a', 
+                    backgroundColor: 'var(--card-main-bg)', 
                     borderRadius: '12px', 
-                    border: '1px solid #1e293b', 
+                    border: '1px solid var(--border-main)', 
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                    color: '#f1f5f9'
+                    color: 'var(--text-main-primary)'
                   }}
-                  itemStyle={{ color: '#f1f5f9' }}
+                  itemStyle={{ color: 'var(--text-main-primary)' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-main-secondary)' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Application Distribution Chart */}
-        <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 rounded-3xl flex flex-col h-[400px] lg:col-span-2">
-          <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider mb-6">Application Distribution (by Destination Port)</h3>
+        <div className="bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg p-6 rounded-3xl flex flex-col h-[400px] lg:col-span-2">
+          <h3 className="text-[14px] font-bold text-[var(--text-main-primary)] uppercase tracking-wider mb-6">Application Distribution (by Destination Port)</h3>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={appBreakdown} layout="vertical" margin={{ left: 40, right: 40 }}>
@@ -422,19 +422,19 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                   type="category" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                  tick={{ fill: 'var(--text-main-secondary)', fontSize: 11, fontWeight: 600 }}
                   width={120}
                 />
                 <Tooltip
                   formatter={(value: any) => formatBytes(value)}
                   contentStyle={{ 
-                    backgroundColor: '#0f172a', 
+                    backgroundColor: 'var(--card-main-bg)', 
                     borderRadius: '12px', 
-                    border: '1px solid #1e293b', 
+                    border: '1px solid var(--border-main)', 
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                    color: '#f1f5f9'
+                    color: 'var(--text-main-primary)'
                   }}
-                  itemStyle={{ color: '#f1f5f9' }}
+                  itemStyle={{ color: 'var(--text-main-primary)' }}
                   cursor={{ fill: '#1e293b', opacity: 0.4 }}
                 />
                 <Bar 
@@ -453,13 +453,13 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
       </div>
 
       {/* Real-time Flow Stream */}
-      <div className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-3xl overflow-hidden">
-        <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg rounded-3xl overflow-hidden">
+        <div className="p-6 border-b border-[var(--border-main)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h3 className="text-[14px] font-bold text-slate-100 uppercase tracking-wider">
+            <h3 className="text-[14px] font-bold text-[var(--text-main-primary)] uppercase tracking-wider">
               {selectedDuration === "0" ? "Real-time Traffic Flow (Log)" : `Snapshot Traffic Flow (${selectedDuration} Min)`}
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-[var(--text-main-secondary)] mt-0.5">
               {selectedDuration === "0" 
                 ? "Streaming data trafik real-time dari router terpilih." 
                 : `Menampilkan data sampling trafik dari router terpilih (${selectedDuration} menit interval).`}
@@ -477,7 +477,7 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[12px]">
             <thead>
-              <tr className="bg-slate-800/50 text-slate-400 uppercase tracking-tighter font-bold">
+              <tr className="bg-[var(--bg-main)] text-[var(--text-main-secondary)] uppercase tracking-tighter font-bold">
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Source IP</th>
                 <th className="px-6 py-3">Dest IP</th>
@@ -486,14 +486,14 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                 <th className="px-6 py-3 text-right">Size</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-[var(--border-main)]">
               {flowLogs.length > 0 ? flowLogs.map((log, idx) => (
-                <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="px-6 py-3 font-mono text-slate-400 whitespace-nowrap">
+                <tr key={idx} className="hover:bg-[var(--bg-main)] transition-colors">
+                  <td className="px-6 py-3 font-mono text-[var(--text-main-secondary)] whitespace-nowrap">
                     {new Date(log.capturedAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} {new Date(log.capturedAt).toLocaleTimeString('id-ID', { hour12: false })}
                   </td>
-                  <td className="px-6 py-3 font-mono font-medium text-slate-300">{log.srcIp}</td>
-                  <td className="px-6 py-3 font-mono text-slate-400">{log.dstIp}</td>
+                  <td className="px-6 py-3 font-mono font-medium text-[var(--text-main-primary)]">{log.srcIp}</td>
+                  <td className="px-6 py-3 font-mono text-[var(--text-main-secondary)]">{log.dstIp}</td>
                   <td className="px-6 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                       log.protocol === 'TCP' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
@@ -503,16 +503,16 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
                       {log.protocol}
                     </span>
                   </td>
-                  <td className="px-6 py-3 font-mono text-slate-400 text-[11px]">
+                  <td className="px-6 py-3 font-mono text-[var(--text-main-secondary)] text-[11px]">
                     {log.srcPort} → {log.dstPort}
                   </td>
-                  <td className="px-6 py-3 text-right font-bold text-slate-100">
+                  <td className="px-6 py-3 text-right font-bold text-[var(--text-main-primary)]">
                     {formatBytes(log.bytes)}
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
+                  <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-main-secondary)] italic">
                     Menunggu trafik masuk... (Pastikan Traffic Flow di Router diarahkan ke Port {allDevices.find(d => d.id.toString() === selectedDeviceId)?.netflowPort || 2055})
                   </td>
                 </tr>
@@ -522,20 +522,20 @@ const TrafficAnalyticsSection: React.FC<TrafficAnalyticsSectionProps> = ({ works
         </div>
 
         {totalPages > 1 && (
-          <div className="p-4 border-t border-slate-800 flex items-center justify-between text-[12px]">
-            <span className="text-slate-400 font-medium">Halaman <strong className="text-slate-300">{currentPage}</strong> dari <strong className="text-slate-300">{totalPages}</strong></span>
+          <div className="p-4 border-t border-[var(--border-main)] flex items-center justify-between text-[12px]">
+            <span className="text-[var(--text-main-secondary)] font-medium">Halaman <strong className="text-[var(--text-main-primary)]">{currentPage}</strong> dari <strong className="text-[var(--text-main-primary)]">{totalPages}</strong></span>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-slate-300 hover:bg-slate-800/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                className="px-3 py-1.5 rounded-lg border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-lg text-[var(--text-main-secondary)] hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 Sebelumnya
               </button>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-slate-300 hover:bg-slate-800/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                className="px-3 py-1.5 rounded-lg border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-lg text-[var(--text-main-secondary)] hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 Selanjutnya
               </button>

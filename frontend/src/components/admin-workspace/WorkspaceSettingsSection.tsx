@@ -41,39 +41,36 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string; onChan
     <div className="relative">
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full px-3 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none flex items-center justify-between cursor-pointer transition-colors ${
-          disabled
-            ? "bg-slate-800/50 text-slate-400 cursor-not-allowed"
-            : "bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg hover:border-indigo-300"
-        }`}
+        className={`w-full px-3 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none flex items-center justify-between cursor-pointer transition-colors ${disabled
+          ? "bg-[var(--bg-main)]/50 text-[var(--text-main-secondary)] cursor-not-allowed"
+          : "bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg hover:border-indigo-300"
+          }`}
       >
-        <span className="font-medium text-slate-300">{value || "00:00"}</span>
+        <span className="font-medium text-[var(--text-main-primary)]">{value || "00:00"}</span>
         <span className="text-[14px]">🕒</span>
       </div>
 
       {isOpen && !disabled && (
-        <div className="absolute top-full right-0 md:left-0 mt-2 p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 w-[240px]">
-          <div className="flex items-center justify-center gap-2 mb-4 text-[24px] font-bold text-slate-300">
+        <div className="absolute top-full right-0 md:left-0 mt-2 p-4 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 w-[240px]">
+          <div className="flex items-center justify-center gap-2 mb-4 text-[24px] font-bold text-[var(--text-main-primary)]">
             <span
-              className={`cursor-pointer px-3 py-1 rounded-xl transition-colors ${
-                mode === "hour" ? "bg-indigo-100 text-indigo-700" : "hover:bg-slate-800 text-slate-400"
-              }`}
+              className={`cursor-pointer px-3 py-1 rounded-xl transition-colors ${mode === "hour" ? "bg-indigo-100 text-indigo-700" : "hover:bg-[var(--bg-main)] text-[var(--text-main-secondary)]"
+                }`}
               onClick={() => setMode("hour")}
             >
               {currentHour.toString().padStart(2, "0")}
             </span>
-            <span className="text-slate-300 animate-pulse">:</span>
+            <span className="text-[var(--text-main-primary)] animate-pulse">:</span>
             <span
-              className={`cursor-pointer px-3 py-1 rounded-xl transition-colors ${
-                mode === "minute" ? "bg-indigo-100 text-indigo-700" : "hover:bg-slate-800 text-slate-400"
-              }`}
+              className={`cursor-pointer px-3 py-1 rounded-xl transition-colors ${mode === "minute" ? "bg-indigo-100 text-indigo-700" : "hover:bg-[var(--bg-main)] text-[var(--text-main-secondary)]"
+                }`}
               onClick={() => setMode("minute")}
             >
               {currentMinute.toString().padStart(2, "0")}
             </span>
           </div>
 
-          <div className="relative w-48 h-48 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto shadow-inner">
+          <div className="relative w-48 h-48 rounded-full bg-[var(--bg-main)]/50 flex items-center justify-center mx-auto shadow-inner">
             {mode === "hour" ? (
               <>
                 {[...Array(12)].map((_, i) => {
@@ -86,11 +83,10 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string; onChan
                     <button
                       key={`h1-${h}`}
                       onClick={() => handleHourClick(h)}
-                      className={`absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-all ${
-                        isActive
-                          ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
-                          : "text-slate-300 hover:bg-indigo-100 z-10"
-                      }`}
+                      className={`absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-all ${isActive
+                        ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
+                        : "text-[var(--text-main-primary)] hover:bg-indigo-100 z-10"
+                        }`}
                       style={{ transform: `translate(${x}px, ${y}px)` }}
                     >
                       {h}
@@ -108,11 +104,10 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string; onChan
                     <button
                       key={`h2-${h}`}
                       onClick={() => handleHourClick(h)}
-                      className={`absolute w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium transition-all ${
-                        isActive
-                          ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
-                          : "text-slate-400 hover:bg-indigo-100 z-10"
-                      }`}
+                      className={`absolute w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium transition-all ${isActive
+                        ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
+                        : "text-[var(--text-main-secondary)] hover:bg-indigo-100 z-10"
+                        }`}
                       style={{ transform: `translate(${x}px, ${y}px)` }}
                     >
                       {displayH}
@@ -131,11 +126,10 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string; onChan
                   <button
                     key={`m-${m}`}
                     onClick={() => handleMinuteClick(m)}
-                    className={`absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-all ${
-                      isActive
-                        ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
-                        : "text-slate-300 hover:bg-indigo-100 z-10"
-                    }`}
+                    className={`absolute w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-all ${isActive
+                      ? "bg-indigo-500 text-white shadow-md scale-110 z-20"
+                      : "text-[var(--text-main-primary)] hover:bg-indigo-100 z-10"
+                      }`}
                     style={{ transform: `translate(${x}px, ${y}px)` }}
                   >
                     {m === 0 ? "00" : m}
@@ -156,6 +150,57 @@ const AnalogTimePicker = ({ value, onChange, disabled }: { value: string; onChan
             >
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-indigo-500" />
             </div>
+          </div>
+        </div>
+      )}
+
+      {isOpen && !disabled && (
+        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+      )}
+    </div>
+  );
+};
+
+const DayOfMonthPicker = ({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  return (
+    <div className="relative">
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full px-3 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none flex items-center justify-between cursor-pointer transition-colors ${disabled
+          ? "bg-[var(--bg-main)]/50 text-[var(--text-main-secondary)] cursor-not-allowed"
+          : "bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg hover:border-indigo-300"
+          }`}
+      >
+        <span className="font-medium text-[var(--text-main-primary)]">Tanggal {value}</span>
+        <span className="text-[14px]">📅</span>
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute top-full right-0 mt-2 p-4 bg-[var(--card-main-bg)] border border-[var(--border-main)] shadow-2xl rounded-2xl z-50 animate-in fade-in zoom-in-95 duration-200 w-[260px]">
+          <div className="mb-3 text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-wider text-center">Pilih Tanggal Penagihan</div>
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => {
+                  onChange(d);
+                  setIsOpen(false);
+                }}
+                className={`h-8 w-8 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ${value === d
+                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
+                  : "text-[var(--text-main-primary)] hover:bg-indigo-100 dark:hover:bg-indigo-900/30"
+                  }`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 pt-2 border-t border-[var(--border-main)] text-[10px] text-[var(--text-main-secondary)] italic text-center">
+            *Penagihan akan terulang setiap bulan
           </div>
         </div>
       )}
@@ -194,8 +239,9 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
   const [autoReportEnabled, setAutoReportEnabled] = useState("disabled");
   const [autoReportPeriod, setAutoReportPeriod] = useState("weekly");
   const [autoReportTime, setAutoReportTime] = useState("08:00");
+  const [slaReportTemplate, setSlaReportTemplate] = useState("");
   const [slaSaveMessage, setSlaSaveMessage] = useState<string | null>(null);
-  
+
   // Auto Billing Settings
   const [autoBillingEnabled, setAutoBillingEnabled] = useState(false);
   const [billingIssueDay, setBillingIssueDay] = useState(1);
@@ -235,10 +281,11 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
             if (thisWs.smtpFromEmail) setSmtpFromEmail(thisWs.smtpFromEmail);
             if (thisWs.invoiceSubjectTemplate) setInvoiceSubjectTemplate(thisWs.invoiceSubjectTemplate);
             if (thisWs.invoiceBodyTemplate) setInvoiceBodyTemplate(thisWs.invoiceBodyTemplate);
-            
+
             if (thisWs.autoReportEnabled !== undefined) setAutoReportEnabled(thisWs.autoReportEnabled ? "enabled" : "disabled");
             if (thisWs.autoReportPeriod) setAutoReportPeriod(thisWs.autoReportPeriod);
             if (thisWs.autoReportTime) setAutoReportTime(thisWs.autoReportTime);
+            if (thisWs.slaReportTemplate) setSlaReportTemplate(thisWs.slaReportTemplate);
 
             if (thisWs.autoBillingEnabled !== undefined) setAutoBillingEnabled(thisWs.autoBillingEnabled);
             if (thisWs.billingIssueDay) setBillingIssueDay(thisWs.billingIssueDay);
@@ -354,6 +401,7 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
           autoReportEnabled: autoReportEnabled === "enabled",
           autoReportPeriod: autoReportPeriod,
           autoReportTime: autoReportTime,
+          slaReportTemplate: slaReportTemplate,
         }),
       });
 
@@ -399,7 +447,6 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
     }
   };
 
-  const days = Array.from({ length: 28 }, (_, i) => i + 1);
   const currentTimeStr = `${billingIssueHour.toString().padStart(2, "0")}:${billingIssueMinute.toString().padStart(2, "0")}`;
 
   const exampleSubject = invoiceSubjectTemplate
@@ -416,10 +463,10 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
     <section className="max-w-5xl mx-auto py-2 pb-6">
       <header className="mb-5 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-100">
+          <h1 className="m-0 mb-1 text-[20px] font-bold text-[var(--text-main-primary)]">
             ⚙️ Pengaturan Workspace
           </h1>
-          <p className="m-0 text-[12px] text-slate-400">
+          <p className="m-0 text-[12px] text-[var(--text-main-secondary)]">
             Konfigurasi email invoice dan target SLA untuk workspace
             {workspaceName ? ` "${workspaceName}"` : " ini"}.
           </p>
@@ -428,23 +475,24 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
 
       <div className="flex flex-col gap-4">
         {/* Template email invoice + SMTP */}
-        <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
-          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-100">
+        <div className="rounded-2xl p-4 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg shadow-black/20">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-[var(--text-main-primary)]">
             Template email invoice & SMTP
           </h2>
-          <p className="m-0 mb-3 text-[12px] text-slate-400">
+          <p className="m-0 mb-3 text-[12px] text-[var(--text-main-secondary)]">
             Atur provider email, konfigurasi SMTP, dan template email invoice
             yang dikirim ke pelanggan.
           </p>
 
           <div className="grid gap-2.5 mb-2.5">
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div>
-                <div className="mb-1 text-[12px] text-slate-400">Provider</div>
+                <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">Provider</div>
                 <select
                   value={smtpProvider}
                   onChange={(e) => setSmtpProvider(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)]/50 text-[var(--text-main-primary)] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
                 >
                   <option value="smtp">Generic SMTP</option>
                   <option value="sendgrid">SendGrid</option>
@@ -452,28 +500,28 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 </select>
               </div>
               <div>
-                <div className="mb-1 text-[12px] text-slate-400">Host SMTP</div>
+                <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">Host SMTP</div>
                 <input
                   type="text"
                   value={smtpHost}
                   onChange={(e) => setSmtpHost(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div>
-                <div className="mb-1 text-[12px] text-slate-400">Port</div>
+                <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">Port</div>
                 <input
                   type="number"
                   min={1}
                   value={smtpPort}
                   onChange={(e) => setSmtpPort(Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
                 />
               </div>
-              <label className="flex items-center gap-2 mt-5 text-[12px] text-slate-400">
+              <label className="flex items-center gap-2 mt-5 text-[12px] text-[var(--text-main-secondary)]">
                 <input
                   type="checkbox"
                   checked={smtpUseTLS}
@@ -485,29 +533,29 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               <div>
-                <div className="mb-1 text-[12px] text-slate-400">
+                <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                   User / credential
                 </div>
                 <input
                   type="text"
                   value={smtpUser}
                   onChange={(e) => setSmtpUser(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
                 />
               </div>
               <div>
-                <div className="mb-1 text-[12px] text-slate-400">
+                <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                   Password SMTP
                 </div>
                 <input
                   type="password"
                   value={smtpPass}
                   onChange={(e) => setSmtpPass(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
                 />
               </div>
               <div>
-                <div className="mb-1 text-[12px] text-slate-400">
+                <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                   From name & email
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -516,42 +564,42 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                     value={smtpFromName}
                     onChange={(e) => setSmtpFromName(e.target.value)}
                     placeholder="Nama pengirim"
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none min-w-0 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none min-w-0 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
                   />
                   <input
                     type="email"
                     value={smtpFromEmail}
                     onChange={(e) => setSmtpFromEmail(e.target.value)}
                     placeholder="email@isp.id"
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none min-w-0 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none min-w-0 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <div className="mb-1 text-[12px] text-slate-400">
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                 Subject email invoice
               </div>
               <input
                 type="text"
                 value={invoiceSubjectTemplate}
                 onChange={(e) => setInvoiceSubjectTemplate(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
               />
             </div>
 
             <div>
-              <div className="mb-1 text-[12px] text-slate-400">
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                 Body email (boleh pakai placeholder)
               </div>
               <textarea
                 value={invoiceBodyTemplate}
                 onChange={(e) => setInvoiceBodyTemplate(e.target.value)}
-                rows={5}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] outline-none resize-y focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                rows={7}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] outline-none resize-y focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
               />
-              <div className="mt-1 text-[11px] text-slate-400">
+              <div className="mt-1 text-[11px] text-[var(--text-main-secondary)]">
                 Placeholder yang tersedia: {"{{customer_name}}"},{" "}
                 {"{{period_label}}"}, {"{{invoice_amount}}"},{" "}
                 {"{{isp_name}}"}.
@@ -584,13 +632,13 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
           )}
 
           {emailSaveMessage && (
-            <div className="mb-2 text-[11px] text-slate-400">
+            <div className="mb-2 text-[11px] text-[var(--text-main-secondary)]">
               {emailSaveMessage}
             </div>
           )}
 
-          <div className="rounded-xl px-3 py-3 bg-slate-800/50 border border-slate-800 text-[11px] text-slate-400">
-            <div className="mb-1 text-[11px] text-slate-400">
+          <div className="rounded-xl px-3 py-3 bg-[var(--bg-main)]/50 border border-[var(--border-main)] text-[11px] text-[var(--text-main-secondary)]">
+            <div className="mb-1 text-[11px] text-[var(--text-main-secondary)]">
               Contoh email yang akan diterima pelanggan (preview sederhana):
             </div>
             <div className="font-semibold mb-1">{exampleSubject}</div>
@@ -599,9 +647,9 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
         </div>
 
         {/* Telegram Alerting Section */}
-        <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
+        <div className="rounded-2xl p-4 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg shadow-black/20">
           <div className="flex items-center justify-between gap-3 mb-1">
-            <h2 className="m-0 text-[16px] font-semibold text-slate-100">
+            <h2 className="m-0 text-[16px] font-semibold text-[var(--text-main-primary)]">
               Pengaturan Notifikasi (Telegram)
             </h2>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -611,20 +659,20 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 checked={alertEnabled}
                 onChange={(e) => setAlertEnabled(e.target.checked)}
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-900/50 text-slate-100 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span className="ml-2 text-[12px] font-medium text-slate-300">
+              <div className="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <span className="ml-2 text-[12px] font-medium text-[var(--text-main-secondary)]">
                 {alertEnabled ? "Aktif" : "Nonaktif"}
               </span>
             </label>
           </div>
-          <p className="m-0 mb-4 text-[12px] text-slate-400">
+          <p className="m-0 mb-4 text-[12px] text-[var(--text-main-secondary)]">
             Dapatkan notifikasi instan via Telegram saat perangkat terdeteksi
             mati (DOWN) atau hidup kembali (UP).
           </p>
 
           <div className="grid gap-4 mb-4 md:grid-cols-2">
             <div>
-              <div className="mb-1 text-[12px] text-slate-400 font-medium">
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)] font-medium">
                 Bot Token Telegram
               </div>
               <input
@@ -632,14 +680,14 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 value={telegramBotToken}
                 onChange={(e) => setTelegramBotToken(e.target.value)}
                 placeholder="123456789:ABCDEF..."
-                className="w-full px-3 py-2 rounded-lg border border-slate-800 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border-main)] text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
               />
-              <p className="mt-1 text-[10px] text-slate-400">
+              <p className="mt-1 text-[10px] text-[var(--text-main-secondary)]">
                 Didapat dari @BotFather saat membuat bot baru.
               </p>
             </div>
             <div>
-              <div className="mb-1 text-[12px] text-slate-400 font-medium">
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)] font-medium">
                 Telegram Chat ID (Grup/User)
               </div>
               <input
@@ -647,9 +695,9 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 value={telegramChatId}
                 onChange={(e) => setTelegramChatId(e.target.value)}
                 placeholder="-100123456789"
-                className="w-full px-3 py-2 rounded-lg border border-slate-800 text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-slate-900/50 text-slate-100"
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border-main)] text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)]"
               />
-              <p className="mt-1 text-[10px] text-slate-400">
+              <p className="mt-1 text-[10px] text-[var(--text-main-secondary)]">
                 ID grup atau akun anda (gunakan @userinfobot untuk cek ID).
               </p>
             </div>
@@ -672,37 +720,37 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
         </div>
 
         {/* Automated SLA Report Schedule */}
-        <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
-          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-100">
+        <div className="rounded-2xl p-4 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg shadow-black/20">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-[var(--text-main-primary)]">
             Jadwal Laporan SLA Otomatis
           </h2>
-          <p className="m-0 mb-3 text-[12px] text-slate-400">
+          <p className="m-0 mb-3 text-[12px] text-[var(--text-main-secondary)]">
             Kirimkan ringkasan performa SLA dan statistik jaringan secara otomatis ke grup Telegram Anda.
           </p>
 
           <div className="grid gap-3 mb-4 md:grid-cols-3">
             <div>
-              <div className="mb-1 text-[12px] text-slate-400">
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                 Otomasi Laporan
               </div>
               <select
                 value={autoReportEnabled}
                 onChange={(e) => setAutoReportEnabled(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)]/50 text-[var(--text-main-primary)] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
               >
                 <option value="disabled">Nonaktif</option>
                 <option value="enabled">Aktifkan Pengiriman</option>
               </select>
             </div>
             <div>
-              <div className="mb-1 text-[12px] text-slate-400">
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                 Periode Laporan
               </div>
               <select
                 value={autoReportPeriod}
                 onChange={(e) => setAutoReportPeriod(e.target.value)}
                 disabled={autoReportEnabled === "disabled"}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 disabled:bg-slate-800/50 disabled:text-slate-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)]/50 text-[var(--text-main-primary)] outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 disabled:bg-[var(--bg-main)]/50 disabled:text-[var(--text-main-secondary)]"
               >
                 <option value="daily">Harian (Setiap Hari)</option>
                 <option value="weekly">Mingguan (Setiap Senin)</option>
@@ -710,7 +758,7 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
               </select>
             </div>
             <div>
-              <div className="mb-1 text-[12px] text-slate-400">
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
                 Waktu Pengiriman (WIB)
               </div>
               <AnalogTimePicker
@@ -718,6 +766,23 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
                 onChange={(val) => setAutoReportTime(val)}
                 disabled={autoReportEnabled === "disabled"}
               />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">
+              Template Pesan Laporan (Markdown)
+            </div>
+            <textarea
+              value={slaReportTemplate}
+              onChange={(e) => setSlaReportTemplate(e.target.value)}
+              rows={8}
+              disabled={autoReportEnabled === "disabled"}
+              placeholder={`📊 *Laporan SLA {{period_type}}*\n🏢 *Workspace:* {{workspace_name}}\n📅 *Periode:* {{start_date}} - {{end_date}}\n\n📈 *Rata-rata Uptime:* {{avg_uptime}}\n🖥 *Total Perangkat:* {{total_devices}}\n\n{{downtime_details}}\n\n{{status_note}}`}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-main)] text-[11px] outline-none resize-y focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 bg-[var(--bg-main)]/50 text-[var(--text-main-primary)] font-mono disabled:opacity-50"
+            />
+            <div className="mt-1 text-[10px] text-[var(--text-main-secondary)]">
+              Placeholder: {"{{workspace_name}}"}, {"{{period_type}}"}, {"{{start_date}}"}, {"{{end_date}}"}, {"{{avg_uptime}}"}, {"{{total_devices}}"}, {"{{downtime_details}}"}, {"{{status_note}}"}
             </div>
           </div>
 
@@ -738,43 +803,36 @@ const WorkspaceSettingsSection: React.FC<WorkspaceSettingsSectionProps> = ({
         </div>
 
         {/* Automated Billing Schedule */}
-        <div className="rounded-2xl p-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 shadow-lg shadow-black/20">
-          <h2 className="m-0 mb-1 text-[16px] font-semibold text-slate-100">
+        <div className="rounded-2xl p-4 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg shadow-black/20">
+          <h2 className="m-0 mb-1 text-[16px] font-semibold text-[var(--text-main-primary)]">
             Konfigurasi Auto Billing (Tagihan & Email)
           </h2>
-          <p className="m-0 mb-3 text-[12px] text-slate-400">
+          <p className="m-0 mb-3 text-[12px] text-[var(--text-main-secondary)]">
             Atur pengiriman invoice otomatis ke email pelanggan setiap bulan sesuai jadwal yang ditentukan.
           </p>
 
           <div className="grid gap-4 mb-4 md:grid-cols-4 items-end">
             <div className="md:col-span-2">
-              <label className="flex items-center gap-2 text-[12px] font-medium text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-[12px] font-medium text-[var(--text-main-primary)] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={autoBillingEnabled}
                   onChange={(e) => setAutoBillingEnabled(e.target.checked)}
-                  className="rounded border-slate-800 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 bg-slate-900/50"
+                  className="rounded border-[var(--border-main)] text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 bg-[var(--bg-main)]/50"
                 />
                 <span>Aktifkan pengiriman tagihan otomatis</span>
               </label>
             </div>
             <div>
-              <div className="mb-1 text-[12px] text-slate-400">Terbit tiap tanggal:</div>
-              <select
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">Terbit tiap tanggal:</div>
+              <DayOfMonthPicker
                 value={billingIssueDay}
-                onChange={(e) => setBillingIssueDay(Number(e.target.value))}
+                onChange={(val) => setBillingIssueDay(val)}
                 disabled={!autoBillingEnabled}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-800 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50"
-              >
-                {days.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
-              <div className="mb-1 text-[12px] text-slate-400">Jam Terbit (WIB):</div>
+              <div className="mb-1 text-[12px] text-[var(--text-main-secondary)]">Jam Terbit (WIB):</div>
               <AnalogTimePicker
                 value={currentTimeStr}
                 onChange={(val) => {

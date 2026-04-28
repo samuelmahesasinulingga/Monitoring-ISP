@@ -114,14 +114,14 @@ function App() {
       {content}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm mx-4 bg-slate-950 text-slate-100 rounded-2xl shadow-2xl border border-slate-800 p-5 animate-[fadeIn_0.18s_ease-out]">
+          <div className="w-full max-w-sm mx-4 bg-[var(--card-main-bg)] text-[var(--text-main-primary)] rounded-2xl shadow-2xl border border-[var(--border-main)] p-5 animate-[fadeIn_0.18s_ease-out]">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-300 text-xl">
                 !
               </div>
               <div>
                 <h2 className="m-0 text-sm font-semibold">Konfirmasi Logout</h2>
-                <p className="m-0 mt-0.5 text-[11px] text-slate-400">
+                <p className="m-0 mt-0.5 text-[11px] text-[var(--text-main-secondary)]">
                   Apakah Anda yakin ingin keluar dari sesi ini?
                 </p>
               </div>
@@ -130,7 +130,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(false)}
-                className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900 text-[11px] text-slate-200 hover:bg-slate-800 cursor-pointer"
+                className="px-3 py-1.5 rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] text-[11px] text-[var(--text-main-secondary)] hover:opacity-80 cursor-pointer"
               >
                 Batal
               </button>

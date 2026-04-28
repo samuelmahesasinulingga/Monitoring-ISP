@@ -99,7 +99,7 @@ const DonutChart = ({ percent, color, label, subLabel }: { percent: number, colo
             stroke="currentColor"
             strokeWidth="12"
             fill="transparent"
-            className="text-slate-800"
+            className="text-[var(--border-main)]"
           />
           {/* Progress circle */}
           <circle
@@ -117,11 +117,11 @@ const DonutChart = ({ percent, color, label, subLabel }: { percent: number, colo
         </svg>
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-white">{Math.round(percent)}%</span>
-          <span className="text-xs text-slate-400 font-semibold mt-1">Used</span>
+          <span className="text-2xl font-bold text-[var(--text-main-primary)]">{Math.round(percent)}%</span>
+          <span className="text-xs text-[var(--text-main-secondary)] font-semibold mt-1">Used</span>
         </div>
       </div>
-      <div className="mt-4 text-xs font-semibold text-slate-500 tracking-wider">
+      <div className="mt-4 text-xs font-semibold text-[var(--text-main-secondary)] tracking-wider">
         {label}
       </div>
     </div>
@@ -246,15 +246,15 @@ const SystemInfoSection: React.FC = () => {
 
   if (!isActive) {
     return (
-      <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-8 md:p-12 flex flex-col items-center justify-center shadow-lg text-center">
+      <div className="bg-[var(--card-main-bg)] border border-[var(--border-main)] rounded-xl p-8 md:p-12 flex flex-col items-center justify-center shadow-lg text-center">
         <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-4 border border-indigo-500/20">
-          <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
           </svg>
         </div>
-        <h2 className="text-lg font-bold text-slate-100 mb-2">Monitor Sistem Server</h2>
-        <p className="text-[13px] text-slate-400 max-w-md mb-6 leading-relaxed">
-          Aktifkan modul ini untuk memantau penggunaan CPU, Memory, Storage, dan performa I/O jaringan server secara <span className="text-slate-300 font-semibold">real-time</span>.
+        <h2 className="text-lg font-bold text-[var(--text-main-primary)] mb-2">Monitor Sistem Server</h2>
+        <p className="text-[13px] text-[var(--text-main-secondary)] max-w-md mb-6 leading-relaxed">
+          Aktifkan modul ini untuk memantau penggunaan CPU, Memory, Storage, dan performa I/O jaringan server secara <span className="text-[var(--text-main-primary)] font-semibold">real-time</span>.
         </p>
         <button 
           onClick={handleActivate} 
@@ -270,8 +270,8 @@ const SystemInfoSection: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm">Loading System Info...</p>
+          <div className="w-8 h-8 border-4 border-[var(--border-main)] border-t-blue-500 rounded-full animate-spin"></div>
+          <p className="text-[var(--text-main-secondary)] text-sm">Loading System Info...</p>
         </div>
       </div>
     );
@@ -283,51 +283,51 @@ const SystemInfoSection: React.FC = () => {
   const storagePercent = storage.total > 0 ? (storage.used / storage.total) * 100 : 0;
 
   return (
-    <div className="space-y-6 text-slate-300 font-sans">
+    <div className="space-y-6 text-[var(--text-main-secondary)] font-sans">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">System Information</h2>
+        <h2 className="text-2xl font-bold text-[var(--text-main-primary)]">System Information</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {/* Server Info Card */}
-        <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg relative overflow-hidden group">
+        <div className="bg-[var(--card-main-bg)] border border-[var(--border-main)] rounded-xl p-5 shadow-lg relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-blue-500/10 transition-all duration-700" />
           <div className="flex items-center gap-2 mb-6">
             <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" /></svg>
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Server Info</h3>
+            <h3 className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Server Info</h3>
           </div>
 
           <div className="space-y-4 text-sm">
-            <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
-              <span className="text-slate-400">Hostname</span>
-              <span className="font-semibold text-white">{serverInfo.hostname}</span>
+            <div className="flex justify-between items-center border-b border-[var(--border-main)] pb-3">
+              <span className="text-[var(--text-main-secondary)]">Hostname</span>
+              <span className="font-semibold text-[var(--text-main-primary)]">{serverInfo.hostname}</span>
             </div>
-            <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
-              <span className="text-slate-400">OS</span>
-              <span className="font-semibold text-white">{serverInfo.os}</span>
+            <div className="flex justify-between items-center border-b border-[var(--border-main)] pb-3">
+              <span className="text-[var(--text-main-secondary)]">OS</span>
+              <span className="font-semibold text-[var(--text-main-primary)]">{serverInfo.os}</span>
             </div>
-            <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
-              <span className="text-slate-400">Kernel</span>
-              <span className="font-semibold text-white text-xs">{serverInfo.kernel}</span>
+            <div className="flex justify-between items-center border-b border-[var(--border-main)] pb-3">
+              <span className="text-[var(--text-main-secondary)]">Kernel</span>
+              <span className="font-semibold text-[var(--text-main-primary)] text-xs">{serverInfo.kernel}</span>
             </div>
-            <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
-              <span className="text-slate-400">Uptime</span>
-              <span className="font-semibold text-white text-xs">{formatUptime(serverInfo.uptime)}</span>
+            <div className="flex justify-between items-center border-b border-[var(--border-main)] pb-3">
+              <span className="text-[var(--text-main-secondary)]">Uptime</span>
+              <span className="font-semibold text-[var(--text-main-primary)] text-xs">{formatUptime(serverInfo.uptime)}</span>
             </div>
-            <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
-              <span className="text-slate-400">CPU Cores</span>
-              <span className="font-semibold text-white">{serverInfo.cpuCores} cores</span>
+            <div className="flex justify-between items-center border-b border-[var(--border-main)] pb-3">
+              <span className="text-[var(--text-main-secondary)]">CPU Cores</span>
+              <span className="font-semibold text-[var(--text-main-primary)]">{serverInfo.cpuCores} cores</span>
             </div>
           </div>
         </div>
 
         {/* Memory Card */}
-        <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg relative overflow-hidden flex flex-col group">
+        <div className="bg-[var(--card-main-bg)] border border-[var(--border-main)] rounded-xl p-5 shadow-lg relative overflow-hidden flex flex-col group">
           <div className="absolute top-0 left-1/2 w-48 h-48 bg-purple-500/5 rounded-full -ml-24 -mt-24 blur-3xl group-hover:bg-purple-500/10 transition-all duration-700" />
           <div className="flex items-center gap-2 mb-4 z-10">
             <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Memory</h3>
+            <h3 className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Memory</h3>
           </div>
           <div className="flex-1 flex items-center justify-center z-10">
             <DonutChart
@@ -340,11 +340,11 @@ const SystemInfoSection: React.FC = () => {
         </div>
 
         {/* Storage Card */}
-        <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg relative overflow-hidden flex flex-col group">
+        <div className="bg-[var(--card-main-bg)] border border-[var(--border-main)] rounded-xl p-5 shadow-lg relative overflow-hidden flex flex-col group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-amber-500/10 transition-all duration-700" />
           <div className="flex items-center gap-2 mb-4 z-10">
             <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Storage (/)</h3>
+            <h3 className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Storage (/)</h3>
           </div>
           <div className="flex-1 flex items-center justify-center z-10">
             <DonutChart
@@ -362,12 +362,12 @@ const SystemInfoSection: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {/* CPU Usage Chart */}
-        <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg group relative overflow-hidden">
+        <div className="bg-[var(--card-main-bg)] border border-[var(--border-main)] rounded-xl p-5 shadow-lg group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-1000 pointer-events-none" />
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CPU Usage</h3>
+              <h3 className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">CPU Usage</h3>
             </div>
             <div className="font-mono text-sm font-bold text-blue-400">
               {cpu.usagePercent.toFixed(1)}%
@@ -384,9 +384,9 @@ const SystemInfoSection: React.FC = () => {
                 </defs>
                 <YAxis hide domain={[0, 100]} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }}
-                  itemStyle={{ color: '#60a5fa' }}
-                  labelStyle={{ color: '#94a3b8' }}
+                  contentStyle={{ backgroundColor: 'var(--card-main-bg)', borderColor: 'var(--border-main)', fontSize: '12px', borderRadius: '8px' }}
+                  itemStyle={{ color: '#3b82f6' }}
+                  labelStyle={{ color: 'var(--text-main-secondary)' }}
                 />
                 <Area type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#cpuGradient)" isAnimationActive={false} />
               </AreaChart>
@@ -395,12 +395,12 @@ const SystemInfoSection: React.FC = () => {
         </div>
 
         {/* Network I/O Chart */}
-        <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg group relative overflow-hidden">
+        <div className="bg-[var(--card-main-bg)] border border-[var(--border-main)] rounded-xl p-5 shadow-lg group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-1000 pointer-events-none" />
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Network I/O</h3>
+              <h3 className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Network I/O</h3>
             </div>
             <div className="flex gap-3 text-xs font-mono font-bold">
               <span className="text-emerald-400 flex items-center gap-1">
@@ -418,8 +418,8 @@ const SystemInfoSection: React.FC = () => {
               <LineChart data={history} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                 <YAxis hide domain={['auto', 'auto']} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }}
-                  labelStyle={{ color: '#94a3b8' }}
+                  contentStyle={{ backgroundColor: 'var(--card-main-bg)', borderColor: 'var(--border-main)', fontSize: '12px', borderRadius: '8px' }}
+                  labelStyle={{ color: 'var(--text-main-secondary)' }}
                   formatter={(value: any) => formatSpeed(value)}
                 />
                 <Line type="monotone" dataKey="rx" name="RX" stroke="#10b981" strokeWidth={2} dot={false} isAnimationActive={false} />
@@ -430,12 +430,12 @@ const SystemInfoSection: React.FC = () => {
         </div>
 
         {/* Disk I/O Chart */}
-        <div className="bg-[#0b1120] border border-slate-800/60 rounded-xl p-5 shadow-lg group relative overflow-hidden">
+        <div className="bg-[var(--card-main-bg)] border border-[var(--border-main)] rounded-xl p-5 shadow-lg group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-1000 pointer-events-none" />
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Disk I/O</h3>
+              <h3 className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Disk I/O</h3>
             </div>
             <div className="flex gap-3 text-xs font-mono font-bold">
               <span className="text-amber-400 flex items-center gap-1">
@@ -453,8 +453,8 @@ const SystemInfoSection: React.FC = () => {
               <LineChart data={history} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                 <YAxis hide domain={['auto', 'auto']} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px', borderRadius: '8px' }}
-                  labelStyle={{ color: '#94a3b8' }}
+                  contentStyle={{ backgroundColor: 'var(--card-main-bg)', borderColor: 'var(--border-main)', fontSize: '12px', borderRadius: '8px' }}
+                  labelStyle={{ color: 'var(--text-main-secondary)' }}
                   formatter={(value: any) => formatSpeed(value)}
                 />
                 <Line type="monotone" dataKey="read" name="Read" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />

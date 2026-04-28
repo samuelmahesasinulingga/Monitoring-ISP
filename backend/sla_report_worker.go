@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -27,7 +28,7 @@ func startSLAReportWorker(a *appState) {
 
 		ctx := context.Background()
 		rows, err := a.db.Query(ctx, `
-			SELECT id, name, telegram_bot_token, telegram_chat_id, auto_report_period, auto_report_time, last_auto_report_sent 
+			SELECT id, name, telegram_bot_token, telegram_chat_id, auto_report_period, auto_report_time, sla_report_template, last_auto_report_sent 
 			FROM workspaces 
 			WHERE auto_report_enabled = TRUE
 		`)
@@ -43,13 +44,14 @@ func startSLAReportWorker(a *appState) {
 			telegramChatID     *string
 			autoReportPeriod   string
 			autoReportTime     string
+			slaReportTemplate  *string
 			lastAutoReportSent *time.Time
 		}
 
 		var tasks []wsTask
 		for rows.Next() {
 			var t wsTask
-			if err := rows.Scan(&t.id, &t.name, &t.telegramBotToken, &t.telegramChatID, &t.autoReportPeriod, &t.autoReportTime, &t.lastAutoReportSent); err == nil {
+			if err := rows.Scan(&t.id, &t.name, &t.telegramBotToken, &t.telegramChatID, &t.autoReportPeriod, &t.autoReportTime, &t.slaReportTemplate, &t.lastAutoReportSent); err == nil {
 				tasks = append(tasks, t)
 			}
 		}
@@ -96,12 +98,12 @@ func startSLAReportWorker(a *appState) {
 			}
 
 			// Execute SLA logic
-			go processSLAReport(a, t.id, t.name, *t.telegramBotToken, *t.telegramChatID, t.autoReportPeriod, loc)
+			go processSLAReport(a, t.id, t.name, *t.telegramBotToken, *t.telegramChatID, t.autoReportPeriod, t.slaReportTemplate, loc)
 		}
 	}
 }
 
-func processSLAReport(a *appState, wsID int, wsName string, botToken string, chatID string, period string, loc *time.Location) {
+func processSLAReport(a *appState, wsID int, wsName string, botToken string, chatID string, period string, template *string, loc *time.Location) {
 	ctx := context.Background()
 
 	// Calculate period duration
@@ -169,22 +171,48 @@ func processSLAReport(a *appState, wsID int, wsName string, botToken string, cha
 		"monthly": "Bulanan",
 	}
 
-	message := fmt.Sprintf("📊 *Laporan SLA %s*\n🏢 *Workspace:* %s\n", periodMap[period], wsName)
-	message += fmt.Sprintf("📅 *Periode:* %s - %s\n\n", startTime.Format("02 Jan 2006"), now.Format("02 Jan 2006"))
-	
-	message += fmt.Sprintf("📈 *Rata-rata Uptime:* %.2f%%\n", avgUptime)
-	message += fmt.Sprintf("🖥 *Total Perangkat:* %d\n", validDevices)
-	
-	if details != "" {
-		message += "\n*Perangkat dengan Downtime:*\n" + details
-	}
+	avgUptimeStr := fmt.Sprintf("%.2f%%", avgUptime)
+	totalDevicesStr := fmt.Sprintf("%d", validDevices)
 
-	if avgUptime >= 99.0 {
-		message += "\n✅ _Status jaringan terpantau sangat baik._"
-	} else if avgUptime >= 95.0 {
-		message += "\n⚠️ _Status jaringan terpantau cukup baik, namun terdapat beberapa masalah._"
+	message := ""
+	if template != nil && *template != "" {
+		// Custom Template
+		message = strings.ReplaceAll(*template, "{{workspace_name}}", wsName)
+		message = strings.ReplaceAll(message, "{{period_type}}", periodMap[period])
+		message = strings.ReplaceAll(message, "{{start_date}}", startTime.Format("02 Jan 2006"))
+		message = strings.ReplaceAll(message, "{{end_date}}", now.Format("02 Jan 2006"))
+		message = strings.ReplaceAll(message, "{{avg_uptime}}", avgUptimeStr)
+		message = strings.ReplaceAll(message, "{{total_devices}}", totalDevicesStr)
+		message = strings.ReplaceAll(message, "{{downtime_details}}", details)
+		
+		statusNote := ""
+		if avgUptime >= 99.0 {
+			statusNote = "✅ _Status jaringan terpantau sangat baik._"
+		} else if avgUptime >= 95.0 {
+			statusNote = "⚠️ _Status jaringan terpantau cukup baik, namun terdapat beberapa masalah._"
+		} else {
+			statusNote = "❌ _Status jaringan terpantau buruk. Harap segera periksa infrastruktur._"
+		}
+		message = strings.ReplaceAll(message, "{{status_note}}", statusNote)
 	} else {
-		message += "\n❌ _Status jaringan terpantau buruk. Harap segera periksa infrastruktur._"
+		// Default Template
+		message = fmt.Sprintf("📊 *Laporan SLA %s*\n🏢 *Workspace:* %s\n", periodMap[period], wsName)
+		message += fmt.Sprintf("📅 *Periode:* %s - %s\n\n", startTime.Format("02 Jan 2006"), now.Format("02 Jan 2006"))
+
+		message += fmt.Sprintf("📈 *Rata-rata Uptime:* %s\n", avgUptimeStr)
+		message += fmt.Sprintf("🖥 *Total Perangkat:* %s\n", totalDevicesStr)
+
+		if details != "" {
+			message += "\n*Perangkat dengan Downtime:*\n" + details
+		}
+
+		if avgUptime >= 99.0 {
+			message += "\n✅ _Status jaringan terpantau sangat baik._"
+		} else if avgUptime >= 95.0 {
+			message += "\n⚠️ _Status jaringan terpantau cukup baik, namun terdapat beberapa masalah._"
+		} else {
+			message += "\n❌ _Status jaringan terpantau buruk. Harap segera periksa infrastruktur._"
+		}
 	}
 
 	sendTelegramReport(botToken, chatID, message)

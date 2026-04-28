@@ -1,0 +1,1 @@
+ALTER TABLE topology_edges ADD COLUMN animated BOOLEAN DEFAULT TRUE;

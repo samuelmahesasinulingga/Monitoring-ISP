@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNotification } from "../../context/NotificationContext";
 import type { Customer } from "./CustomerSection";
 import ConfirmDialog from "../ui/ConfirmDialog";
 
@@ -32,6 +33,7 @@ interface PackageInfo {
 }
 
 const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspaceId }) => {
+  const { notify } = useNotification();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [packages, setPackages] = useState<PackageInfo[]>([]);
@@ -61,9 +63,6 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   const [newPkgName, setNewPkgName] = useState("");
   const [newPkgBandwidth, setNewPkgBandwidth] = useState(50);
   const [newPkgPrice, setNewPkgPrice] = useState(350000);
-
-  // Animation State
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   // Custom Confirm Dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -119,7 +118,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
   const handleGenerateInvoice = async () => {
     if (!selectedCustomerId || !periodMonth) {
-      alert("Pilih pelanggan dan periode terlebih dahulu.");
+      notify("Pilih pelanggan dan periode terlebih dahulu.", "warning");
       return;
     }
 
@@ -153,9 +152,10 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         setSelectedPackageId("");
         setPrice(0);
         setIsCreateInvoiceModalOpen(false);
+        notify("Tagihan baru berhasil dibuat!", "success");
       } else {
         const text = await res.text();
-        alert("Gagal membuat tagihan: " + text);
+        notify("Gagal membuat tagihan: " + text, "error");
       }
     } catch (err) {
       console.error(err);
@@ -194,14 +194,17 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         setSendingEmailId(id);
         try {
           const res = await fetch(`/api/invoices/${id}/send-email`, { method: "POST" });
-          const data = await res.json();
           if (res.ok) {
-            setShowSuccessToast(true);
-            setTimeout(() => setShowSuccessToast(false), 3000);
+            notify("Invoice berhasil dikirim ke email pelanggan!", "success");
+            closeConfirm();
           } else {
-            alert("Gagal kirim email: " + data.error);
+            const data = await res.json();
+            notify("Gagal mengirim email: " + data.error, "error");
           }
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+          console.error("send email err", err);
+          notify("Gagal menghubungi server email.", "error");
+        }
         finally { setSendingEmailId(null); closeConfirm(); }
       },
     });
@@ -245,12 +248,13 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         const updated = await res.json();
         setInvoices((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
         setEditingInvoice(null);
+        notify("Status tagihan berhasil diperbarui!", "success");
       } else {
-        alert("Gagal memperbarui status tagihan.");
+        notify("Gagal memperbarui status tagihan.", "error");
       }
     } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan sistem.");
+      console.error("save status err", err);
+      notify("Terjadi kesalahan sistem.", "error");
     } finally {
       setIsSavingStatus(false);
     }
@@ -281,11 +285,13 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         setNewPkgName("");
         setNewPkgBandwidth(50);
         setNewPkgPrice(350000);
+        notify("Paket layanan berhasil ditambahkan!", "success");
       } else {
-        alert("Gagal membuat paket: " + await res.text());
+        notify("Gagal membuat paket: " + await res.text(), "error");
       }
     } catch (err) {
       console.error(err);
+      notify("Terjadi kesalahan saat membuat paket.", "error");
     }
   };
 
@@ -299,8 +305,16 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
           const res = await fetch(`/api/packages/${id}`, { method: "DELETE" });
-          if (res.ok) setPackages(prev => prev.filter(p => p.id !== id));
-        } catch (err) { console.error(err); }
+          if (res.ok) {
+            setPackages(prev => prev.filter(p => p.id !== id));
+            notify("Paket layanan berhasil dihapus.", "success");
+          } else {
+            notify("Gagal menghapus paket.", "error");
+          }
+        } catch (err) { 
+          console.error(err);
+          notify("Terjadi kesalahan sistem.", "error");
+        }
         finally { closeConfirm(); }
       },
     });
@@ -308,51 +322,50 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
 
 
-  const days = Array.from({ length: 28 }, (_, i) => i + 1);
 
   return (
     <>
     <section className="max-w-5xl mx-auto">
-      <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+      <header className="mb-4">
         <div>
-          <h1 className="m-0 mb-1 text-[20px] font-bold text-slate-100">
+          <h1 className="m-0 mb-1 text-[20px] font-bold text-[var(--text-main-primary)]">
             💳 Billing & Invoice
           </h1>
-          <p className="m-0 text-[12px] text-slate-400">
+          <p className="m-0 text-[12px] text-[var(--text-main-secondary)]">
             Kelola tagihan dan daftar paket layanan ISP.
           </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setIsPackageModalOpen(true)}
-            className="px-4 py-2 rounded-full border border-slate-700 bg-slate-800 text-slate-100 text-[12px] font-semibold hover:bg-slate-700 cursor-pointer shadow-sm transition-colors"
-          >
-            ⚙️ Kelola Paket
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsCreateInvoiceModalOpen(true)}
-            className="px-4 py-2 rounded-full bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 cursor-pointer shadow-sm transition-colors"
-          >
-            + Buat Tagihan Baru
-          </button>
         </div>
       </header>
 
       <div className="flex flex-col gap-4 mb-4">
 
         {/* Tabel Invoice */}
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-0 shadow-md shadow-black/20 h-fit overflow-hidden">
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-            <h2 className="m-0 text-[15px] font-semibold text-slate-100">
+        <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-lg p-0 h-fit overflow-hidden">
+          <div className="p-4 border-b border-[var(--border-main)] flex items-center justify-between">
+            <h2 className="m-0 text-[15px] font-semibold text-[var(--text-main-primary)]">
               Riwayat Tagihan
             </h2>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPackageModalOpen(true)}
+                className="px-3 py-1.5 rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] text-[11px] font-semibold hover:opacity-80 cursor-pointer shadow-sm transition-colors"
+              >
+                ⚙️ Kelola Paket
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreateInvoiceModalOpen(true)}
+                className="px-3 py-1.5 rounded-full bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 cursor-pointer shadow-sm transition-colors"
+              >
+                + Buat Tagihan Baru
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
             <table className="w-full border-collapse text-[11px] text-left">
-              <thead className="sticky top-0 bg-slate-800/50 z-10 shadow-sm border-b border-slate-800">
-                <tr className="text-slate-400">
+              <thead className="sticky top-0 bg-[var(--bg-main)] z-10 shadow-sm border-b border-[var(--border-main)]">
+                <tr className="text-[var(--text-main-secondary)]">
                   <th className="px-3 py-2.5 font-semibold">Pelanggan</th>
                   <th className="px-3 py-2.5 font-semibold">Periode</th>
                   <th className="px-3 py-2.5 font-semibold">Nominal</th>
@@ -363,22 +376,22 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-slate-400">Loading...</td>
+                    <td colSpan={5} className="px-3 py-6 text-center text-[var(--text-main-secondary)]">Loading...</td>
                   </tr>
                 ) : invoices.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-slate-400">Belum ada invoice yang diterbitkan.</td>
+                    <td colSpan={5} className="px-3 py-6 text-center text-[var(--text-main-secondary)]">Belum ada invoice yang diterbitkan.</td>
                   </tr>
                 ) : (
                   invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b border-slate-800 hover:bg-slate-800/50/50 transition-colors">
-                      <td className="px-3 py-2.5 text-slate-100 font-medium whitespace-nowrap">
+                    <tr key={inv.id} className="border-b border-[var(--border-main)] hover:bg-[var(--bg-main)] transition-colors">
+                      <td className="px-3 py-2.5 text-[var(--text-main-primary)] font-medium whitespace-nowrap">
                         {inv.customerName || `Cust ID: ${inv.customerId}`}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-400">
+                      <td className="px-3 py-2.5 text-[var(--text-main-secondary)]">
                         {inv.periodStart.slice(0, 7)}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-300 font-semibold">
+                      <td className="px-3 py-2.5 text-[var(--text-main-primary)] font-semibold">
                         Rp {inv.amount.toLocaleString("id-ID")}
                       </td>
                       <td className="px-3 py-2.5">
@@ -402,7 +415,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                           onClick={() => handleSendInvoiceEmail(inv.id)}
                           className={`inline-flex items-center justify-center rounded-lg border px-2 py-1 text-[10px] font-semibold cursor-pointer disabled:opacity-50 ${
                             inv.status === "paid" 
-                            ? "border-slate-800 bg-slate-800/50 text-slate-300" 
+                            ? "border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-secondary)]" 
                             : "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
                           }`}
                         >
@@ -438,49 +451,49 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
       {/* MODAL KELOLA PAKET */}
       {isPackageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl p-5">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="m-0 text-[16px] font-bold text-slate-100">Master Data Paket Layanan</h3>
+              <h3 className="m-0 text-[16px] font-bold text-[var(--text-main-primary)]">Master Data Paket Layanan</h3>
               <button
                 type="button"
                 onClick={() => setIsPackageModalOpen(false)}
-                className="w-7 h-7 rounded-full border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-secondary)] hover:opacity-80 flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-[12px] text-slate-400 mb-4 mt-0">
+            <p className="text-[12px] text-[var(--text-main-secondary)] mb-4 mt-0">
               Paket yang dibuat di sini akan muncul pada dropdown pembuatan Tagihan untuk kemudahan pengisian nominal.
             </p>
 
-            <form onSubmit={handleCreatePackage} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5 items-end bg-slate-800/50 p-3 rounded-xl border border-slate-800">
+            <form onSubmit={handleCreatePackage} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5 items-end bg-[var(--bg-main)]/50 p-3 rounded-xl border border-[var(--border-main)]">
               <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="md:col-span-1">
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">Nama Paket</label>
+                  <label className="block text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">Nama Paket</label>
                   <input
                     type="text"
                     required
                     value={newPkgName}
                     onChange={e => setNewPkgName(e.target.value)}
                     placeholder="e.g. Dedicated 50Mbps"
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
+                    className="w-full px-2.5 py-1.5 rounded border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] text-[var(--text-main-primary)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">Max Bandwidth (Mbps)</label>
+                  <label className="block text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">Max Bandwidth (Mbps)</label>
                   <input
                     type="number"
                     min={1}
                     required
                     value={newPkgBandwidth}
                     onChange={e => setNewPkgBandwidth(Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
+                    className="w-full px-2.5 py-1.5 rounded border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] text-[var(--text-main-primary)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">Harga (Rp)</label>
+                  <label className="block text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">Harga (Rp)</label>
                   <div className="flex gap-2">
                     <input
                       type="number"
@@ -488,7 +501,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                       required
                       value={newPkgPrice}
                       onChange={e => setNewPkgPrice(Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 rounded border border-slate-800 text-[12px] outline-none bg-slate-900/50 text-slate-100"
+                      className="w-full px-2.5 py-1.5 rounded border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] text-[var(--text-main-primary)]"
                     />
                   </div>
                 </div>
@@ -503,9 +516,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               </div>
             </form>
 
-            <div className="max-h-[220px] overflow-auto border border-slate-800 rounded-xl">
+            <div className="max-h-[220px] overflow-auto border border-[var(--border-main)] rounded-xl">
               <table className="w-full text-left text-[11px]">
-                <thead className="bg-slate-800 text-slate-400 sticky top-0 border-b border-slate-800">
+                <thead className="bg-[var(--bg-main)] text-[var(--text-main-secondary)] sticky top-0 border-b border-[var(--border-main)]">
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama Paket</th>
                     <th className="px-3 py-2 font-semibold text-center">BW Limit</th>
@@ -516,12 +529,12 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                 <tbody>
                   {packages.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-3 py-4 text-center text-slate-400">Belum ada paket yang terdaftar.</td>
+                      <td colSpan={4} className="px-3 py-4 text-center text-[var(--text-main-secondary)]">Belum ada paket yang terdaftar.</td>
                     </tr>
                   ) : (
                     packages.map(p => (
-                      <tr key={p.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                        <td className="px-3 py-2 font-medium text-slate-100">{p.name}</td>
+                      <tr key={p.id} className="border-b border-[var(--border-main)] hover:bg-[var(--bg-main)]">
+                        <td className="px-3 py-2 font-medium text-[var(--text-main-primary)]">{p.name}</td>
                         <td className="px-3 py-2 text-center text-blue-600 font-semibold">{p.bandwidthMbps} Mbps</td>
                         <td className="px-3 py-2 font-semibold text-emerald-600">Rp {p.price.toLocaleString("id-ID")}</td>
                         <td className="px-3 py-2 text-right">
@@ -544,7 +557,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
               <button
                 type="button"
                 onClick={() => setIsPackageModalOpen(false)}
-                className="px-4 py-2 rounded border border-slate-300 text-slate-300 text-[12px] font-medium hover:bg-slate-800/50 cursor-pointer"
+                className="px-4 py-2 rounded border border-[var(--border-main)] text-[var(--text-main-secondary)] text-[12px] font-medium hover:opacity-80 cursor-pointer"
               >
                 Tutup
               </button>
@@ -553,25 +566,25 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         </div>
       )}
 
-      {/* MODAL BUAT TAGIHAN MANUAL */}
+      {/* MODAL BUAT TAGIHAN */}
       {isCreateInvoiceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-slate-800">
-              <h3 className="m-0 text-[15px] font-bold text-slate-100">
-                Buat Tagihan Manual Baru
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-[var(--border-main)]">
+              <h3 className="m-0 text-[15px] font-bold text-[var(--text-main-primary)]">
+                Buat Tagihan Baru
               </h3>
             </div>
             <div className="p-4 overflow-y-auto custom-scrollbar">
               <div className="flex flex-col gap-4 text-[12px]">
                 <div>
-                  <div className="text-[11px] font-medium text-slate-400 mb-1">
+                  <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
                     Pilih Klien / Pelanggan
                   </div>
                   <select
                     value={selectedCustomerId}
                     onChange={(e) => setSelectedCustomerId(Number(e.target.value))}
-                    className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] bg-slate-900/80 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
+                    className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
                   >
                     <option value="" disabled>-- Pilih Pelanggan --</option>
                     {customers.map((c) => (
@@ -584,24 +597,24 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-[11px] font-medium text-slate-400 mb-1">
+                    <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
                       Periode Tagihan
                     </div>
                     <input
                       type="month"
                       value={periodMonth}
                       onChange={(e) => setPeriodMonth(e.target.value)}
-                      className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/80 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
+                      className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
                     />
                   </div>
                   <div>
-                    <div className="text-[11px] font-medium text-slate-400 mb-1">
+                    <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
                       Pilih Paket Layanan
                     </div>
                     <select
                       value={selectedPackageId}
                       onChange={handlePackageSelect}
-                      className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] bg-slate-900/80 outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 text-slate-100"
+                      className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 text-[var(--text-main-primary)]"
                     >
                       <option value="" disabled>-- Atur Manual --</option>
                       {packages.map((p) => (
@@ -614,7 +627,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                 </div>
 
                 <div>
-                  <div className="text-[11px] font-medium text-slate-400 mb-1">
+                  <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
                     Total Tagihan (Rp)
                   </div>
                   <input
@@ -622,19 +635,19 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                     min={0}
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full h-10 px-3 rounded-lg border border-slate-800 text-[12px] outline-none bg-slate-900/80 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-slate-100"
+                    className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
                   />
-                  <p className="mt-1.5 text-[10px] text-slate-500 leading-relaxed">
+                  <p className="mt-1.5 text-[10px] text-[var(--text-main-secondary)] leading-relaxed">
                     * Nilai ini bisa disesuaikan manual meskipun sudah memilih paket jika ada diskon khusus.
                   </p>
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-800 flex justify-end gap-2 bg-slate-900/30">
+            <div className="p-4 border-t border-[var(--border-main)] flex justify-end gap-2 bg-[var(--bg-main)]/30">
               <button
                 type="button"
                 onClick={() => setIsCreateInvoiceModalOpen(false)}
-                className="px-4 py-2 rounded-full border border-slate-700 bg-transparent text-[12px] font-semibold text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-full border border-[var(--border-main)] bg-transparent text-[12px] font-semibold text-[var(--text-main-secondary)] hover:opacity-80 transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -653,102 +666,148 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
       {/* MODAL KELOLA STATUS TAGIHAN */}
       {editingInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-5 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="m-0 text-[16px] font-bold text-slate-100">Kelola Tagihan</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className="w-full max-w-sm max-h-[90vh] rounded-[32px] border border-[var(--border-main)] bg-[var(--card-main-bg)] shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col overflow-hidden">
+            <div className="p-6 flex justify-between items-center bg-[var(--card-main-bg)]/80 backdrop-blur-md border-b border-[var(--border-main)] shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <h3 className="m-0 text-[18px] font-bold text-[var(--text-main-primary)]">Kelola Tagihan</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setEditingInvoice(null)}
-                className="w-7 h-7 rounded-full border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-secondary)] hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="mb-4 bg-slate-800/50 border border-slate-800 rounded-lg p-3 text-[12px]">
-              <div className="flex justify-between mb-1">
-                <span className="text-slate-400">Klien</span>
-                <span className="font-semibold text-slate-100">{editingInvoice.customerName}</span>
-              </div>
-              <div className="flex justify-between mb-1">
-                <span className="text-slate-400">Nominal</span>
-                <span className="font-semibold text-slate-100">Rp {editingInvoice.amount.toLocaleString("id-ID")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Periode</span>
-                <span className="font-semibold text-slate-100">{editingInvoice.periodStart.slice(0, 7)}</span>
-              </div>
-            </div>
-
-            <div className="grid gap-3 mb-5">
-              <div>
-                <label className="block text-[12px] font-medium text-slate-300 mb-1">Status Pembayaran</label>
-                <select
-                  value={modalStatus}
-                  onChange={(e) => setModalStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-800 text-[13px] bg-slate-900/50 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40"
-                >
-                  <option value="unpaid">BELUM LUNAS</option>
-                  <option value="paid">SUDAH LUNAS</option>
-                </select>
-              </div>
-
-              {modalStatus === "paid" && (
-                <div className="border border-emerald-100 bg-emerald-50/30 rounded-lg p-3 grid gap-3 animate-fade-in">
-                  <div>
-                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Tanggal Pembayaran</label>
-                    <input
-                      type="date"
-                      value={modalPaymentDate}
-                      onChange={(e) => setModalPaymentDate(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              {/* Summary Card */}
+              <div className="mb-6 p-4 rounded-3xl bg-[var(--bg-main)] border border-[var(--border-main)] shadow-inner">
+                <div className="space-y-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Nama Klien</span>
+                    <span className="text-[14px] font-bold text-[var(--text-main-primary)]">{editingInvoice.customerName}</span>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Metode Bayar (Bebas)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Transfer BCA / Tunai / OVO"
-                      value={modalPaymentMethod}
-                      onChange={(e) => setModalPaymentMethod(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Catatan</label>
-                    <textarea
-                      placeholder="Catatan tambahan (opsional)"
-                      value={modalNotes}
-                      onChange={(e) => setModalNotes(e.target.value)}
-                      rows={2}
-                      className="w-full px-2.5 py-1.5 rounded border border-emerald-200 text-[12px] bg-slate-900/50 text-slate-100 outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium text-emerald-800 mb-1">Upload Bukti Bayar</label>
-                    {editingInvoice.proofOfTransferUrl && (
-                      <div className="mb-2 p-2 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg rounded border border-emerald-100 flex items-center justify-between">
-                        <span className="text-[10px] text-emerald-600 font-semibold">Sudah ada bukti</span>
-                        <a href={editingInvoice.proofOfTransferUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline">Lihat</a>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setModalFile(e.target.files?.[0] || null)}
-                      className="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Nominal</span>
+                      <span className="text-[14px] font-extrabold text-blue-600">Rp {editingInvoice.amount.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Periode</span>
+                      <span className="text-[14px] font-bold text-[var(--text-main-primary)]">{editingInvoice.periodStart.slice(0, 7)}</span>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest mb-2 ml-1">Status Pembayaran</label>
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-main)]">
+                    <button
+                      type="button"
+                      onClick={() => setModalStatus("unpaid")}
+                      className={`py-2 rounded-xl text-[11px] font-bold transition-all ${modalStatus === "unpaid" ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" : "text-[var(--text-main-secondary)] hover:bg-[var(--border-main)]"}`}
+                    >
+                      BELUM LUNAS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModalStatus("paid")}
+                      className={`py-2 rounded-xl text-[11px] font-bold transition-all ${modalStatus === "paid" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "text-[var(--text-main-secondary)] hover:bg-[var(--border-main)]"}`}
+                    >
+                      SUDAH LUNAS
+                    </button>
+                  </div>
+                </div>
+
+                {modalStatus === "paid" && (
+                  <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                    <div className="h-px bg-gradient-to-r from-transparent via-[var(--border-main)] to-transparent" />
+                    
+                    <div className="grid gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest mb-1.5 ml-1">Tanggal Bayar</label>
+                        <input
+                          type="date"
+                          value={modalPaymentDate}
+                          onChange={(e) => setModalPaymentDate(e.target.value)}
+                          className="w-full h-11 px-4 rounded-2xl border border-[var(--border-main)] text-[13px] bg-[var(--bg-main)] text-[var(--text-main-primary)] outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest mb-1.5 ml-1">Metode Pembayaran</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Transfer Bank / Tunai"
+                          value={modalPaymentMethod}
+                          onChange={(e) => setModalPaymentMethod(e.target.value)}
+                          className="w-full h-11 px-4 rounded-2xl border border-[var(--border-main)] text-[13px] bg-[var(--bg-main)] text-[var(--text-main-primary)] outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest mb-1.5 ml-1">Catatan</label>
+                        <textarea
+                          placeholder="Tambahkan info jika perlu..."
+                          value={modalNotes}
+                          onChange={(e) => setModalNotes(e.target.value)}
+                          rows={2}
+                          className="w-full px-4 py-3 rounded-2xl border border-[var(--border-main)] text-[13px] bg-[var(--bg-main)] text-[var(--text-main-primary)] outline-none focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest mb-2 ml-1">Bukti Transfer</label>
+                        <div className="flex flex-col gap-2">
+                          <label className="w-full h-24 rounded-3xl border-2 border-dashed border-[var(--border-main)] hover:border-blue-500/50 hover:bg-blue-50/10 flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden relative">
+                            {modalFile ? (
+                              <div className="flex items-center gap-2 text-emerald-600 font-bold text-[12px]">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m22 4-11 11.01-3-3"/></svg>
+                                <span>{modalFile.name.length > 20 ? modalFile.name.substring(0, 20) + "..." : modalFile.name}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <svg className="mb-2 text-[var(--text-main-secondary)] group-hover:text-blue-500 transition-colors" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                                <span className="text-[11px] font-bold text-[var(--text-main-secondary)] group-hover:text-blue-500 transition-colors">Pilih Berkas Bukti</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setModalFile(e.target.files?.[0] || null)}
+                              className="hidden"
+                            />
+                          </label>
+                          {editingInvoice.proofOfTransferUrl && !modalFile && (
+                            <a 
+                              href={editingInvoice.proofOfTransferUrl} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="px-4 py-2 rounded-xl bg-blue-500/5 border border-blue-500/20 text-[11px] font-bold text-blue-600 hover:bg-blue-500/10 text-center transition-all"
+                            >
+                              👁️ Lihat Bukti Saat Ini
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex gap-2 justify-end">
+            <div className="p-6 border-t border-[var(--border-main)] bg-[var(--bg-main)]/30 flex gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setEditingInvoice(null)}
-                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-300 text-[12px] font-medium hover:bg-slate-800/50 cursor-pointer"
+                className="flex-1 px-4 py-3 rounded-2xl border border-[var(--border-main)] text-[var(--text-main-primary)] text-[13px] font-bold hover:bg-[var(--bg-main)] transition-all"
               >
                 Batal
               </button>
@@ -756,9 +815,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                 type="button"
                 onClick={handleSaveInvoiceStatus}
                 disabled={isSavingStatus}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 shadow-sm disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-2xl bg-blue-600 text-white text-[13px] font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50"
               >
-                {isSavingStatus ? "Menyimpan..." : "Simpan Status"}
+                {isSavingStatus ? "..." : "Simpan Status"}
               </button>
             </div>
           </div>
@@ -767,77 +826,88 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
       {/* MODAL DETAIL PEMBAYARAN */}
       {viewingInvoice && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-white/20 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-6 shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="m-0 text-[18px] font-bold text-slate-100">Detail Pembayaran</h3>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-[32px] border border-[var(--border-main)] bg-[var(--card-main-bg)] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m22 4-11 11.01-3-3"/></svg>
+                </div>
+                <h3 className="m-0 text-[18px] font-bold text-[var(--text-main-primary)]">Detail Bayar</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setViewingInvoice(null)}
-                className="w-8 h-8 rounded-full border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-8 h-8 rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-secondary)] hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-800 shadow-inner">
-                <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Klien</span>
-                    <span className="text-[13px] font-bold text-slate-100">{viewingInvoice.customerName}</span>
+            <div className="space-y-6">
+              {/* Summary Receipt */}
+              <div className="p-5 rounded-3xl bg-[var(--bg-main)] border border-[var(--border-main)] shadow-inner">
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Penerima</span>
+                    <span className="text-[14px] font-bold text-[var(--text-main-primary)]">{viewingInvoice.customerName}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Nominal</span>
-                    <span className="text-[13px] font-bold text-emerald-600">Rp {viewingInvoice.amount.toLocaleString("id-ID")}</span>
+                  <div className="h-px bg-dashed border-t border-[var(--border-main)]" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Total Bayar</span>
+                      <span className="text-[15px] font-extrabold text-emerald-600">Rp {viewingInvoice.amount.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Periode</span>
+                      <span className="text-[14px] font-bold text-[var(--text-main-primary)]">{viewingInvoice.periodStart.slice(0, 7)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Periode</span>
-                    <span className="text-[13px] font-bold text-slate-300">{viewingInvoice.periodStart.slice(0, 7)}</span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Tanggal Lunas</span>
+                    <div className="text-[13px] font-bold text-[var(--text-main-primary)] flex items-center gap-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      {viewingInvoice.paymentDate ? new Date(viewingInvoice.paymentDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Metode</span>
+                    <div className="text-[13px] font-bold text-blue-600">
+                      {viewingInvoice.paymentMethod || "Bebas"}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu Bayar</label>
-                  <div className="px-3 py-2 rounded-xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-slate-800 text-[12px] font-medium text-slate-300">
-                    📅 {viewingInvoice.paymentDate ? new Date(viewingInvoice.paymentDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}
+              <div className="space-y-4">
+                {viewingInvoice.notes && (
+                  <div className="flex flex-col gap-2 p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-main)]">
+                    <label className="text-[9px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest">Catatan Tambahan</label>
+                    <div className="text-[12px] text-[var(--text-main-secondary)] italic leading-relaxed">
+                      "{viewingInvoice.notes}"
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode Pembayaran</label>
-                  <div className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-100 text-[12px] font-bold text-blue-700">
-                    💳 {viewingInvoice.paymentMethod || "Tidak disebutkan"}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Catatan Tambahan</label>
-                  <div className="px-3 py-2 rounded-xl bg-slate-800/50 border border-slate-800 text-[12px] text-slate-400 italic">
-                    "{viewingInvoice.notes || "Tidak ada catatan untuk pembayaran ini."}"
-                  </div>
-                </div>
+                )}
 
                 {viewingInvoice.proofOfTransferUrl && (
-                  <div className="flex flex-col gap-2 mt-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bukti Transfer</label>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[9px] font-bold text-[var(--text-main-secondary)] uppercase tracking-widest ml-1">Lampiran Bukti</label>
                     <a 
                       href={viewingInvoice.proofOfTransferUrl} 
                       target="_blank" 
                       rel="noreferrer"
-                      className="group relative overflow-hidden rounded-2xl border border-slate-800 aspect-video bg-slate-800 flex items-center justify-center hover:border-blue-400 transition-all shadow-sm"
+                      className="group relative overflow-hidden rounded-3xl border-2 border-[var(--border-main)] aspect-video bg-[var(--bg-main)] flex items-center justify-center hover:border-blue-500/50 transition-all shadow-lg"
                     >
                       <img 
                         src={viewingInvoice.proofOfTransferUrl} 
                         alt="Bukti Bayar" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
-                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <span className="text-white text-[12px] font-bold bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30">
-                          🔍 Klik untuk Memperbesar
-                        </span>
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                        <div className="bg-white/20 backdrop-blur-md border border-white/30 px-5 py-2.5 rounded-full text-white text-[12px] font-bold flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                          Perbesar Gambar
+                        </div>
                       </div>
                     </a>
                   </div>
@@ -848,47 +918,14 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
             <button
               type="button"
               onClick={() => setViewingInvoice(null)}
-              className="w-full mt-6 py-3 rounded-2xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98]"
+              className="w-full mt-8 py-4 rounded-2xl bg-[var(--text-main-primary)] text-[var(--card-main-bg)] text-[13px] font-bold hover:opacity-90 transition-all shadow-xl active:scale-[0.98]"
             >
               Tutup Detail
             </button>
           </div>
         </div>
       )}
-
-      {/* NOTIFIKASI ANIMASI SUKSES KIRIM EMAIL */}
-      {showSuccessToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-bounce-in">
-          <div className="flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-700/50">
-            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[18px]">
-              ✓
-            </div>
-            <div>
-              <div className="text-[14px] font-bold">Email Terkirim!</div>
-              <div className="text-[11px] text-slate-400">Invoice telah berhasil dikirim ke pelanggan.</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes bounce-in {
-          0% { transform: translate(-50%, 20px); opacity: 0; }
-          60% { transform: translate(-50%, -5px); opacity: 1; }
-          100% { transform: translate(-50%, 0); opacity: 1; }
-        }
-        .animate-bounce-in {
-          animation: bounce-in 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out forwards;
-        }
-      `}} />
-    </section>
+      </section>
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

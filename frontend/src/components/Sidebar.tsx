@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./Sidebar.css";
+import { useNotification } from "../context/NotificationContext";
 
 export type MenuKey = 
   | "dashboard" | "monitoring" | "analytics" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings" | "ipManagement";
@@ -73,9 +74,24 @@ const Sidebar: React.FC<SidebarProps> = ({
   isOpen = false,
   onClose
 }) => {
-  const [expandedMenus, setExpandedMenus] = React.useState<Record<string, boolean>>({
+  const { unreadCount, clearUnread, history } = useNotification();
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     monitoring: activeMenu === "monitoring"
   });
+
+  // Handle click outside to close notification center
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const initials = (workspaceName || currentUserEmail || "U")
     .trim()
@@ -217,10 +233,44 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="user-name">IDN</p>
             <p className="user-role">{currentUserRole || "Admin"}</p>
           </div>
-          <div className="footer-actions">
-            <div className="action-btn">
+          <div className="footer-actions" ref={notifRef}>
+            <div 
+              className={`action-btn ${isNotifOpen ? 'active' : ''}`} 
+              onClick={() => {
+                setIsNotifOpen(!isNotifOpen);
+                clearUnread();
+              }}
+            >
               <Icons.Bell />
-              <span className="badge">99+</span>
+              {unreadCount > 0 && (
+                <span className="badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+              )}
+              
+              {/* Notification Center Popup */}
+              {isNotifOpen && (
+                <div className="notification-center animate-in fade-in zoom-in-95 duration-200">
+                  <div className="notif-header">
+                    <span>Notifikasi</span>
+                  </div>
+                  <div className="notif-list custom-scrollbar">
+                    {history.length === 0 ? (
+                      <div className="notif-empty">Belum ada notifikasi</div>
+                    ) : (
+                      history.map((n) => (
+                        <div key={n.id} className="notif-item">
+                          <div className={`notif-indicator ${n.type}`} />
+                          <div className="notif-content">
+                            <p className="notif-msg">{n.message}</p>
+                            <span className="notif-time">
+                              {n.timestamp.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="action-btn" onClick={onLogout} style={{ cursor: "pointer" }}>
               <Icons.Logout />

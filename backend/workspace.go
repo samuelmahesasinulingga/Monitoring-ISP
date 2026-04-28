@@ -38,6 +38,7 @@ type workspace struct {
 	AutoReportEnabled bool    `json:"autoReportEnabled"`
 	AutoReportPeriod  string  `json:"autoReportPeriod"`
 	AutoReportTime    string  `json:"autoReportTime"`
+	SlaReportTemplate *string `json:"slaReportTemplate,omitempty"`
 	LastAutoReportSent *time.Time `json:"lastAutoReportSent,omitempty"`
 }
 
@@ -60,6 +61,7 @@ type updateWorkspaceSettingsRequest struct {
 	AutoReportEnabled *bool   `json:"autoReportEnabled"`
 	AutoReportPeriod  *string `json:"autoReportPeriod"`
 	AutoReportTime    *string `json:"autoReportTime"`
+	SlaReportTemplate *string `json:"slaReportTemplate"`
 }
 
 type updateWorkspaceSmtpRequest struct {

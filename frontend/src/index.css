@@ -3,38 +3,130 @@
 @tailwind utilities;
 
 :root {
-  --bg-sidebar: linear-gradient(180deg, #060b18 0%, #0a0f1d 100%);
+  /* Sidebar variables - ALWAYS DARK */
+  --sidebar-bg: linear-gradient(180deg, #060b18 0%, #0a0f1d 100%);
+  --sidebar-text-primary: #f8fafc;
+  --sidebar-text-secondary: #94a3b8;
+  --sidebar-text-muted: #64748b;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-card-bg: rgba(15, 23, 42, 0.6);
+  --sidebar-item-hover: rgba(255, 255, 255, 0.03);
+  --sidebar-item-active: rgba(59, 130, 246, 0.08);
+
+  /* Global variables - LIGHT (Default) */
   --bg-main: #f8fafc;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --border-color: rgba(255, 255, 255, 0.05);
-  --card-bg: rgba(15, 23, 42, 0.6);
-  --item-hover: rgba(255, 255, 255, 0.03);
-  --item-active: rgba(59, 130, 246, 0.08);
+  --bg-topbar: rgba(255, 255, 255, 0.8);
+  --text-main-primary: #0f172a;
+  --text-main-secondary: #475569;
+  --border-main: rgba(0, 0, 0, 0.05);
+  --card-main-bg: #ffffff;
+  
+  color-scheme: light;
+}
+
+.dark {
+  /* Global variables - DARK */
+  --bg-main: #020617;
+  --bg-topbar: rgba(2, 6, 23, 0.8);
+  --text-main-primary: #f8fafc;
+  --text-main-secondary: #94a3b8;
+  --border-main: rgba(255, 255, 255, 0.1);
+  --card-main-bg: #0f172a;
+  
   color-scheme: dark;
+}
+
+/* Specific exclusions for Sidebar */
+.sidebar-container, 
+.sidebar-container * {
+  color-scheme: dark !important;
+}
+
+.sidebar-container .bg-slate-950,
+.sidebar-container .text-slate-100,
+.sidebar-container .text-slate-400 {
+  background-color: initial !important;
+  color: initial !important;
 }
 
 body {
   transition: background-color 0.3s, color 0.3s;
-  background-color: #020617; /* slate-950 equivalent to ensure body is dark */
+  background-color: var(--bg-main);
+  color: var(--text-main-primary);
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-/* Custom Scrollbar for Dark Theme */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a; /* slate-900 */
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155; /* slate-700 */
+  background: #cbd5e1; /* slate-300 */
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155; /* slate-700 */
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569; /* slate-600 */
+  background: #94a3b8; /* slate-400 */
+}
+
+/* Custom Scrollbar Utility */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: #334155 transparent;
+}
+
+/* Print Styles */
+@media print {
+  /* Hide UI elements not needed for reports */
+  .sidebar-container,
+  nav,
+  aside,
+  header:not(.print-header),
+  .no-print,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  main, 
+  .main-content,
+  section {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
+  }
+
+  /* Ensure background colors and gradients are printed */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Optimize card displays for paper */
+  .shadow-lg, .shadow-2xl {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
 }

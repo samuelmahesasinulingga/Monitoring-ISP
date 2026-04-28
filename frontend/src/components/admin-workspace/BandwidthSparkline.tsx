@@ -38,7 +38,7 @@ type BandwidthSparklineProps = {
 const BandwidthSparkline: React.FC<BandwidthSparklineProps> = ({ data, showAxes = false, height = 128 }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center text-[11px] text-slate-400" style={{ height: height }}>
+      <div className="flex items-center justify-center text-[11px] text-[var(--text-main-secondary)]" style={{ height: height }}>
         Belum ada data bandwidth.
       </div>
     );
@@ -63,11 +63,11 @@ const BandwidthSparkline: React.FC<BandwidthSparklineProps> = ({ data, showAxes 
             </linearGradient>
           </defs>
 
-          <CartesianGrid stroke="#e5e7eb" strokeWidth={0.5} vertical={false} />
+          <CartesianGrid stroke="var(--border-main)" strokeWidth={0.5} vertical={false} />
           <XAxis 
             dataKey="time" 
             hide={!showAxes} 
-            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tick={{ fontSize: 10, fill: 'var(--text-main-secondary)' }}
             tickMargin={10}
             minTickGap={20}
             axisLine={false}
@@ -76,19 +76,21 @@ const BandwidthSparkline: React.FC<BandwidthSparklineProps> = ({ data, showAxes 
           <YAxis 
             hide={!showAxes} 
             tickFormatter={(val) => formatBandwidth(val).replace(' bps','').replace(' Mbps',' M').replace(' Kbps', ' K')}
-            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tick={{ fontSize: 10, fill: 'var(--text-main-secondary)' }}
             width={45}
             axisLine={false}
             tickLine={false}
           />
           <Tooltip
-            cursor={{ stroke: "#cbd5f5", strokeWidth: 1 }}
+            cursor={{ stroke: "var(--border-main)", strokeWidth: 1 }}
             contentStyle={{
               fontSize: 11,
               borderRadius: 12,
-              borderColor: "#e5e7eb",
+              backgroundColor: "var(--card-main-bg)",
+              borderColor: "var(--border-main)",
+              color: "var(--text-main-primary)"
             }}
-            labelStyle={{ fontSize: 11, color: "#6b7280" }}
+            labelStyle={{ fontSize: 11, color: "var(--text-main-secondary)" }}
             formatter={tooltipFormatter as any}
           />
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNotification } from "../../context/NotificationContext";
 
 export type DeviceType = "router" | "switch" | "ap" | "server" | "client";
 
@@ -47,21 +48,23 @@ const Switch = ({
       onClick={() => onChange(!checked)}
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-[12px] font-semibold text-slate-300">{label}</span>
+        <span className="text-[12px] font-semibold text-[var(--text-main-primary)]">{label}</span>
         {description && (
-          <span className="text-[10px] text-slate-400 leading-tight">
+          <span className="text-[10px] text-[var(--text-main-secondary)] leading-tight">
             {description}
           </span>
         )}
       </div>
       <button
         type="button"
-        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none ${checked ? "bg-blue-600 shadow-sm shadow-blue-500/20" : "bg-slate-200"
+        className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 ease-in-out focus:outline-none ${checked 
+            ? "bg-blue-600 shadow-lg shadow-blue-500/30" 
+            : "bg-slate-300 dark:bg-slate-700"
           }`}
       >
         <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg transition-all duration-200 ease-in-out ${checked ? "translate-x-5" : "translate-x-0.5"
-            } shadow-sm`}
+          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-all duration-300 ease-in-out ${checked ? "translate-x-[22px]" : "translate-x-[2px]"
+            }`}
         />
       </button>
     </div>
@@ -69,6 +72,7 @@ const Switch = ({
 };
 
 const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspaceId }) => {
+  const { notify } = useNotification();
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
 
   const [name, setName] = useState("");
@@ -120,15 +124,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string>("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  const [feedbackModal, setFeedbackModal] = useState<
-    | null
-    | {
-      type: "success" | "error";
-      title: string;
-      message: string;
-    }
-  >(null);
 
   useEffect(() => {
     const fetchDevices = async () => {
@@ -192,23 +187,15 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         setTestMessage(errText);
         const lower = errText.toLowerCase();
         const message = lower.includes("gagal konek")
-          ? "IP perangkat tidak dapat dikoneksikan. Pastikan perangkat hidup dan port/API sudah benar. Perangkat tidak disimpan."
-          : (errText || "Gagal menambahkan perangkat.") + " Perangkat tidak disimpan.";
-        setFeedbackModal({
-          type: "error",
-          title: "Gagal menambahkan perangkat",
-          message,
-        });
+          ? "IP perangkat tidak dapat dikoneksikan. Perangkat tidak disimpan."
+          : (errText || "Gagal menambahkan perangkat.");
+        notify(message, "error");
       } else {
         const created: DeviceRecord = await res.json();
         setDevices((prev) => [...prev, created]);
         setTestStatus("success");
-        setTestMessage("Perangkat berhasil ditambahkan dan koneksi OK.");
-        setFeedbackModal({
-          type: "success",
-          title: "Perangkat tersimpan",
-          message: "Perangkat berhasil ditambahkan dan siap dimonitor.",
-        });
+        setTestMessage("Perangkat berhasil ditambahkan.");
+        notify("Perangkat berhasil ditambahkan dan siap dimonitor.", "success");
       }
     } catch (err) {
       console.error("create device error", err);
@@ -420,30 +407,17 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
       if (!res.ok) {
         const errText = await res.text();
-        console.error("failed to update device", errText);
-        setFeedbackModal({
-          type: "error",
-          title: "Gagal menyimpan perubahan",
-          message: errText || "Gagal mengupdate perangkat.",
-        });
+        notify("Gagal menyimpan perubahan: " + (errText || "Terjadi kesalahan"), "error");
       } else {
         const updated: DeviceRecord = await res.json();
         setDevices((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
         setIsEditModalOpen(false);
         setEditingDevice(null);
-        setFeedbackModal({
-          type: "success",
-          title: "Perubahan tersimpan",
-          message: "Perubahan konfigurasi perangkat berhasil disimpan.",
-        });
+        notify("Konfigurasi perangkat berhasil diperbarui.", "success");
       }
     } catch (err) {
       console.error("update device error", err);
-      setFeedbackModal({
-        type: "error",
-        title: "Error saat menyimpan",
-        message: "Terjadi error saat mengupdate perangkat.",
-      });
+      notify("Gagal memperbarui perangkat. Terjadi kesalahan sistem.", "error");
     }
   };
 
@@ -470,7 +444,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
         setDevices((prev) => prev.filter((d) => d.id !== deviceToDelete.id));
         setIsDeleteModalOpen(false);
         setDeviceToDelete(null);
-        setDeleteError("");
+        notify("Perangkat berhasil dihapus.", "success");
       }
     } catch (err) {
       console.error("delete device error", err);
@@ -497,14 +471,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
     }
     if (deviceType === "ap") {
       return (
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-indigo-400 bg-indigo-50 text-[10px] font-semibold text-indigo-700">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-indigo-400 bg-indigo-50/50 text-[10px] font-semibold text-indigo-700">
           AP
         </span>
       );
     }
     if (deviceType === "server") {
       return (
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-400 bg-slate-800/50 text-[10px] font-semibold text-slate-300">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[var(--border-main)] bg-[var(--bg-main)] text-[10px] font-semibold text-[var(--text-main-primary)]">
           SRV
         </span>
       );
@@ -518,41 +492,38 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
   return (
     <section className="max-w-5xl mx-auto">
-      <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+      <header className="mb-4">
         <div>
-          <h2 className="m-0 mb-1 text-[20px] font-bold text-slate-100">
+          <h2 className="m-0 mb-1 text-[20px] font-bold text-[var(--text-main-primary)]">
             🖥️ Perangkat & Monitoring
           </h2>
-          <p className="m-0 text-[12px] text-slate-400">
+          <p className="m-0 text-[12px] text-[var(--text-main-secondary)]">
             Kelola router, switch, dan endpoint monitoring per perangkat.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2 rounded-full bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 cursor-pointer shadow-sm transition-colors"
-        >
-          + Tambah Perangkat
-        </button>
       </header>
 
       <div className="flex flex-col gap-4">
 
 
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg/95 p-4 shadow-md shadow-black/20">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="m-0 text-[13px] font-semibold text-slate-100">
+        <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-lg p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="m-0 text-[13px] font-semibold text-[var(--text-main-primary)]">
               Daftar perangkat & endpoint
             </h3>
-            <p className="m-0 text-[11px] text-slate-400">
-              Ringkasan IP, tipe, dan konfigurasi monitoring untuk setiap perangkat.
-            </p>
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-4 py-2 rounded-full bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 cursor-pointer shadow-sm transition-colors"
+            >
+              + Tambah Perangkat
+            </button>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[11px]">
               <thead>
-                <tr className="bg-slate-800/50 text-slate-400">
+                <tr className="bg-[var(--bg-main)] text-[var(--text-main-secondary)]">
                   <th className="px-2.5 py-1.5 text-left">Perangkat</th>
                   <th className="px-2.5 py-1.5 text-left">IP / Hostname</th>
                   <th className="px-2.5 py-1.5 text-left">Tipe</th>
@@ -565,27 +536,27 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </thead>
               <tbody>
                 {devices.map((d) => (
-                  <tr key={d.id} className="border-t border-slate-800 hover:bg-slate-800/50">
+                  <tr key={d.id} className="border-t border-[var(--border-main)] hover:bg-[var(--bg-main)]">
                     <td className="px-2.5 py-1.5 align-top">
                       <div className="flex items-center gap-2">
                         {renderNodeIcon(d.type)}
-                        <span className="font-semibold text-slate-100">{d.name}</span>
+                        <span className="font-semibold text-[var(--text-main-primary)]">{d.name}</span>
                       </div>
                     </td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-300">{d.ip}</td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-400 capitalize">{d.type}</td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-400">
+                    <td className="px-2.5 py-1.5 align-top text-[var(--text-main-secondary)]">{d.ip}</td>
+                    <td className="px-2.5 py-1.5 align-top text-[var(--text-main-secondary)] capitalize">{d.type}</td>
+                    <td className="px-2.5 py-1.5 align-top text-[var(--text-main-secondary)]">
                       {d.integrationMode === "ping" && "Ping"}
                       {d.integrationMode === "snmp" && "SNMP"}
                     </td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-400">
+                    <td className="px-2.5 py-1.5 align-top text-[var(--text-main-secondary)]">
                       {d.snmpVersion && d.snmpCommunity
                         ? `${d.snmpVersion} / ${d.snmpCommunity}`
                         : "-"}
                     </td>
-                    <td className="px-2.5 py-1.5 align-top text-slate-400">
+                    <td className="px-2.5 py-1.5 align-top text-[var(--text-main-secondary)]">
                       {d.netflowPort || 10000}
-                      <span className={`ml-1 text-[9px] font-bold ${d.netflowEnabled ? "text-emerald-500" : "text-slate-400"}`}>
+                      <span className={`ml-1 text-[9px] font-bold ${d.netflowEnabled ? "text-emerald-500" : "text-[var(--text-main-secondary)]"}`}>
                         {d.netflowEnabled ? "(ON)" : "(OFF)"}
                       </span>
                     </td>
@@ -594,7 +565,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${d.monitoringEnabled
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-800/50 text-slate-400 border-slate-800"
+                          : "bg-[var(--bg-main)] text-[var(--text-main-secondary)] border-[var(--border-main)]"
                           }`}
                       >
                         {d.monitoringEnabled ? "Aktif" : "Nonaktif"}
@@ -605,7 +576,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                         <button
                           type="button"
                           onClick={() => openEditDevice(d)}
-                          className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-2 py-0.5 text-[10px] font-semibold text-slate-300 hover:bg-slate-800/50"
+                          className="inline-flex items-center justify-center rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] hover:opacity-80 transition-all duration-300 shadow-lg px-2 py-0.5 text-[10px] font-semibold text-[var(--text-main-primary)]"
                         >
                           Edit
                         </button>
@@ -624,7 +595,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-2.5 py-4 text-center text-slate-400"
+                      className="px-2.5 py-4 text-center text-[var(--text-main-secondary)]"
                     >
                       Belum ada perangkat terdaftar.
                     </td>
@@ -638,10 +609,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
       {/* MODAL TAMBAH PERANGKAT */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-              <h3 className="m-0 text-[15px] font-bold text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-[var(--border-main)] flex items-center justify-between">
+              <h3 className="m-0 text-[15px] font-bold text-[var(--text-main-primary)]">
                 Tambah Perangkat Baru
               </h3>
               <button
@@ -652,7 +623,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setTestMessage("");
                   setTestIp(ip || "");
                 }}
-                className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800 text-[10px] font-bold text-slate-300 hover:bg-slate-700 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] text-[10px] font-bold text-[var(--text-main-secondary)] hover:opacity-80 transition-colors cursor-pointer"
               >
                 ⚡ Tes Koneksi
               </button>
@@ -661,37 +632,37 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               <form id="add-device-form" onSubmit={handleAddDevice} className="flex flex-col gap-4 text-[12px]">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-400 font-medium">
+                    <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)] font-medium">
                       Nama Perangkat
                     </label>
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Contoh: Router Core"
-                      className="h-10 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-10 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-400 font-medium">
+                    <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)] font-medium">
                       IP / Hostname
                     </label>
                     <input
                       value={ip}
                       onChange={(e) => setIp(e.target.value)}
                       placeholder="192.168.88.1"
-                      className="h-10 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-10 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-[11px] text-slate-400 font-medium">
+                  <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)] font-medium">
                     Tipe Perangkat
                   </label>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as DeviceType)}
-                    className="h-10 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    className="h-10 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-3 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                   >
                     <option value="router">Router</option>
                     <option value="switch">Switch</option>
@@ -701,8 +672,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   </select>
                 </div>
 
-                <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/50">
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Monitoring & Integrasi</h4>
+                <div className="p-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)]">
+                  <h4 className="text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-wider mb-3">Monitoring & Integrasi</h4>
                   <div className="space-y-3">
                     <Switch
                       label="SNMP Monitoring"
@@ -719,11 +690,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     {integrationMode === "snmp" && (
                       <div className="grid grid-cols-2 gap-3 pl-2 border-l-2 border-blue-500/30 ml-1 py-1">
                         <div>
-                          <label className="mb-1 block text-[10px] text-slate-500">Versi</label>
+                          <label className="mb-1 block text-[10px] text-[var(--text-main-secondary)]">Versi</label>
                           <select
                             value={snmpVersion}
                             onChange={(e) => setSnmpVersion(e.target.value as SnmpVersion)}
-                            className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-2 text-[11px] outline-none"
+                            className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2 text-[11px] outline-none"
                           >
                             <option value="v1">v1</option>
                             <option value="v2c">v2c</option>
@@ -731,12 +702,12 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                           </select>
                         </div>
                         <div>
-                          <label className="mb-1 block text-[10px] text-slate-500">Community</label>
+                          <label className="mb-1 block text-[10px] text-[var(--text-main-secondary)]">Community</label>
                           <input
                             value={snmpCommunity}
                             onChange={(e) => setSnmpCommunity(e.target.value)}
                             placeholder="public"
-                            className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-2 text-[11px] outline-none"
+                            className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2 text-[11px] outline-none"
                           />
                         </div>
                       </div>
@@ -751,12 +722,12 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
 
                     {netflowEnabled && (
                       <div className="pl-2 border-l-2 border-emerald-500/30 ml-1 py-1">
-                         <label className="mb-1 block text-[10px] text-slate-500">UDP Port (10000-20000)</label>
+                         <label className="mb-1 block text-[10px] text-[var(--text-main-secondary)]">UDP Port (10000-20000)</label>
                          <input
                            type="number"
                            value={netflowPort}
                            onChange={(e) => setNetflowPort(parseInt(e.target.value) || 10000)}
-                           className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 px-2 text-[11px] outline-none"
+                           className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2 text-[11px] outline-none focus:border-blue-500/60"
                          />
                       </div>
                     )}
@@ -771,8 +742,8 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 </div>
 
                 {integrationMode === "snmp" && (
-                  <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/50">
-                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Antrian & Interface</h4>
+                  <div className="p-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)]">
+                    <h4 className="text-[11px] font-bold text-[var(--text-main-secondary)] uppercase tracking-wider mb-3">Antrian & Interface</h4>
                     
                     <div className="space-y-4">
                       <div>
@@ -792,7 +763,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                             {availableQueues.length > 0 ? (
                               <div className="max-h-24 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                                 {availableQueues.map((q) => (
-                                  <label key={q} className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer hover:text-blue-500 transition-colors">
+                                  <label key={q} className="flex items-center gap-2 text-[11px] text-[var(--text-main-secondary)] cursor-pointer hover:text-blue-500 transition-colors">
                                     <input
                                       type="checkbox"
                                       checked={monitoredQueues.includes(q)}
@@ -800,7 +771,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                                         if (e.target.checked) setMonitoredQueues([...monitoredQueues, q]);
                                         else setMonitoredQueues(monitoredQueues.filter((mq) => mq !== q));
                                       }}
-                                      className="rounded border-slate-800 bg-slate-900/50"
+                                      className="rounded border-[var(--border-main)] bg-[var(--bg-main)]/50"
                                     />
                                     <span>{q}</span>
                                   </label>
@@ -830,7 +801,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                             {availableInterfaces.length > 0 ? (
                               <div className="max-h-24 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                                 {availableInterfaces.map((iface) => (
-                                  <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer hover:text-emerald-500 transition-colors">
+                                  <label key={iface} className="flex items-center gap-2 text-[11px] text-[var(--text-main-secondary)] cursor-pointer hover:text-emerald-500 transition-colors">
                                     <input
                                       type="checkbox"
                                       checked={monitoredInterfaces.includes(iface)}
@@ -838,7 +809,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                                         if (e.target.checked) setMonitoredInterfaces([...monitoredInterfaces, iface]);
                                         else setMonitoredInterfaces(monitoredInterfaces.filter((mi) => mi !== iface));
                                       }}
-                                      className="rounded border-slate-800 bg-slate-900/50"
+                                      className="rounded border-[var(--border-main)] bg-[var(--bg-main)]/50"
                                     />
                                     <span>{iface}</span>
                                   </label>
@@ -855,11 +826,11 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 )}
               </form>
             </div>
-            <div className="p-4 border-t border-slate-800 flex justify-end gap-2 bg-slate-900/30">
+            <div className="p-4 border-t border-[var(--border-main)] flex justify-end gap-2 bg-[var(--bg-main)]/30">
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="px-4 py-2 rounded-full border border-slate-700 bg-transparent text-[12px] font-semibold text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-full border border-[var(--border-main)] bg-transparent text-[12px] font-semibold text-[var(--text-main-secondary)] hover:bg-[var(--bg-main)] transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -876,10 +847,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       )}
 
       {isTestModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
-          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-4 shadow-xl shadow-slate-900/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl p-4 shadow-xl shadow-black/20">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="m-0 text-[14px] font-semibold text-slate-100">
+              <h3 className="m-0 text-[14px] font-semibold text-[var(--text-main-primary)]">
                 Tes koneksi perangkat
               </h3>
               <button
@@ -888,25 +859,25 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setIsTestModalOpen(false);
                   setIsTesting(false);
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-main)] text-[var(--text-main-secondary)] hover:bg-[var(--bg-main)] text-[11px] transition-colors"
               >
                 ✕
               </button>
             </div>
-            <p className="mb-3 text-[11px] text-slate-400">
+            <p className="mb-3 text-[11px] text-[var(--text-main-secondary)]">
               Masukkan IP / hostname yang ingin dites. Sistem akan melakukan
               tes koneksi sederhana menggunakan ICMP ping (untuk mode Ping/SNMP)
               atau cek port API (untuk mode API/SNMP+API).
             </p>
             <div className="mb-3">
-              <label className="mb-1 block text-[11px] text-slate-400">
+              <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)]">
                 IP address / hostname untuk tes
               </label>
               <input
                 value={testIp}
                 onChange={(e) => setTestIp(e.target.value)}
                 placeholder="Misal: 10.10.0.1 atau pop-bandung"
-                className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
               />
             </div>
 
@@ -928,7 +899,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setIsTestModalOpen(false);
                   setIsTesting(false);
                 }}
-                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50"
+                className="inline-flex h-8 items-center justify-center rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] hover:opacity-80 transition-all duration-300 px-3 text-[12px] font-semibold text-[var(--text-main-primary)] shadow-sm"
               >
                 Tutup
               </button>
@@ -946,10 +917,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       )}
 
       {isEditModalOpen && editingDevice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
-          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-4 shadow-xl shadow-slate-900/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl p-4 shadow-xl shadow-black/20">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="m-0 text-[14px] font-semibold text-slate-100">
+              <h3 className="m-0 text-[14px] font-semibold text-[var(--text-main-primary)]">
                 Edit perangkat
               </h3>
               <button
@@ -958,43 +929,43 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setIsEditModalOpen(false);
                   setEditingDevice(null);
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-main)] text-[var(--text-main-secondary)] hover:bg-[var(--bg-main)] text-[11px] transition-colors"
               >
                 ✕
               </button>
             </div>
-            <p className="mb-3 text-[11px] text-slate-400">
+            <p className="mb-3 text-[11px] text-[var(--text-main-secondary)]">
               Ubah nama, IP, dan konfigurasi monitoring untuk perangkat ini.
             </p>
 
             <form onSubmit={handleUpdateDevice} className="flex flex-col gap-2.5 text-[12px]">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">
+                <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)]">
                   Nama perangkat
                 </label>
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">
+                <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)]">
                   IP address / hostname
                 </label>
                 <input
                   value={editIp}
                   onChange={(e) => setEditIp(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">Tipe perangkat</label>
+                <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)]">Tipe perangkat</label>
                 <select
                   value={editType}
                   onChange={(e) => setEditType(e.target.value as DeviceType)}
-                  className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="router">Router</option>
                   <option value="switch">Switch</option>
@@ -1005,10 +976,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
 
               <div className="space-y-1">
-                <label className="mb-2 block text-[11px] text-slate-400 font-semibold">
+                <label className="mb-2 block text-[11px] text-[var(--text-main-secondary)] font-semibold">
                   Fitur Monitoring & Integrasi
                 </label>
-                <div className="grid gap-2 p-2 rounded-xl border border-slate-800 bg-slate-800/50/50">
+                <div className="grid gap-2 p-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)]">
                   <Switch
                     label="SNMP Monitoring"
                     description="Tarik data interface, traffic, & resource via SNMP"
@@ -1023,13 +994,13 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               {editIntegrationMode === "snmp" && (
                 <div className="flex gap-2">
                   <div className="w-28">
-                    <label className="mb-1 block text-[11px] text-slate-400">
+                    <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)]">
                       SNMP versi
                     </label>
                     <select
                       value={editSnmpVersion}
                       onChange={(e) => setEditSnmpVersion(e.target.value as SnmpVersion)}
-                      className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                     >
                       <option value="v1">v1</option>
                       <option value="v2c">v2c</option>
@@ -1037,20 +1008,20 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     </select>
                   </div>
                   <div className="flex-1">
-                    <label className="mb-1 block text-[11px] text-slate-400">
+                    <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)]">
                       SNMP community
                     </label>
                     <input
                       value={editSnmpCommunity}
                       onChange={(e) => setEditSnmpCommunity(e.target.value)}
-                      className="h-8 w-full rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">
+                <label className="mb-1 block text-[11px] text-[var(--text-main-secondary)]">
                   NetFlow Port (UDP)
                 </label>
                 <input
@@ -1058,16 +1029,16 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   value={editNetflowPort}
                   disabled={!editNetflowEnabled}
                   onChange={(e) => setEditNetflowPort(parseInt(e.target.value) || 10000)}
-                  className={`h-8 w-full rounded-lg border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!editNetflowEnabled ? "bg-slate-800/50 text-slate-400 cursor-not-allowed" : ""}`}
+                  className={`h-8 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-2.5 text-[12px] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 ${!editNetflowEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 />
                 {editNetflowEnabled && (
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-[10px] text-[var(--text-main-secondary)]">
                     Gunakan port unik (10000-20000) untuk identifikasi router di belakang NAT.
                   </p>
                 )}
               </div>
 
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
+              <div className="mt-1 py-1 px-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-main)] mb-2">
                 <Switch
                   label="Aktifkan NetFlow"
                   description="Monitor trafik data dari router ini"
@@ -1077,7 +1048,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
 
 
-              <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800">
+              <div className="mt-1 py-1 px-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-main)]">
                 <Switch
                   label="Aktifkan Monitoring"
                   description="Mulai merekam log ping & data perangkat ini"
@@ -1087,7 +1058,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               </div>
 
               {editIntegrationMode === "snmp" && (
-                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
+                <div className="mt-1 py-1 px-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-main)] mb-2">
                   <Switch
                     label="Aktifkan Monitoring Queue"
                     description="Monitor traffic dari Mikrotik Queue (Simple/Tree)"
@@ -1112,16 +1083,16 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       type="button"
                       onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true, "queues")}
                       disabled={isTesting}
-                      className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
+                      className="bg-[var(--bg-main)] hover:bg-[var(--border-main)] border border-[var(--border-main)] text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm transition-all"
                     >
                       {isTesting && fetchingTarget === "queues" ? "Memuat..." : "Refresh Daftar Queue"}
                     </button>
                   </div>
 
                   {editAvailableQueues.length > 0 ? (
-                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                       {editAvailableQueues.map((q) => (
-                        <label key={q} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
+                        <label key={q} className="flex items-center gap-2 text-[11px] text-[var(--text-main-secondary)] cursor-pointer hover:text-blue-600 transition-colors">
                           <input
                             type="checkbox"
                             checked={editMonitoredQueues.includes(q)}
@@ -1132,14 +1103,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                                 setEditMonitoredQueues(editMonitoredQueues.filter((mq) => mq !== q));
                               }
                             }}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
+                            className="rounded border-[var(--border-main)] text-blue-600 focus:ring-blue-500/40 bg-[var(--bg-main)]/50"
                           />
                           <span>{q}</span>
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 italic leading-tight">
+                    <p className="text-[10px] text-[var(--text-main-secondary)] italic leading-tight">
                       {editMonitoredQueues.length > 0
                         ? `${editMonitoredQueues.length} queue terpilih. Klik refresh untuk melihat daftar lengkap.`
                         : "Klik refresh atau tes koneksi untuk melihat daftar antrian dari perangkat."}
@@ -1149,7 +1120,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
               )}
 
               {editIntegrationMode === "snmp" && (
-                <div className="mt-1 py-1 px-2 rounded-xl bg-slate-800/50/50 border border-slate-800 mb-2">
+                <div className="mt-1 py-1 px-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-main)] mb-2">
                   <Switch
                     label="Aktifkan Monitoring Interface"
                     description="Monitor traffic dari Network Interface"
@@ -1174,15 +1145,15 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                       type="button"
                       onClick={() => autoFetchQueues(editIp, editSnmpCommunity, editSnmpVersion, true, "interfaces")}
                       disabled={isTesting}
-                      className="bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg border border-blue-200 text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm hover:bg-blue-50"
+                      className="bg-[var(--bg-main)] hover:bg-[var(--border-main)] border border-[var(--border-main)] text-blue-600 text-[10px] px-2 py-0.5 rounded shadow-sm transition-all"
                     >
                       {isTesting && fetchingTarget === "interfaces" ? "Memuat..." : "Refresh Interface"}
                     </button>
                   </div>
                   {editAvailableInterfaces.length > 0 ? (
-                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                       {editAvailableInterfaces.map((iface) => (
-                        <label key={iface} className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-blue-600 transition-colors">
+                        <label key={iface} className="flex items-center gap-2 text-[11px] text-[var(--text-main-secondary)] cursor-pointer hover:text-blue-600 transition-colors">
                           <input
                             type="checkbox"
                             checked={editMonitoredInterfaces.includes(iface)}
@@ -1193,14 +1164,14 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                                 setEditMonitoredInterfaces(editMonitoredInterfaces.filter((mi) => mi !== iface));
                               }
                             }}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40 bg-slate-900/50 text-slate-100"
+                            className="rounded border-[var(--border-main)] text-blue-600 focus:ring-blue-500/40 bg-[var(--bg-main)]/50"
                           />
                           <span>{iface}</span>
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 italic leading-tight">
+                    <p className="text-[10px] text-[var(--text-main-secondary)] italic leading-tight">
                       {editMonitoredInterfaces.length > 0
                         ? `${editMonitoredInterfaces.length} interface terpilih. Klik refresh untuk melihat daftar lengkap.`
                         : "Klik refresh atau tes koneksi untuk melihat daftar interface dari perangkat."}
@@ -1216,7 +1187,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                     setIsEditModalOpen(false);
                     setEditingDevice(null);
                   }}
-                  className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50"
+                  className="inline-flex h-8 items-center justify-center rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] hover:opacity-80 transition-all duration-300 px-3 text-[12px] font-semibold text-[var(--text-main-primary)] shadow-sm"
                 >
                   Batal
                 </button>
@@ -1233,10 +1204,10 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
       )}
 
       {isDeleteModalOpen && deviceToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
-          <div className="w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg p-4 shadow-xl shadow-slate-900/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-xl p-4 shadow-xl shadow-black/20">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="m-0 text-[14px] font-semibold text-slate-100">
+              <h3 className="m-0 text-[14px] font-semibold text-[var(--text-main-primary)]">
                 Konfirmasi hapus perangkat
               </h3>
               <button
@@ -1247,16 +1218,16 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setDeviceToDelete(null);
                   setDeleteError("");
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-800 text-slate-400 hover:bg-slate-800/50 text-[11px]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-main)] text-[var(--text-main-secondary)] hover:bg-[var(--bg-main)] text-[11px] transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <p className="mb-3 text-[11px] text-slate-400">
+            <p className="mb-3 text-[11px] text-[var(--text-main-secondary)]">
               Anda yakin ingin menghapus perangkat
-              <span className="font-semibold text-slate-100"> {deviceToDelete.name}</span>
-              <span className="text-slate-400"> · {deviceToDelete.ip}</span>? Data perangkat akan
+              <span className="font-semibold text-[var(--text-main-primary)]"> {deviceToDelete.name}</span>
+              <span className="text-[var(--text-main-secondary)]"> · {deviceToDelete.ip}</span>? Data perangkat akan
               dihapus dari daftar dan monitoring.
             </p>
 
@@ -1275,7 +1246,7 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                   setDeviceToDelete(null);
                   setDeleteError("");
                 }}
-                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-300 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg px-3 text-[12px] font-semibold text-slate-300 shadow-sm hover:bg-slate-800/50 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex h-8 items-center justify-center rounded-full border border-[var(--border-main)] bg-[var(--bg-main)] hover:opacity-80 transition-all duration-300 px-3 text-[12px] font-semibold text-[var(--text-main-primary)] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isDeleting}
               >
                 Batal
@@ -1287,43 +1258,6 @@ const DevicesSection: React.FC<DevicesSectionProps> = ({ workspaceName, workspac
                 className="inline-flex h-8 items-center justify-center rounded-full border-0 bg-rose-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isDeleting ? "Menghapus..." : "Ya, hapus"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {feedbackModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div
-            className={`w-full max-w-sm max-h-[95vh] overflow-y-auto rounded-2xl border px-4 py-4 text-[12px] shadow-2xl transform transition-all duration-150 ${feedbackModal.type === "success"
-              ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
-              : "bg-red-50/95 border-red-200 text-red-700"
-              }`}
-          >
-            <div className="flex items-start gap-2 mb-2">
-              <div
-                className={`mt-0.5 h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold ${feedbackModal.type === "success"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-red-100 text-red-700"
-                  }`}
-              >
-                {feedbackModal.type === "success" ? "✔" : "!"}
-              </div>
-              <div className="flex-1">
-                <p className="m-0 text-[13px] font-semibold">{feedbackModal.title}</p>
-                <p className="m-0 mt-0.5 text-[12px] leading-snug">
-                  {feedbackModal.message}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setFeedbackModal(null)}
-                className="px-3 py-1.5 rounded-full border border-slate-800 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg text-[11px] font-semibold text-slate-300 cursor-pointer hover:bg-slate-800/50"
-              >
-                Tutup
               </button>
             </div>
           </div>

@@ -104,7 +104,7 @@ func (a *appState) handleGetTopology(c echo.Context) error {
 	data.Edges = []TopologyEdge{}
 
 	// Get Nodes
-	nodeRows, err := a.db.Query(ctx, "SELECT id, device_id, type, label, x, y, created_at FROM topology_nodes WHERE layout_id = $1", layoutId)
+	nodeRows, err := a.db.Query(ctx, "SELECT id, device_id, type, label, vendor, x, y, created_at FROM topology_nodes WHERE layout_id = $1", layoutId)
 	if err != nil {
 		log.Printf("get topology nodes error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to get topology nodes")
@@ -115,7 +115,7 @@ func (a *appState) handleGetTopology(c echo.Context) error {
 		var n TopologyNode
 		n.WorkspaceID = workspaceId
 		n.LayoutID = layoutId
-		if err := nodeRows.Scan(&n.ID, &n.DeviceID, &n.Type, &n.Label, &n.X, &n.Y, &n.CreatedAt); err != nil {
+		if err := nodeRows.Scan(&n.ID, &n.DeviceID, &n.Type, &n.Label, &n.Vendor, &n.X, &n.Y, &n.CreatedAt); err != nil {
 			log.Printf("scan topology node error: %v", err)
 			continue
 		}
@@ -123,7 +123,7 @@ func (a *appState) handleGetTopology(c echo.Context) error {
 	}
 
 	// Get Edges
-	edgeRows, err := a.db.Query(ctx, "SELECT id, source_id, target_id, label, created_at FROM topology_edges WHERE layout_id = $1", layoutId)
+	edgeRows, err := a.db.Query(ctx, "SELECT id, source_id, target_id, label, link_type, animated, created_at FROM topology_edges WHERE layout_id = $1", layoutId)
 	if err != nil {
 		log.Printf("get topology edges error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to get topology edges")
@@ -134,7 +134,7 @@ func (a *appState) handleGetTopology(c echo.Context) error {
 		var e TopologyEdge
 		e.WorkspaceID = workspaceId
 		e.LayoutID = layoutId
-		if err := edgeRows.Scan(&e.ID, &e.Source, &e.Target, &e.Label, &e.CreatedAt); err != nil {
+		if err := edgeRows.Scan(&e.ID, &e.Source, &e.Target, &e.Label, &e.LinkType, &e.Animated, &e.CreatedAt); err != nil {
 			log.Printf("scan topology edge error: %v", err)
 			continue
 		}
@@ -177,9 +177,9 @@ func (a *appState) handleSaveTopology(c echo.Context) error {
 	// 2. Insert Nodes
 	for _, n := range req.Nodes {
 		_, err = tx.Exec(ctx, `
-			INSERT INTO topology_nodes (id, workspace_id, layout_id, device_id, type, label, x, y)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		`, n.ID, workspaceId, layoutId, n.DeviceID, n.Type, n.Label, n.X, n.Y)
+			INSERT INTO topology_nodes (id, workspace_id, layout_id, device_id, type, label, vendor, x, y)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`, n.ID, workspaceId, layoutId, n.DeviceID, n.Type, n.Label, n.Vendor, n.X, n.Y)
 		if err != nil {
 			log.Printf("insert node error: %v", err)
 			return c.String(http.StatusInternalServerError, "failed to save node")
@@ -189,9 +189,9 @@ func (a *appState) handleSaveTopology(c echo.Context) error {
 	// 3. Insert Edges
 	for _, e := range req.Edges {
 		_, err = tx.Exec(ctx, `
-			INSERT INTO topology_edges (id, workspace_id, layout_id, source_id, target_id, label)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, e.ID, workspaceId, layoutId, e.Source, e.Target, e.Label)
+			INSERT INTO topology_edges (id, workspace_id, layout_id, source_id, target_id, label, link_type, animated)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`, e.ID, workspaceId, layoutId, e.Source, e.Target, e.Label, e.LinkType, e.Animated)
 		if err != nil {
 			log.Printf("insert edge error: %v", err)
 			return c.String(http.StatusInternalServerError, "failed to save edge")

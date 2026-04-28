@@ -44,10 +44,10 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12 mt-12 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800">
+      <div className="flex items-center justify-center p-12 mt-12 bg-[var(--card-main-bg)] backdrop-blur-sm rounded-2xl border border-[var(--border-main)]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 font-medium text-sm">Memuat dashboard...</p>
+          <p className="text-[var(--text-main-secondary)] font-medium text-sm">Memuat dashboard...</p>
         </div>
       </div>
     );
@@ -67,43 +67,43 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
   return (
     <section className="max-w-5xl mx-auto">
       <header className="mb-6">
-        <h1 className="m-0 mb-1 text-[22px] font-bold text-slate-100">
+        <h1 className="m-0 mb-1 text-[22px] font-bold text-[var(--text-main-primary)]">
           {workspaceName ?? "Ringkasan Workspace"}
         </h1>
-        <p className="m-0 text-[13px] text-slate-400">
+        <p className="m-0 text-[13px] text-[var(--text-main-secondary)]">
           Dashboard singkat aktivitas pelanggan, tiket, dan tagihan di
           workspace ini.
         </p>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-5 rounded-2xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
+        <div className="p-5 rounded-2xl bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[13px] font-semibold text-blue-400">
               Pelanggan Aktif
             </span>
             <span className="text-[20px]">👥</span>
           </div>
-          <div className="text-[30px] font-bold text-slate-100">
+          <div className="text-[30px] font-bold text-[var(--text-main-primary)]">
             {activeCustomer}
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">
+          <p className="mt-1 text-[11px] text-[var(--text-main-secondary)]">
             Total pelanggan aktif di workspace.
           </p>
         </div>
 
 
-        <div className="p-5 rounded-2xl bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
+        <div className="p-5 rounded-2xl bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[13px] font-semibold text-emerald-400">
               Tagihan Belum Lunas
             </span>
             <span className="text-[20px]">💳</span>
           </div>
-          <div className="text-[30px] font-bold text-slate-100">
+          <div className="text-[30px] font-bold text-[var(--text-main-primary)]">
             {unpaidInvoice}
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">
+          <p className="mt-1 text-[11px] text-[var(--text-main-secondary)]">
             Jumlah invoice yang masih belum dibayar.
           </p>
         </div>
@@ -113,13 +113,13 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
         className="grid gap-5 mt-8"
         style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
       >
-        <div className="rounded-2xl px-4 py-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
+        <div className="rounded-2xl px-4 py-4 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-[13px] font-semibold text-slate-100">
+              <div className="text-[13px] font-semibold text-[var(--text-main-primary)]">
                 Status Ping & SLA
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-[var(--text-main-secondary)]">
                 Gambaran cepat kesehatan jaringan dan kualitas layanan.
               </div>
             </div>
@@ -136,27 +136,27 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <div className="text-[11px] text-slate-400">Rata-rata latency</div>
-              <div className="text-[18px] font-bold text-slate-100">
+              <div className="text-[11px] text-[var(--text-main-secondary)]">Rata-rata latency</div>
+              <div className="text-[18px] font-bold text-[var(--text-main-primary)]">
                 {pingStatus.avgLatencyMs} ms
               </div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-400">Packet loss</div>
-              <div className="text-[18px] font-bold text-slate-100">
+              <div className="text-[11px] text-[var(--text-main-secondary)]">Packet loss</div>
+              <div className="text-[18px] font-bold text-[var(--text-main-primary)]">
                 {pingStatus.packetLoss}%
               </div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-400">SLA bulan ini</div>
-              <div className="text-[18px] font-bold text-slate-100">
+              <div className="text-[11px] text-[var(--text-main-secondary)]">SLA bulan ini</div>
+              <div className="text-[18px] font-bold text-[var(--text-main-primary)]">
                 {typeof slaThisMonth === 'number' ? slaThisMonth.toFixed(3) : slaThisMonth}%
               </div>
             </div>
           </div>
 
-          <div className="mt-3 pt-2.5 border-t border-dashed border-slate-800 flex items-center justify-between gap-2.5">
-            <div className="text-[11px] text-slate-400">
+          <div className="mt-3 pt-2.5 border-t border-dashed border-[var(--border-main)] flex items-center justify-between gap-2.5">
+            <div className="text-[11px] text-[var(--text-main-secondary)]">
               Status invoice bulan ini:
               <span
                 className={`ml-1.5 font-semibold ${
@@ -169,13 +169,13 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
           </div>
         </div>
 
-        <div className="rounded-2xl px-4 py-4 bg-[#0f172a] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-800 shadow-lg">
+        <div className="rounded-2xl px-4 py-4 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg">
           <div className="flex items-center justify-between mb-2.5">
             <div>
-              <div className="text-[13px] font-semibold text-slate-100">
+              <div className="text-[13px] font-semibold text-[var(--text-main-primary)]">
                 Alert & Usage
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-[var(--text-main-secondary)]">
                 Ringkasan alert aktif dan penggunaan data (Top Talkers).
               </div>
             </div>
@@ -192,43 +192,43 @@ const WorkspaceDashboardSection: React.FC<WorkspaceDashboardSectionProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <div className="text-[11px] font-semibold text-slate-400">
+              <div className="text-[11px] font-semibold text-[var(--text-main-secondary)]">
                 Top Interfaces
               </div>
-              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-400">
+              <ul className="list-none p-0 mt-1.5 text-[11px] text-[var(--text-main-secondary)]">
                 {topInterfaces.length > 0 ? topInterfaces.map((iface) => (
                   <li
                     key={iface.name}
                     className="flex justify-between mb-1"
                   >
                     <span>{iface.name}</span>
-                    <span className="font-semibold text-slate-100">
+                    <span className="font-semibold text-[var(--text-main-primary)]">
                       {iface.usageMbps} MB
                     </span>
                   </li>
                 )) : (
-                  <li className="text-slate-500 italic">No NetFlow data.</li>
+                  <li className="text-[var(--text-main-secondary)] opacity-50 italic">No NetFlow data.</li>
                 )}
               </ul>
             </div>
 
             <div>
-              <div className="text-[11px] font-semibold text-slate-400">
+              <div className="text-[11px] font-semibold text-[var(--text-main-secondary)]">
                 Top Queues
               </div>
-              <ul className="list-none p-0 mt-1.5 text-[11px] text-slate-400">
+              <ul className="list-none p-0 mt-1.5 text-[11px] text-[var(--text-main-secondary)]">
                 {topQueues.length > 0 ? topQueues.map((queue) => (
                   <li
                     key={queue.name}
                     className="flex justify-between mb-1"
                   >
                     <span>{queue.name}</span>
-                    <span className="font-semibold text-slate-100">
+                    <span className="font-semibold text-[var(--text-main-primary)]">
                       {queue.usageMbps} Mbps
                     </span>
                   </li>
                 )) : (
-                  <li className="text-slate-500 italic">No Queue data.</li>
+                  <li className="text-[var(--text-main-secondary)] opacity-50 italic">No Queue data.</li>
                 )}
               </ul>
             </div>

@@ -9,6 +9,7 @@ type TopologyNode struct {
 	DeviceID    *int      `json:"deviceId"`
 	Type        string    `json:"type"`
 	Label       string    `json:"label"`
+	Vendor      string    `json:"vendor"`
 	X           float64   `json:"x"`
 	Y           float64   `json:"y"`
 	CreatedAt   time.Time `json:"createdAt"`
@@ -21,6 +22,8 @@ type TopologyEdge struct {
 	Source      string    `json:"source"`
 	Target      string    `json:"target"`
 	Label       string    `json:"label"`
+	LinkType    string    `json:"linkType"`
+	Animated    bool      `json:"animated"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
