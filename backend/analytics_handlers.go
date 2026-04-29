@@ -310,9 +310,77 @@ func (a *appState) handleGetApplicationBreakdown(c echo.Context) error {
 	}
 
 	query := `
-		SELECT dst_port, SUM(bytes) as total_bytes
-		FROM flow_logs
-		WHERE workspace_id = $1 AND captured_at >= $2
+		SELECT 
+			COALESCE(service_name, 'PORT:' || service_port::text) as final_name,
+			service_port,
+			SUM(bytes) as total_bytes
+		FROM (
+			SELECT 
+				CASE 
+					-- Google / YouTube / GGC (Google Global Cache)
+					WHEN dst_ip <<= '172.217.0.0/16' OR src_ip <<= '172.217.0.0/16' OR
+						 dst_ip <<= '142.250.0.0/15' OR src_ip <<= '142.250.0.0/15' OR
+						 dst_ip <<= '74.125.0.0/16' OR src_ip <<= '74.125.0.0/16' OR
+						 dst_ip <<= '209.85.128.0/17' OR src_ip <<= '209.85.128.0/17' OR
+						 dst_ip <<= '216.58.192.0/19' OR src_ip <<= '216.58.192.0/19' OR
+						 dst_ip <<= '64.233.160.0/19' OR src_ip <<= '64.233.160.0/19' OR
+						 dst_ip <<= '66.102.0.0/20' OR src_ip <<= '66.102.0.0/20' OR
+						 dst_ip <<= '66.249.64.0/19' OR src_ip <<= '66.249.64.0/19' OR
+						 dst_ip <<= '72.14.192.0/18' OR src_ip <<= '72.14.192.0/18' OR
+						 dst_ip <<= '108.177.0.0/17' OR src_ip <<= '108.177.0.0/17' OR
+						 dst_ip <<= '2001:4860::/32' OR src_ip <<= '2001:4860::/32' THEN 'YouTube / Google'
+						 
+					-- Meta (Facebook / Instagram / WhatsApp)
+					WHEN dst_ip <<= '157.240.0.0/16' OR src_ip <<= '157.240.0.0/16' OR
+						 dst_ip <<= '31.13.24.0/21' OR src_ip <<= '31.13.24.0/21' OR
+						 dst_ip <<= '31.13.64.0/18' OR src_ip <<= '31.13.64.0/18' OR
+						 dst_ip <<= '173.252.64.0/18' OR src_ip <<= '173.252.64.0/18' OR
+						 dst_ip <<= '129.134.0.0/16' OR src_ip <<= '129.134.0.0/16' OR
+						 dst_ip <<= '185.60.216.0/22' OR src_ip <<= '185.60.216.0/22' OR
+						 dst_ip <<= '204.15.20.0/22' OR src_ip <<= '204.15.20.0/22' OR
+						 dst_ip <<= '2a03:2880::/32' OR src_ip <<= '2a03:2880::/32' THEN 'Facebook / Instagram'
+						 
+					-- Netflix
+					WHEN dst_ip <<= '45.57.0.0/17' OR src_ip <<= '45.57.0.0/17' OR
+						 dst_ip <<= '198.38.96.0/19' OR src_ip <<= '198.38.96.0/19' OR
+						 dst_ip <<= '198.45.48.0/20' OR src_ip <<= '198.45.48.0/20' OR
+						 dst_ip <<= '23.246.0.0/18' OR src_ip <<= '23.246.0.0/18' OR
+						 dst_ip <<= '2a00:86c0::/32' OR src_ip <<= '2a00:86c0::/32' THEN 'Netflix'
+						 
+					-- TikTok / ByteDance
+					WHEN dst_ip <<= '161.117.0.0/16' OR src_ip <<= '161.117.0.0/16' OR
+						 dst_ip <<= '156.59.0.0/16' OR src_ip <<= '156.59.0.0/16' OR
+						 dst_ip <<= '130.44.212.0/22' OR src_ip <<= '130.44.212.0/22' OR
+						 dst_ip <<= '47.252.0.0/15' OR src_ip <<= '47.252.0.0/15' OR
+						 dst_ip <<= '116.211.0.0/16' OR src_ip <<= '116.211.0.0/16' OR
+						 dst_ip <<= '117.185.0.0/16' OR src_ip <<= '117.185.0.0/16' OR
+						 dst_ip <<= '139.159.0.0/16' OR src_ip <<= '139.159.0.0/16' OR
+						 dst_ip <<= '203.205.128.0/18' OR src_ip <<= '203.205.128.0/18' OR
+						 dst_ip <<= '2a0e:b100::/32' OR src_ip <<= '2a0e:b100::/32' OR
+						 dst_ip <<= '2606:fe00::/32' OR src_ip <<= '2606:fe00::/32' THEN 'TikTok'
+						 
+					-- Microsoft
+					WHEN dst_ip <<= '13.64.0.0/11' OR src_ip <<= '13.64.0.0/11' OR
+						 dst_ip <<= '40.64.0.0/10' OR src_ip <<= '40.64.0.0/10' OR
+						 dst_ip <<= '52.145.0.0/16' OR src_ip <<= '52.145.0.0/16' THEN 'Microsoft Services'
+						 
+					-- CDNs
+					WHEN dst_ip <<= '104.16.0.0/12' OR src_ip <<= '104.16.0.0/12' OR
+						 dst_ip <<= '172.64.0.0/13' OR src_ip <<= '172.64.0.0/13' THEN 'Cloudflare (CDN)'
+					WHEN dst_ip <<= '23.0.0.0/8' OR src_ip <<= '23.0.0.0/8' THEN 'Akamai (CDN)'
+					
+					ELSE NULL
+				END as service_name,
+				CASE 
+					WHEN dst_port < 1024 THEN dst_port
+					WHEN src_port < 1024 THEN src_port
+					WHEN dst_port < 32768 THEN dst_port
+					WHEN src_port < 32768 THEN src_port
+					ELSE dst_port
+				END as service_port,
+				bytes
+			FROM flow_logs
+			WHERE workspace_id = $1 AND captured_at >= $2
 	`
 	args := []interface{}{wsID, since}
 	
@@ -324,10 +392,16 @@ func (a *appState) handleGetApplicationBreakdown(c echo.Context) error {
 		args = append(args, customerID)
 	}
 
-	query += " GROUP BY dst_port ORDER BY total_bytes DESC LIMIT 10"
+	query += `
+		) sub
+		GROUP BY final_name, service_port 
+		ORDER BY total_bytes DESC 
+		LIMIT 10
+	`
 
 	rows, err := a.db.Query(ctx, query, args...)
 	if err != nil {
+		log.Printf("Analytics: App Breakdown query error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to query apps")
 	}
 	defer rows.Close()
@@ -341,30 +415,73 @@ func (a *appState) handleGetApplicationBreakdown(c echo.Context) error {
 	var results []AppData
 	for rows.Next() {
 		var d AppData
-		if err := rows.Scan(&d.Port, &d.Bytes); err != nil {
+		var finalName string
+		if err := rows.Scan(&finalName, &d.Port, &d.Bytes); err != nil {
 			continue
 		}
 
-		// Map common ports to names
-		switch d.Port {
-		case 80, 443: d.Name = "Web (HTTP/S)"
-		case 53: d.Name = "DNS"
-		case 22: d.Name = "SSH"
-		case 21: d.Name = "FTP"
-		case 8291: d.Name = "Winbox"
-		case 161, 162: d.Name = "SNMP"
-		case 123: d.Name = "NTP"
-		case 3389: d.Name = "RDP"
-		case 25, 465, 587, 993, 995: d.Name = "Email"
-		case 1701, 1723, 500, 4500: d.Name = "VPN"
-		case 1812, 1813: d.Name = "Radius"
-		case 5678: d.Name = "MikroTik MNDP"
-		case 67, 68: d.Name = "DHCP"
-		case 137, 138, 139: d.Name = "NetBIOS"
-		case 20561: d.Name = "BW Test"
-		case 1900: d.Name = "SSDP"
-		case 5353: d.Name = "mDNS"
-		default: d.Name = strconv.Itoa(d.Port)
+		// If SQL didn't provide a friendly name, use port mapping
+		if finalName == "PORT:"+strconv.Itoa(d.Port) {
+			switch d.Port {
+		case 80, 443:
+			d.Name = "Web (HTTP/S)"
+		case 53:
+			d.Name = "DNS"
+		case 22:
+			d.Name = "SSH"
+		case 21:
+			d.Name = "FTP"
+		case 8291:
+			d.Name = "Winbox (MikroTik)"
+		case 161, 162:
+			d.Name = "SNMP"
+		case 123:
+			d.Name = "NTP"
+		case 3389:
+			d.Name = "RDP"
+		case 5900:
+			d.Name = "VNC"
+		case 25, 465, 587, 993, 995:
+			d.Name = "Email"
+		case 1701, 1723, 500, 4500, 1194, 51820:
+			d.Name = "VPN Services"
+		case 1812, 1813:
+			d.Name = "Radius"
+		case 5060, 5061:
+			d.Name = "VoIP (SIP)"
+		case 1935:
+			d.Name = "RTMP Streaming"
+		case 5678:
+			d.Name = "MikroTik MNDP"
+		case 67, 68:
+			d.Name = "DHCP"
+		case 137, 138, 139:
+			d.Name = "NetBIOS"
+		case 20561, 2000:
+			d.Name = "MikroTik BW Test"
+		case 1900:
+			d.Name = "SSDP"
+		case 5353:
+			d.Name = "mDNS"
+		case 8080, 8443, 8888:
+			d.Name = "Web Alternative"
+		case 3306, 5432, 6379, 27017:
+			d.Name = "Database"
+		case 5222, 5223, 5228:
+			d.Name = "Messaging/Push"
+		case 3478, 3479, 3480, 3481:
+			d.Name = "WebRTC/STUN"
+		case 1883, 8883:
+			d.Name = "MQTT (IoT)"
+		default:
+			if d.Port > 49151 {
+				d.Name = "Dynamic/Private (" + strconv.Itoa(d.Port) + ")"
+			} else {
+				d.Name = "Service Port " + strconv.Itoa(d.Port)
+			}
+		}
+		} else {
+			d.Name = finalName
 		}
 		
 		results = append(results, d)

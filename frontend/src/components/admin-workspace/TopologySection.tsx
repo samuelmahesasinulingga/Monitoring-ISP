@@ -541,110 +541,125 @@ const TopologySection: React.FC<TopologySectionProps> = ({ workspaceName, worksp
   // View: Directory (List Layouts)
   if (!activeLayout) {
     return (
-      <section className="animate-fade-in">
-        <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="m-0 mb-1 text-[22px] font-bold text-[var(--text-main-primary)]">
-              🗺️ Proyek Topologi {workspaceName ? `- ${workspaceName}` : ""}
-            </h2>
-            <p className="m-0 text-[13px] text-[var(--text-main-secondary)]">
-              Kelola dan gambar berbagai versi arsitektur jaringan untuk workspace ini.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2"
-          >
-            <span className="text-lg leading-none">+</span> Buat Peta Baru
-          </button>
-        </header>
-
-        {isLoadingLayouts ? (
-          <div className="flex items-center justify-center h-40 text-[var(--text-main-secondary)]">Memuat peta...</div>
-        ) : layouts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg rounded-3xl border border-dashed border-[var(--border-main)]">
-            <div className="text-4xl mb-4 opacity-50">🧭</div>
-            <h3 className="text-lg font-bold text-[var(--text-main-primary)] m-0 mb-1">Belum Ada Peta Topologi</h3>
-            <p className="text-[13px] text-[var(--text-main-secondary)] max-w-sm text-center mb-6">
-              Mulai dokumentasikan desain arsitektur jaringan Anda dengan membuat peta pertama.
-            </p>
+      <>
+        <section className="animate-fade-in">
+          <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="m-0 mb-1 text-[22px] font-bold text-[var(--text-main-primary)]">
+                🗺️ Proyek Topologi {workspaceName ? `- ${workspaceName}` : ""}
+              </h2>
+              <p className="m-0 text-[13px] text-[var(--text-main-secondary)]">
+                Kelola dan gambar berbagai versi arsitektur jaringan untuk workspace ini.
+              </p>
+            </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] hover:bg-[var(--border-main)] text-[var(--text-main-primary)] text-[13px] font-semibold transition-colors"
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2"
             >
-              Buat Peta Sekarang
+              <span className="text-lg leading-none">+</span> Buat Peta Baru
             </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {layouts.map(layout => (
-              <div
-                key={layout.id}
-                onClick={() => setActiveLayout(layout)}
-                className="group relative bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg rounded-3xl p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-400 transition-all cursor-pointer flex flex-col h-48"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-[var(--bg-main)] flex items-center justify-center border border-[var(--border-main)] group-hover:scale-110 transition-transform">
-                    🗺️
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteLayout(layout.id, e)}
-                    className="w-8 h-8 rounded-full text-[var(--text-main-secondary)] hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                    title="Hapus Peta"
-                  >
-                    🗑️
-                  </button>
-                </div>
-                <h3 className="mt-auto m-0 text-lg font-bold text-[var(--text-main-primary)] line-clamp-2">
-                  {layout.name}
-                </h3>
-                <p className="m-0 mt-2 text-[11px] text-[var(--text-main-secondary)] font-medium">
-                  Bergabung sejak: {new Date(layout.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+          </header>
 
-        {/* Modal Create Layout */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-sm rounded-3xl bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg p-6 shadow-2xl animate-fade-in">
-              <h3 className="m-0 mb-4 text-[18px] font-bold text-[var(--text-main-primary)]">Buat Peta Topologi Baru</h3>
-              <form onSubmit={handleCreateLayout}>
-                <label className="block text-[12px] font-medium text-[var(--text-main-secondary)] mb-1.5">
-                  Nama Peta
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  required
-                  placeholder="Misal: Topologi Core, Distribusi Area B..."
-                  value={newLayoutName}
-                  onChange={(e) => setNewLayoutName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border-main)] text-[13px] outline-none focus:ring-2 focus:ring-blue-500/20 mb-6 bg-[var(--bg-main)] text-[var(--text-main-primary)]"
-                />
-                <div className="flex gap-3 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => { setShowCreateModal(false); setNewLayoutName(""); }}
-                    className="px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] hover:bg-[var(--border-main)] text-[var(--text-main-secondary)] text-[13px] font-semibold transition-colors shadow-sm"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={!newLayoutName.trim()}
-                    className="px-4 py-2 rounded-xl bg-blue-600 text-white text-[13px] font-semibold hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-colors disabled:opacity-50"
-                  >
-                    🚀 Buat Peta
-                  </button>
-                </div>
-              </form>
+          {isLoadingLayouts ? (
+            <div className="flex items-center justify-center h-40 text-[var(--text-main-secondary)]">Memuat peta...</div>
+          ) : layouts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg rounded-3xl border border-dashed border-[var(--border-main)]">
+              <div className="text-4xl mb-4 opacity-50">🧭</div>
+              <h3 className="text-lg font-bold text-[var(--text-main-primary)] m-0 mb-1">Belum Ada Peta Topologi</h3>
+              <p className="text-[13px] text-[var(--text-main-secondary)] max-w-sm text-center mb-6">
+                Mulai dokumentasikan desain arsitektur jaringan Anda dengan membuat peta pertama.
+              </p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-2.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] hover:bg-[var(--border-main)] text-[var(--text-main-primary)] text-[13px] font-semibold transition-colors"
+              >
+                Buat Peta Sekarang
+              </button>
             </div>
-          </div>
-        )}
-      </section>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {layouts.map(layout => (
+                <div
+                  key={layout.id}
+                  onClick={() => setActiveLayout(layout)}
+                  className="group relative bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg rounded-3xl p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-400 transition-all cursor-pointer flex flex-col h-48"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--bg-main)] flex items-center justify-center border border-[var(--border-main)] group-hover:scale-110 transition-transform">
+                      🗺️
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteLayout(layout.id, e)}
+                      className="w-8 h-8 rounded-full text-[var(--text-main-secondary)] hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                      title="Hapus Peta"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                        <path d="M19 6h-3.5l-1-1h-5l-1 1H5v2h14V6zM6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V9H6v10z"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <h3 className="mt-auto m-0 text-lg font-bold text-[var(--text-main-primary)] line-clamp-2">
+                    {layout.name}
+                  </h3>
+                  <p className="m-0 mt-2 text-[11px] text-[var(--text-main-secondary)] font-medium">
+                    Bergabung sejak: {new Date(layout.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Modal Create Layout */}
+          {showCreateModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+              <div className="w-full max-w-sm rounded-3xl bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-[var(--border-main)] shadow-lg p-6 shadow-2xl animate-fade-in">
+                <h3 className="m-0 mb-4 text-[18px] font-bold text-[var(--text-main-primary)]">Buat Peta Topologi Baru</h3>
+                <form onSubmit={handleCreateLayout}>
+                  <label className="block text-[12px] font-medium text-[var(--text-main-secondary)] mb-1.5">
+                    Nama Peta
+                  </label>
+                  <input
+                    type="text"
+                    autoFocus
+                    required
+                    placeholder="Misal: Topologi Core, Distribusi Area B..."
+                    value={newLayoutName}
+                    onChange={(e) => setNewLayoutName(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-[var(--border-main)] text-[13px] outline-none focus:ring-2 focus:ring-blue-500/20 mb-6 bg-[var(--bg-main)] text-[var(--text-main-primary)]"
+                  />
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => { setShowCreateModal(false); setNewLayoutName(""); }}
+                      className="px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] hover:bg-[var(--border-main)] text-[var(--text-main-secondary)] text-[13px] font-semibold transition-colors shadow-sm"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!newLayoutName.trim()}
+                      className="px-4 py-2 rounded-xl bg-blue-600 text-white text-[13px] font-semibold hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-colors disabled:opacity-50"
+                    >
+                      🚀 Buat Peta
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          variant={confirmDialog.variant}
+          isLoading={confirmDialog.isLoading}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={closeConfirm}
+        />
+      </>
     );
   }
 
