@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 
 interface IPPool {
   id: number;
@@ -50,28 +50,7 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Custom Confirm Dialog state
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    confirmLabel?: string;
-    variant?: "danger" | "warning" | "info";
-    isLoading?: boolean;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    onConfirm: () => { },
-  });
-
-  const showConfirm = (opts: Omit<typeof confirmDialog, "isOpen" | "isLoading">) => {
-    setConfirmDialog({ ...opts, isOpen: true, isLoading: false });
-  };
-
-  const closeConfirm = () => {
-    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-  };
+  const { showConfirm, closeConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const [newPool, setNewPool] = useState({
     name: "",
@@ -273,17 +252,10 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
       confirmLabel: "Hapus",
       variant: "danger",
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
-        try {
-          const res = await fetch(`/api/ipam/ips/${id}`, { method: "DELETE" });
-          if (res.ok) {
-            if (selectedPool) fetchIPs(selectedPool.id);
-            fetchPools();
-          }
-        } catch (err) {
-          console.error("delete ip error", err);
-        } finally {
-          closeConfirm();
+        const res = await fetch(`/api/ipam/ips/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          if (selectedPool) fetchIPs(selectedPool.id);
+          fetchPools();
         }
       },
     });
@@ -297,7 +269,6 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
       confirmLabel: `Hapus ${selectedIPIds.size} IP`,
       variant: "danger",
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         setIsBulkDeleting(true);
         try {
           await Promise.all(
@@ -312,7 +283,6 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
           console.error("bulk delete error", err);
         } finally {
           setIsBulkDeleting(false);
-          closeConfirm();
         }
       },
     });
@@ -400,15 +370,8 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
       confirmLabel: "Hapus Network",
       variant: "danger",
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
-        try {
-          const res = await fetch(`/api/ip-pools/${id}`, { method: "DELETE" });
-          if (res.ok) fetchPools();
-        } catch (err) {
-          console.error("delete pool error", err);
-        } finally {
-          closeConfirm();
-        }
+        const res = await fetch(`/api/ip-pools/${id}`, { method: "DELETE" });
+        if (res.ok) fetchPools();
       },
     });
   };
@@ -916,18 +879,8 @@ const IPManagementSection: React.FC<{ workspaceId?: number }> = ({ workspaceId }
           </div>
         </div>
       )}
-
       {/* Custom Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        confirmLabel={confirmDialog.confirmLabel}
-        variant={confirmDialog.variant}
-        isLoading={confirmDialog.isLoading}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={closeConfirm}
-      />
+      {ConfirmDialogComponent}
     </div>
   );
 };

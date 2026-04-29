@@ -3,7 +3,7 @@ import "./Sidebar.css";
 import { useNotification } from "../context/NotificationContext";
 
 export type MenuKey = 
-  | "dashboard" | "monitoring" | "analytics" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings" | "ipManagement";
+  | "dashboard" | "monitoring" | "analytics" | "security" | "devices" | "topology" | "slaReport" | "customers" | "billing" | "settings" | "ipManagement";
 
 interface SidebarProps {
   activeMenu: MenuKey;
@@ -58,6 +58,9 @@ const Icons = {
   ),
   IP: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><path d="M7 22V14"/><path d="M17 22V14"/><path d="M2 14h20"/></svg>
+  ),
+  Security: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
   )
 };
 
@@ -114,6 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       ]
     },
     { key: "analytics", label: "Traffic Analytics", icon: Icons.Analytics, color: "#f43f5e", group: "OPERATIONS" },
+    { key: "security", label: "Security Center", icon: Icons.Security, color: "#f59e0b", group: "OPERATIONS" },
     { key: "devices", label: "Devices", icon: Icons.Devices, color: "#14b8a6", group: "SYSTEM" },
     { key: "topology", label: "Topology", icon: Icons.Topology, color: "#6366f1", group: "SYSTEM" },
     { key: "ipManagement", label: "IP Management", icon: Icons.IP, color: "#8b5cf6", group: "SYSTEM" },

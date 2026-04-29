@@ -9,6 +9,7 @@ import TopologySection from "./TopologySection";
 import CustomerSection from "./CustomerSection";
 import TrafficAnalyticsSection from "./TrafficAnalyticsSection";
 import IPManagementSection from "./IPManagementSection";
+import SecuritySection from "./SecuritySection";
 import Sidebar, { MenuKey } from "../Sidebar";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -71,6 +72,8 @@ const AdminWorkspaceDashboard: React.FC<AdminWorkspaceDashboardProps> = ({
         );
       case "analytics":
         return <TrafficAnalyticsSection workspaceId={workspaceId} />;
+      case "security":
+        return <SecuritySection workspaceId={workspaceId} />;
       case "devices":
         return <DevicesSection workspaceId={workspaceId} />;
       case "topology":

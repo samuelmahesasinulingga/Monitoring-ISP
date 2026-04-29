@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNotification } from "../../context/NotificationContext";
 import type { Customer } from "./CustomerSection";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 
 interface BillingSectionProps {
   workspaceName?: string;
@@ -41,7 +41,6 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
   // Form Invoice State
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | "">("");
-  const [selectedPackageId, setSelectedPackageId] = useState<number | "">("");
   const [periodMonth, setPeriodMonth] = useState("");
   const [price, setPrice] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -65,15 +64,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
   const [newPkgPrice, setNewPkgPrice] = useState(350000);
 
   // Custom Confirm Dialog
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean; title: string; message: string;
-    confirmLabel?: string; variant?: "danger" | "warning" | "info";
-    isLoading?: boolean; onConfirm: () => void;
-  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
-
-  const showConfirm = (opts: Omit<typeof confirmDialog, "isOpen" | "isLoading">) =>
-    setConfirmDialog({ ...opts, isOpen: true, isLoading: false });
-  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -88,7 +79,10 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       if (custRes.ok) {
         const custData = await custRes.json();
         setCustomers(custData);
-        if (custData.length > 0) setSelectedCustomerId(custData[0].id);
+        if (custData.length > 0) {
+          setSelectedCustomerId(custData[0].id);
+          setPrice(custData[0].monthlyPrice || 0);
+        }
       }
       if (invRes.ok) setInvoices(await invRes.json());
       if (pkgRes.ok) setPackages(await pkgRes.json());
@@ -105,17 +99,6 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
     fetchData();
   }, [workspaceId]);
 
-  const handlePackageSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const pkgId = Number(e.target.value);
-    setSelectedPackageId(pkgId);
-
-    // Auto fill price based on selected package
-    const selectedPkg = packages.find(p => p.id === pkgId);
-    if (selectedPkg) {
-      setPrice(selectedPkg.price);
-    }
-  };
-
   const handleGenerateInvoice = async () => {
     if (!selectedCustomerId || !periodMonth) {
       notify("Pilih pelanggan dan periode terlebih dahulu.", "warning");
@@ -124,6 +107,25 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
 
     setIsGenerating(true);
     try {
+      // Update Customer's Monthly Price (so future automated bills use this price)
+      const customer = customers.find(c => c.id === Number(selectedCustomerId));
+      if (customer) {
+        const updatePayload = {
+          name: customer.name,
+          email: customer.email,
+          address: customer.address,
+          workspaceId: customer.workspaceId,
+          deviceId: customer.deviceId,
+          queueName: customer.queueName,
+          monthlyPrice: Number(price),
+        };
+        await fetch(`/api/customers/${customer.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatePayload)
+        });
+      }
+
       const [yearStr, monthStr] = periodMonth.split("-");
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
@@ -149,7 +151,6 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       if (res.ok) {
         const created = await res.json();
         setInvoices((prev) => [created, ...prev]);
-        setSelectedPackageId("");
         setPrice(0);
         setIsCreateInvoiceModalOpen(false);
         notify("Tagihan baru berhasil dibuat!", "success");
@@ -171,12 +172,8 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       confirmLabel: "Hapus",
       variant: "danger",
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
-        try {
-          const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
-          if (res.ok) setInvoices((prev) => prev.filter((i) => i.id !== id));
-        } catch (err) { console.error(err); }
-        finally { closeConfirm(); }
+        const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+        if (res.ok) setInvoices((prev) => prev.filter((i) => i.id !== id));
       },
     });
   };
@@ -190,13 +187,11 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       confirmLabel: "Kirim Email",
       variant: "info",
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         setSendingEmailId(id);
         try {
           const res = await fetch(`/api/invoices/${id}/send-email`, { method: "POST" });
           if (res.ok) {
             notify("Invoice berhasil dikirim ke email pelanggan!", "success");
-            closeConfirm();
           } else {
             const data = await res.json();
             notify("Gagal mengirim email: " + data.error, "error");
@@ -204,8 +199,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
         } catch (err) { 
           console.error("send email err", err);
           notify("Gagal menghubungi server email.", "error");
+        } finally {
+          setSendingEmailId(null);
         }
-        finally { setSendingEmailId(null); closeConfirm(); }
       },
     });
   };
@@ -302,20 +298,13 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       confirmLabel: "Hapus",
       variant: "danger",
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
-        try {
-          const res = await fetch(`/api/packages/${id}`, { method: "DELETE" });
-          if (res.ok) {
-            setPackages(prev => prev.filter(p => p.id !== id));
-            notify("Paket layanan berhasil dihapus.", "success");
-          } else {
-            notify("Gagal menghapus paket.", "error");
-          }
-        } catch (err) { 
-          console.error(err);
-          notify("Terjadi kesalahan sistem.", "error");
+        const res = await fetch(`/api/packages/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          setPackages(prev => prev.filter(p => p.id !== id));
+          notify("Paket layanan berhasil dihapus.", "success");
+        } else {
+          notify("Gagal menghapus paket.", "error");
         }
-        finally { closeConfirm(); }
       },
     });
   };
@@ -338,7 +327,6 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
       </header>
 
       <div className="flex flex-col gap-4 mb-4">
-
         {/* Tabel Invoice */}
         <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--card-main-bg)] hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 shadow-lg p-0 h-fit overflow-hidden">
           <div className="p-4 border-b border-[var(--border-main)] flex items-center justify-between">
@@ -465,7 +453,7 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
             </div>
 
             <p className="text-[12px] text-[var(--text-main-secondary)] mb-4 mt-0">
-              Paket yang dibuat di sini akan muncul pada dropdown pembuatan Tagihan untuk kemudahan pengisian nominal.
+              Paket yang dibuat di sini akan muncul pada dropdown template harga saat menambah data Pelanggan.
             </p>
 
             <form onSubmit={handleCreatePackage} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5 items-end bg-[var(--bg-main)]/50 p-3 rounded-xl border border-[var(--border-main)]">
@@ -583,7 +571,16 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                   </div>
                   <select
                     value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(Number(e.target.value))}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      setSelectedCustomerId(id);
+                      const customer = customers.find((c) => c.id === id);
+                      if (customer) {
+                        setPrice(customer.monthlyPrice || 0);
+                      } else {
+                        setPrice(0);
+                      }
+                    }}
                     className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
                   >
                     <option value="" disabled>-- Pilih Pelanggan --</option>
@@ -595,35 +592,34 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
-                      Periode Tagihan
-                    </div>
-                    <input
-                      type="month"
-                      value={periodMonth}
-                      onChange={(e) => setPeriodMonth(e.target.value)}
-                      className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
-                    />
+                <div>
+                  <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
+                    Periode Tagihan
                   </div>
-                  <div>
-                    <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
-                      Pilih Paket Layanan
-                    </div>
-                    <select
-                      value={selectedPackageId}
-                      onChange={handlePackageSelect}
-                      className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 text-[var(--text-main-primary)]"
-                    >
-                      <option value="" disabled>-- Atur Manual --</option>
-                      {packages.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.bandwidthMbps} Mbps)
-                        </option>
-                      ))}
-                    </select>
+                  <input
+                    type="month"
+                    value={periodMonth}
+                    onChange={(e) => setPeriodMonth(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <div className="text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">
+                    Pilih Paket (Template Harga)
                   </div>
+                  <select
+                    onChange={(e) => {
+                      const pkg = packages.find(p => p.id === Number(e.target.value));
+                      if (pkg) setPrice(pkg.price);
+                    }}
+                    className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
+                  >
+                    <option value="">-- Atur Manual --</option>
+                    {packages.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} (Rp {p.price.toLocaleString("id-ID")})</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -635,10 +631,10 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
                     min={0}
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)]"
+                    className="w-full h-10 px-3 rounded-lg border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 text-[var(--text-main-primary)] font-semibold"
                   />
-                  <p className="mt-1.5 text-[10px] text-[var(--text-main-secondary)] leading-relaxed">
-                    * Nilai ini bisa disesuaikan manual meskipun sudah memilih paket jika ada diskon khusus.
+                  <p className="mt-1.5 text-[10px] text-[var(--text-main-secondary)] leading-relaxed italic">
+                    * Nominal ini akan otomatis tersimpan sebagai biaya langganan bulanan tetap untuk pelanggan ini.
                   </p>
                 </div>
               </div>
@@ -925,18 +921,9 @@ const BillingSection: React.FC<BillingSectionProps> = ({ workspaceName, workspac
           </div>
         </div>
       )}
-      </section>
 
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        confirmLabel={confirmDialog.confirmLabel}
-        variant={confirmDialog.variant}
-        isLoading={confirmDialog.isLoading}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={closeConfirm}
-      />
+      {ConfirmDialogComponent}
+    </section>
     </>
   );
 };

@@ -8,8 +8,460 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 )
+
+// ──────────────────────────────────────────────────────────
+// Ping Handlers
+// ──────────────────────────────────────────────────────────
+
+func (a *appState) handlePingDevices(c echo.Context) error {
+	ctx := c.Request().Context()
+	wsIDStr := c.QueryParam("workspaceId")
+
+	var rows pgx.Rows
+	var err error
+
+	if wsIDStr != "" {
+		wsID, convErr := strconv.Atoi(wsIDStr)
+		if convErr != nil || wsID <= 0 {
+			return c.String(http.StatusBadRequest, "invalid workspaceId")
+		}
+		rows, err = a.db.Query(ctx, `
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at, netflow_port, netflow_enabled
+			FROM devices
+			WHERE workspace_id = $1 AND monitoring_enabled = TRUE
+			ORDER BY id
+		`, wsID)
+	} else {
+		rows, err = a.db.Query(ctx, `
+			SELECT id, name, ip, type, integration_mode, snmp_version, snmp_community, api_user, api_password, api_port, monitoring_enabled, ping_interval_ms, monitored_queues, monitored_interfaces, workspace_id, created_at, netflow_port, netflow_enabled
+			FROM devices
+			WHERE monitoring_enabled = TRUE
+			ORDER BY id
+		`)
+	}
+
+	if err != nil {
+		log.Printf("ping devices query error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to query devices for ping")
+	}
+	defer rows.Close()
+
+	results := make([]devicePingResult, 0)
+
+	for rows.Next() {
+		var d device
+		if err := rows.Scan(&d.ID, &d.Name, &d.IP, &d.Type, &d.IntegrationMode, &d.SnmpVersion, &d.SnmpCommunity, &d.ApiUser, &d.ApiPassword, &d.ApiPort, &d.MonitoringEnabled, &d.PingIntervalMs, &d.MonitoredQueues, &d.MonitoredInterfaces, &d.WorkspaceID, &d.CreatedAt, &d.NetFlowPort, &d.NetFlowEnabled); err != nil {
+			log.Printf("scan device for ping error: %v", err)
+			continue
+		}
+
+		status := "UP"
+		latencyMs := int64(0)
+		var history []HistoricalPing
+
+		if !d.MonitoringEnabled {
+			status = "DOWN"
+		} else {
+			logRows, logErr := a.db.Query(ctx, `
+				SELECT latency_ms, status, created_at 
+				FROM device_ping_logs 
+				WHERE device_id = $1 
+				ORDER BY created_at DESC 
+				LIMIT 15
+			`, d.ID)
+
+			if logErr == nil {
+				for logRows.Next() {
+					var lMs int64
+					var lStatus string
+					var lTime time.Time
+					if scanErr := logRows.Scan(&lMs, &lStatus, &lTime); scanErr == nil {
+						history = append(history, HistoricalPing{
+							Time:      lTime.Format(time.RFC3339),
+							LatencyMs: lMs,
+							Status:    lStatus,
+						})
+					}
+				}
+				logRows.Close()
+
+				if len(history) > 0 {
+					status = history[0].Status
+					latencyMs = history[0].LatencyMs
+					for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
+						history[i], history[j] = history[j], history[i]
+					}
+				} else {
+					status = "DOWN"
+				}
+			} else {
+				status = "DOWN"
+				log.Printf("ping device fetch log error for %s (%s): %v", d.Name, d.IP, logErr)
+			}
+		}
+
+		results = append(results, devicePingResult{
+			ID:                  d.ID,
+			Name:                d.Name,
+			IP:                  d.IP,
+			IntegrationMode:     d.IntegrationMode,
+			LatencyMs:           latencyMs,
+			Loss:                0.0,
+			Status:              status,
+			PingIntervalMs:      d.PingIntervalMs,
+			MonitoredQueues:     d.MonitoredQueues,
+			MonitoredInterfaces: d.MonitoredInterfaces,
+			History:             history,
+		})
+	}
+
+	return c.JSON(http.StatusOK, results)
+}
+
+func (a *appState) handleGetDevicePingLogs(c echo.Context) error {
+	ctx := c.Request().Context()
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return c.String(http.StatusBadRequest, "invalid device id")
+	}
+
+	pageStr := c.QueryParam("page")
+	page := 1
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	limit := 30
+	offset := (page - 1) * limit
+
+	var total int
+	err = a.db.QueryRow(ctx, "SELECT COUNT(*) FROM device_ping_logs WHERE device_id = $1", id).Scan(&total)
+	if err != nil {
+		log.Printf("count ping logs error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to count logs")
+	}
+
+	logRows, err := a.db.Query(ctx, `
+		SELECT id, device_id, latency_ms, status, created_at 
+		FROM device_ping_logs 
+		WHERE device_id = $1 
+		ORDER BY created_at DESC 
+		LIMIT $2 OFFSET $3
+	`, id, limit, offset)
+	if err != nil {
+		log.Printf("get ping logs error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to get ping logs")
+	}
+	defer logRows.Close()
+
+	var logs []devicePingLog
+	for logRows.Next() {
+		var l devicePingLog
+		if err := logRows.Scan(&l.ID, &l.DeviceID, &l.LatencyMs, &l.Status, &l.CreatedAt); err != nil {
+			continue
+		}
+		logs = append(logs, l)
+	}
+
+	if logs == nil {
+		logs = []devicePingLog{}
+	}
+
+	totalPages := (total + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"logs":       logs,
+		"page":       page,
+		"totalPages": totalPages,
+		"totalItems": total,
+	})
+}
+
+// ──────────────────────────────────────────────────────────
+// Interface & Queue Traffic Handlers
+// ──────────────────────────────────────────────────────────
+
+func (a *appState) handleListDeviceInterfaces(c echo.Context) error {
+	ctx := c.Request().Context()
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return c.String(http.StatusBadRequest, "invalid device id")
+	}
+
+	rows, err := a.db.Query(ctx, `
+		SELECT DISTINCT interface_name 
+		FROM device_interface_logs 
+		WHERE device_id = $1 
+		ORDER BY interface_name
+	`, id)
+	if err != nil {
+		log.Printf("list device interfaces error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to query interfaces")
+	}
+	defer rows.Close()
+
+	interfaces := make([]string, 0)
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err == nil {
+			interfaces = append(interfaces, name)
+		}
+	}
+	return c.JSON(http.StatusOK, interfaces)
+}
+
+func (a *appState) handleGetInterfaceTraffic(c echo.Context) error {
+	ctx := c.Request().Context()
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return c.String(http.StatusBadRequest, "invalid device id")
+	}
+
+	ifaceName := c.QueryParam("interface")
+	if ifaceName == "" {
+		return c.String(http.StatusBadRequest, "interface name is required")
+	}
+
+	rows, err := a.db.Query(ctx, `
+		SELECT in_octets, out_octets, created_at 
+		FROM device_interface_logs 
+		WHERE device_id = $1 AND interface_name = $2 
+		ORDER BY created_at DESC 
+		LIMIT 30
+	`, id, ifaceName)
+	if err != nil {
+		log.Printf("get interface traffic query error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to query traffic")
+	}
+	defer rows.Close()
+
+	type rawSample struct {
+		In    int64
+		Out   int64
+		Taken time.Time
+	}
+
+	var samples []rawSample
+	for rows.Next() {
+		var s rawSample
+		if err := rows.Scan(&s.In, &s.Out, &s.Taken); err == nil {
+			samples = append(samples, s)
+		}
+	}
+
+	if len(samples) < 2 {
+		return c.JSON(http.StatusOK, []TrafficData{})
+	}
+
+	var results []TrafficData
+	for i := 0; i < len(samples)-1; i++ {
+		curr := samples[i]
+		prev := samples[i+1]
+		timeDelta := curr.Taken.Sub(prev.Taken).Seconds()
+		if timeDelta <= 0 {
+			continue
+		}
+		rxMbps := 0.0
+		if curr.In >= prev.In {
+			rxMbps = float64(curr.In-prev.In) * 8 / timeDelta / 1000000
+		}
+		txMbps := 0.0
+		if curr.Out >= prev.Out {
+			txMbps = float64(curr.Out-prev.Out) * 8 / timeDelta / 1000000
+		}
+		results = append(results, TrafficData{Time: curr.Taken.Format(time.RFC3339), RX: rxMbps, TX: txMbps})
+	}
+
+	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 {
+		results[i], results[j] = results[j], results[i]
+	}
+	return c.JSON(http.StatusOK, results)
+}
+
+func (a *appState) handleListDeviceQueues(c echo.Context) error {
+	ctx := c.Request().Context()
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return c.String(http.StatusBadRequest, "invalid device id")
+	}
+
+	rows, err := a.db.Query(ctx, `
+		SELECT DISTINCT queue_name 
+		FROM device_queue_logs 
+		WHERE device_id = $1 
+		ORDER BY queue_name
+	`, id)
+	if err != nil {
+		log.Printf("list device queues error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to query queues")
+	}
+	defer rows.Close()
+
+	queues := make([]string, 0)
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err == nil {
+			queues = append(queues, name)
+		}
+	}
+	return c.JSON(http.StatusOK, queues)
+}
+
+func (a *appState) handleGetQueueTraffic(c echo.Context) error {
+	ctx := c.Request().Context()
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return c.String(http.StatusBadRequest, "invalid device id")
+	}
+
+	queueName := c.QueryParam("queue")
+	if queueName == "" {
+		return c.String(http.StatusBadRequest, "queue name is required")
+	}
+
+	rows, err := a.db.Query(ctx, `
+		SELECT bytes_in, bytes_out, created_at 
+		FROM device_queue_logs 
+		WHERE device_id = $1 AND queue_name = $2 
+		ORDER BY created_at DESC 
+		LIMIT 30
+	`, id, queueName)
+	if err != nil {
+		log.Printf("get queue traffic query error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to query traffic")
+	}
+	defer rows.Close()
+
+	type rawSample struct {
+		In    int64
+		Out   int64
+		Taken time.Time
+	}
+
+	var samples []rawSample
+	for rows.Next() {
+		var s rawSample
+		if err := rows.Scan(&s.In, &s.Out, &s.Taken); err == nil {
+			samples = append(samples, s)
+		}
+	}
+
+	if len(samples) < 2 {
+		return c.JSON(http.StatusOK, []TrafficData{})
+	}
+
+	var results []TrafficData
+	for i := 0; i < len(samples)-1; i++ {
+		curr := samples[i]
+		prev := samples[i+1]
+		timeDelta := curr.Taken.Sub(prev.Taken).Seconds()
+		if timeDelta <= 0 {
+			continue
+		}
+		rxMbps := 0.0
+		if curr.In >= prev.In {
+			rxMbps = float64(curr.In-prev.In) * 8 / timeDelta / 1000000
+		}
+		txMbps := 0.0
+		if curr.Out >= prev.Out {
+			txMbps = float64(curr.Out-prev.Out) * 8 / timeDelta / 1000000
+		}
+		results = append(results, TrafficData{Time: curr.Taken.Format(time.RFC3339), RX: rxMbps, TX: txMbps})
+	}
+
+	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 {
+		results[i], results[j] = results[j], results[i]
+	}
+	return c.JSON(http.StatusOK, results)
+}
+
+// ──────────────────────────────────────────────────────────
+// Summary & Alerts Handlers
+// ──────────────────────────────────────────────────────────
+
+func (a *appState) handleMonitoringSummary(c echo.Context) error {
+	ctx := c.Request().Context()
+	var totalCustomers int
+	if err := a.db.QueryRow(ctx, "SELECT COUNT(*) FROM customers").Scan(&totalCustomers); err != nil {
+		log.Printf("monitoring summary query error: %v", err)
+	}
+	return c.JSON(http.StatusOK, map[string]any{
+		"status":          "ok",
+		"message":         "Monitoring API ready",
+		"total_customers": totalCustomers,
+	})
+}
+
+func (a *appState) handleGetAlerts(c echo.Context) error {
+	ctx := c.Request().Context()
+	workspaceIDStr := c.QueryParam("workspace_id")
+	workspaceID, _ := strconv.Atoi(workspaceIDStr)
+	pageStr := c.QueryParam("page")
+	page, _ := strconv.Atoi(pageStr)
+	if page <= 0 {
+		page = 1
+	}
+	limit := 30
+	offset := (page - 1) * limit
+
+	var totalCount int
+	err := a.db.QueryRow(ctx, `
+		SELECT COUNT(*) 
+		FROM device_alerts a
+		JOIN devices d ON a.device_id = d.id
+		WHERE ($1 = 0 OR d.workspace_id = $1)
+	`, workspaceID).Scan(&totalCount)
+	if err != nil {
+		log.Printf("count alerts query error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to count alerts")
+	}
+
+	totalPages := (totalCount + limit - 1) / limit
+	if totalPages <= 0 {
+		totalPages = 1
+	}
+
+	alertRows, err := a.db.Query(ctx, `
+		SELECT a.id, a.device_id, d.name as device_name, a.status, a.created_at
+		FROM device_alerts a
+		JOIN devices d ON a.device_id = d.id
+		WHERE ($1 = 0 OR d.workspace_id = $1)
+		ORDER BY a.created_at DESC
+		LIMIT $2 OFFSET $3
+	`, workspaceID, limit, offset)
+	if err != nil {
+		log.Printf("get alerts query error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to query alerts")
+	}
+	defer alertRows.Close()
+
+	alerts := []deviceAlert{}
+	for alertRows.Next() {
+		var al deviceAlert
+		if err := alertRows.Scan(&al.ID, &al.DeviceID, &al.DeviceName, &al.Status, &al.CreatedAt); err != nil {
+			log.Printf("scan alert error: %v", err)
+			continue
+		}
+		alerts = append(alerts, al)
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"alerts":     alerts,
+		"totalPages": totalPages,
+	})
+}
 
 type SLAStatsResponse struct {
 	UptimePercentage float64         `json:"uptimePercentage"`

@@ -1,0 +1,4 @@
+ALTER TABLE customers
+  ADD COLUMN device_id INT REFERENCES devices(id) ON DELETE SET NULL,
+  ADD COLUMN queue_name VARCHAR(255),
+  ADD COLUMN monthly_price NUMERIC(12,2) DEFAULT 0;

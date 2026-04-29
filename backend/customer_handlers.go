@@ -22,9 +22,9 @@ func (a *appState) handleListCustomers(c echo.Context) error {
 		if convErr != nil || wsID <= 0 {
 			return c.String(http.StatusBadRequest, "invalid workspaceId")
 		}
-		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, workspace_id, created_at FROM customers WHERE workspace_id = $1 ORDER BY id`, wsID)
+		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, workspace_id, device_id, queue_name, monthly_price, created_at FROM customers WHERE workspace_id = $1 ORDER BY id`, wsID)
 	} else {
-		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, workspace_id, created_at FROM customers ORDER BY id`)
+		rows, err = a.db.Query(ctx, `SELECT id, name, email, address, workspace_id, device_id, queue_name, monthly_price, created_at FROM customers ORDER BY id`)
 	}
 	if err != nil {
 		log.Printf("list customers query error: %v", err)
@@ -35,7 +35,7 @@ func (a *appState) handleListCustomers(c echo.Context) error {
 	var customers []customer
 	for rows.Next() {
 		var cu customer
-		if err := rows.Scan(&cu.ID, &cu.Name, &cu.Email, &cu.Address, &cu.WorkspaceID, &cu.CreatedAt); err != nil {
+		if err := rows.Scan(&cu.ID, &cu.Name, &cu.Email, &cu.Address, &cu.WorkspaceID, &cu.DeviceID, &cu.QueueName, &cu.MonthlyPrice, &cu.CreatedAt); err != nil {
 			log.Printf("scan customer error: %v", err)
 			continue
 		}
@@ -61,13 +61,13 @@ func (a *appState) handleCreateCustomer(c echo.Context) error {
 	}
 
 	query := `
-		INSERT INTO customers (name, email, address, workspace_id)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, name, email, address, workspace_id, created_at
+		INSERT INTO customers (name, email, address, workspace_id, device_id, queue_name, monthly_price)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, name, email, address, workspace_id, device_id, queue_name, monthly_price, created_at
 	`
 	var cu customer
-	err := a.db.QueryRow(ctx, query, req.Name, req.Email, req.Address, req.WorkspaceID).
-		Scan(&cu.ID, &cu.Name, &cu.Email, &cu.Address, &cu.WorkspaceID, &cu.CreatedAt)
+	err := a.db.QueryRow(ctx, query, req.Name, req.Email, req.Address, req.WorkspaceID, req.DeviceID, req.QueueName, req.MonthlyPrice).
+		Scan(&cu.ID, &cu.Name, &cu.Email, &cu.Address, &cu.WorkspaceID, &cu.DeviceID, &cu.QueueName, &cu.MonthlyPrice, &cu.CreatedAt)
 	if err != nil {
 		log.Printf("create customer error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to create customer")
@@ -95,13 +95,13 @@ func (a *appState) handleUpdateCustomer(c echo.Context) error {
 
 	query := `
 		UPDATE customers 
-		SET name = $1, email = $2, address = $3
-		WHERE id = $4
-		RETURNING id, name, email, address, workspace_id, created_at
+		SET name = $1, email = $2, address = $3, device_id = $4, queue_name = $5, monthly_price = $6
+		WHERE id = $7
+		RETURNING id, name, email, address, workspace_id, device_id, queue_name, monthly_price, created_at
 	`
 	var cu customer
-	err = a.db.QueryRow(ctx, query, req.Name, req.Email, req.Address, id).
-		Scan(&cu.ID, &cu.Name, &cu.Email, &cu.Address, &cu.WorkspaceID, &cu.CreatedAt)
+	err = a.db.QueryRow(ctx, query, req.Name, req.Email, req.Address, req.DeviceID, req.QueueName, req.MonthlyPrice, id).
+		Scan(&cu.ID, &cu.Name, &cu.Email, &cu.Address, &cu.WorkspaceID, &cu.DeviceID, &cu.QueueName, &cu.MonthlyPrice, &cu.CreatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return c.String(http.StatusNotFound, "customer not found")
@@ -131,4 +131,35 @@ func (a *appState) handleDeleteCustomer(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (a *appState) handleGetCustomerQueues(c echo.Context) error {
+	ctx := c.Request().Context()
+	deviceIDStr := c.QueryParam("deviceId")
+	deviceID, err := strconv.Atoi(deviceIDStr)
+	if err != nil || deviceID <= 0 {
+		return c.String(http.StatusBadRequest, "invalid deviceId")
+	}
+
+	var d device
+	err = a.db.QueryRow(ctx, `SELECT ip, snmp_community, snmp_version FROM devices WHERE id = $1`, deviceID).
+		Scan(&d.IP, &d.SnmpCommunity, &d.SnmpVersion)
+	if err != nil {
+		log.Printf("get device for queues error: %v", err)
+		return c.String(http.StatusInternalServerError, "failed to get device")
+	}
+
+	req := createDeviceRequest{
+		IP:            d.IP,
+		SnmpCommunity: d.SnmpCommunity,
+		SnmpVersion:   d.SnmpVersion,
+	}
+
+	queues, err := fetchAvailableQueues(req)
+	if err != nil {
+		log.Printf("fetch queues error for device %d: %v", deviceID, err)
+		return c.String(http.StatusInternalServerError, "failed to fetch queues from device")
+	}
+
+	return c.JSON(http.StatusOK, queues)
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNotification } from "../../context/NotificationContext";
+import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 
 export type Customer = {
   id: number;
@@ -7,6 +8,9 @@ export type Customer = {
   email?: string;
   address?: string;
   workspaceId?: number;
+  deviceId?: number;
+  queueName?: string;
+  monthlyPrice: number;
   created_at: string;
 };
 
@@ -20,6 +24,20 @@ export type Service = {
   monitoringIp?: string;
   monitoringEnabled: boolean;
   created_at: string;
+};
+
+type Device = {
+  id: number;
+  name: string;
+  ip: string;
+};
+
+type PackageInfo = {
+  id: number;
+  name: string;
+  bandwidthMbps: number;
+  price: number;
+  workspaceId?: number;
 };
 
 type CustomerSectionProps = {
@@ -36,10 +54,20 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [deviceId, setDeviceId] = useState<number | "">("");
+  const [queueName, setQueueName] = useState("");
+  const [monthlyPrice, setMonthlyPrice] = useState<number>(0);
+
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [queues, setQueues] = useState<string[]>([]);
+  const [isLoadingQueues, setIsLoadingQueues] = useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+
+  // Custom Confirm Dialog
+  const { showConfirm } = useConfirmDialog();
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -60,9 +88,53 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
     }
   };
 
+  const fetchDevices = async () => {
+    try {
+      const url = workspaceId ? `/api/devices?workspaceId=${workspaceId}` : `/api/devices`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setDevices(data);
+      }
+    } catch (err) {
+      console.error("fetch devices error", err);
+    }
+  };
+
+
+
+  const fetchQueues = async (devId: number) => {
+    setIsLoadingQueues(true);
+    try {
+      const res = await fetch(`/api/customers/queues?deviceId=${devId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setQueues(data || []);
+      } else {
+        setQueues([]);
+      }
+    } catch (err) {
+      console.error("fetch queues error", err);
+      setQueues([]);
+    } finally {
+      setIsLoadingQueues(false);
+    }
+  };
+
   useEffect(() => {
     fetchCustomers();
+    fetchDevices();
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (deviceId) {
+      fetchQueues(Number(deviceId));
+    } else {
+      setQueues([]);
+      setQueueName("");
+    }
+  }, [deviceId]);
+
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +146,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         email: email.trim() || undefined,
         address: address.trim() || undefined,
         workspaceId: workspaceId ?? null,
+        deviceId: deviceId ? Number(deviceId) : null,
+        queueName: queueName || undefined,
+        monthlyPrice: Number(monthlyPrice) || 0,
       };
 
       const res = await fetch(`/api/customers`, {
@@ -89,6 +164,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         setName("");
         setEmail("");
         setAddress("");
+        setDeviceId("");
+        setQueueName("");
+        setMonthlyPrice(0);
         notify("Berhasil menambahkan pelanggan baru!", "success");
       } else {
         const errText = await res.text();
@@ -105,6 +183,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
     setName(cust.name);
     setEmail(cust.email || "");
     setAddress(cust.address || "");
+    setDeviceId(cust.deviceId || "");
+    setQueueName(cust.queueName || "");
+    setMonthlyPrice(cust.monthlyPrice || 0);
     setIsEditModalOpen(true);
   };
 
@@ -118,6 +199,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         email: email.trim() || undefined,
         address: address.trim() || undefined,
         workspaceId: workspaceId ?? null,
+        deviceId: deviceId ? Number(deviceId) : null,
+        queueName: queueName || undefined,
+        monthlyPrice: Number(monthlyPrice) || 0,
       };
 
       const res = await fetch(`/api/customers/${editingCustomer.id}`, {
@@ -134,6 +218,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         setName("");
         setEmail("");
         setAddress("");
+        setDeviceId("");
+        setQueueName("");
+        setMonthlyPrice(0);
         notify("Data pelanggan berhasil diperbarui!", "success");
       } else {
         const errText = await res.text();
@@ -214,6 +301,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                   <th className="px-2.5 py-2 text-left font-semibold">Nama Instansi / Pelanggan</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Email</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Alamat Lokasi</th>
+                  <th className="px-2.5 py-2 text-left font-semibold">Tagihan Bulanan</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Tgl Daftar</th>
                   <th className="px-2.5 py-2 text-right font-semibold">Aksi</th>
                 </tr>
@@ -221,11 +309,11 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-2.5 py-6 text-center text-[var(--text-main-secondary)]">Memuat data...</td>
+                    <td colSpan={6} className="px-2.5 py-6 text-center text-[var(--text-main-secondary)]">Memuat data...</td>
                   </tr>
                 ) : customers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-2.5 py-6 text-center text-[var(--text-main-secondary)]">Belum ada data pelanggan di workspace ini.</td>
+                    <td colSpan={6} className="px-2.5 py-6 text-center text-[var(--text-main-secondary)]">Belum ada data pelanggan di workspace ini.</td>
                   </tr>
                 ) : (
                   customers.map((c) => (
@@ -240,6 +328,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                         <div className="max-w-[180px] truncate" title={c.address}>
                           {c.address || <span className="text-[var(--text-main-secondary)] italic">Belum diset</span>}
                         </div>
+                      </td>
+                      <td className="px-2.5 py-2 align-top font-semibold text-emerald-600">
+                        {c.monthlyPrice > 0 ? `Rp ${c.monthlyPrice.toLocaleString('id-ID')}` : <span className="text-[var(--text-main-secondary)] italic font-normal">Manual</span>}
                       </td>
                       <td className="px-2.5 py-2 align-top text-[var(--text-main-secondary)]">
                         {new Date(c.created_at).toLocaleDateString('id-ID')}
@@ -310,6 +401,40 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                     className="w-full min-h-[100px] rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] p-3 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30 resize-y"
                   />
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-1">
+                  <label className="block text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">Pilih Perangkat MikroTik (Opsional)</label>
+                  <select
+                    value={deviceId}
+                    onChange={(e) => {
+                      const val = e.target.value ? Number(e.target.value) : "";
+                      setDeviceId(val);
+                      if (val) fetchQueues(val);
+                      else setQueues([]);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] text-[var(--text-main-primary)]"
+                  >
+                    <option value="">-- Tanpa Perangkat --</option>
+                    {devices.map(d => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.ip})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">Pilih Queue (Opsional)</label>
+                  <select
+                    value={queueName}
+                    onChange={(e) => setQueueName(e.target.value)}
+                    disabled={isLoadingQueues || !deviceId}
+                    className="w-full px-2.5 py-1.5 rounded border border-[var(--border-main)] text-[12px] outline-none bg-[var(--bg-main)] text-[var(--text-main-primary)] disabled:opacity-50"
+                  >
+                    <option value="">{isLoadingQueues ? "Memuat Queue..." : "-- Pilih Queue --"}</option>
+                    {queues.map(q => (
+                      <option key={q} value={q}>{q}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               </form>
             </div>
             <div className="p-4 border-t border-[var(--border-main)] flex justify-end gap-2 bg-[var(--bg-main)]/30">
@@ -365,6 +490,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
           </div>
         </div>
       )}
+
+
     </section>
     </>
   );

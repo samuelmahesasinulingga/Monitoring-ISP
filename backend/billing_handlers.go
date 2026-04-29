@@ -362,16 +362,20 @@ func (a *appState) processSendInvoiceEmail(ctx context.Context, invoiceID int) e
 
 // generateInvoicesForWorkspace adalah helper untuk membuat invoice otomatis setiap bulan
 func (a *appState) generateInvoicesForWorkspace(ctx context.Context, wsID int) ([]int, error) {
-	// 1. Ambil nominal dari tagihan terakhir untuk setiap pelanggan di workspace ini
+	// 1. Ambil monthly_price dari customer, jika 0 fallback ke nominal tagihan terakhir
 	query := `
-		SELECT DISTINCT ON (customer_id) customer_id, amount
-		FROM invoices
-		WHERE workspace_id = $1
-		ORDER BY customer_id, period_start DESC
+		SELECT 
+			c.id, 
+			c.monthly_price,
+			COALESCE(
+				(SELECT amount FROM invoices i WHERE i.customer_id = c.id ORDER BY period_start DESC LIMIT 1), 0
+			) as last_amount
+		FROM customers c
+		WHERE c.workspace_id = $1
 	`
 	rows, err := a.db.Query(ctx, query, wsID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query invoice history: %w", err)
+		return nil, fmt.Errorf("failed to query customers for auto-billing: %w", err)
 	}
 	defer rows.Close()
 
@@ -383,9 +387,19 @@ func (a *appState) generateInvoicesForWorkspace(ctx context.Context, wsID int) (
 	var createdIDs []int
 	for rows.Next() {
 		var custID int
-		var amount float64
-		if err := rows.Scan(&custID, &amount); err != nil {
-			log.Printf("Error scanning invoice history for auto-billing: %v", err)
+		var monthlyPrice, lastAmount float64
+		if err := rows.Scan(&custID, &monthlyPrice, &lastAmount); err != nil {
+			log.Printf("Error scanning customer for auto-billing: %v", err)
+			continue
+		}
+
+		amount := monthlyPrice
+		if amount <= 0 {
+			amount = lastAmount
+		}
+
+		if amount <= 0 {
+			// Skip jika tidak ada harga bulanan dan tidak ada history
 			continue
 		}
 

@@ -30,8 +30,27 @@ var (
 )
 
 func startNetFlowCollector(state *appState) {
-	packetChan := make(chan NetFlowRecord, 1000)
-	go netFlowDBWorker(state, packetChan)
+	rawChan := make(chan NetFlowRecord, 2000)
+	dbChan := make(chan NetFlowRecord, 1000)
+	secChan := make(chan NetFlowRecord, 1000)
+
+	// Dispatcher: Fan-out records to multiple consumers
+	go func() {
+		for p := range rawChan {
+			// Non-blocking sends or small buffers to avoid one slow consumer blocking all
+			select {
+			case dbChan <- p:
+			default:
+			}
+			select {
+			case secChan <- p:
+			default:
+			}
+		}
+	}()
+
+	go netFlowDBWorker(state, dbChan)
+	go startSecurityDetector(state, secChan)
 
 	// Periodically refresh listeners based on devices in DB
 	go func() {
@@ -39,10 +58,10 @@ func startNetFlowCollector(state *appState) {
 		defer ticker.Stop()
 
 		// Initial refresh
-		refreshListeners(state, packetChan)
+		refreshListeners(state, rawChan)
 
 		for range ticker.C {
-			refreshListeners(state, packetChan)
+			refreshListeners(state, rawChan)
 		}
 	}()
 }

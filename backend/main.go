@@ -71,97 +71,10 @@ func main() {
 		return c.String(http.StatusOK, "OK")
 	})
 
-	// API Routes
-	// Auth
-	e.POST("/api/login", state.handleLogin)
+	// API Routes — lihat routes.go untuk daftar lengkap
+	state.registerRoutes(e)
 
-	// Workspace management
-	e.POST("/api/workspaces", state.handleCreateWorkspace)
-	e.GET("/api/workspaces", state.handleListWorkspaces)
-	e.GET("/api/workspaces/:id/dashboard-summary", state.handleGetDashboardSummary)
-	e.PUT("/api/workspaces/:id", state.handleUpdateWorkspace)
-	e.PUT("/api/workspaces/:id/settings", state.handleUpdateWorkspaceSettings)
-	e.PUT("/api/workspaces/:id/smtp", state.handleUpdateWorkspaceSmtpSettings)
-	e.DELETE("/api/workspaces/:id", state.handleDeleteWorkspace)
-	e.POST("/api/settings/test-smtp", state.handleTestSMTP)
-
-	// Users management
-	e.POST("/api/users", state.handleCreateUser)
-	e.GET("/api/users", state.handleListUsers)
-	e.DELETE("/api/users/:id", state.handleDeleteUser)
-
-	// Devices management
-	e.POST("/api/devices", state.handleCreateDevice)
-	e.GET("/api/devices", state.handleListDevices)
-	e.PUT("/api/devices/:id", state.handleUpdateDevice)
-	e.DELETE("/api/devices/:id", state.handleDeleteDevice)
-	e.POST("/api/devices/test-connection", state.handleTestDeviceConnection)
-
-	// Monitoring & Traffic
-	e.GET("/api/monitoring/ping", state.handlePingDevices)
-	e.GET("/api/monitoring/ping-logs/:id", state.handleGetDevicePingLogs)
-	e.GET("/api/monitoring/ping-history/:id", state.handleGetPingHistory)
-	e.GET("/api/monitoring/ping-history/:id/export", state.handleExportPingHistoryCSV)
-	e.GET("/api/monitoring/uptime-report/:id", state.handleGetYearlyUptimeReport)
-	e.PUT("/api/devices/:id/ping-interval", state.handleUpdatePingInterval)
-	e.GET("/api/monitoring/interfaces/:id", state.handleListDeviceInterfaces)
-	e.GET("/api/monitoring/traffic/:id", state.handleGetInterfaceTraffic)
-	e.GET("/api/monitoring/queues/:id", state.handleListDeviceQueues)
-	e.GET("/api/monitoring/queue-traffic/:id", state.handleGetQueueTraffic)
-	e.GET("/api/monitoring/summary", state.handleMonitoringSummary)
-	e.GET("/api/monitoring/alerts", state.handleGetAlerts)
-
-	// Topology Component
-	e.GET("/api/workspaces/:id/topology-layouts", state.handleGetTopologyLayouts)
-	e.POST("/api/workspaces/:id/topology-layouts", state.handleCreateTopologyLayout)
-	e.DELETE("/api/workspaces/:id/topology-layouts/:layoutId", state.handleDeleteTopologyLayout)
-	e.GET("/api/workspaces/:id/topology-layouts/:layoutId/data", state.handleGetTopology)
-	e.POST("/api/workspaces/:id/topology-layouts/:layoutId/data", state.handleSaveTopology)
-
-	// Customers Component
-	e.GET("/api/customers", state.handleListCustomers)
-	e.POST("/api/customers", state.handleCreateCustomer)
-	e.PUT("/api/customers/:id", state.handleUpdateCustomer)
-	e.DELETE("/api/customers/:id", state.handleDeleteCustomer)
-
-	// Invoices Component
-	e.GET("/api/invoices", state.handleListInvoices)
-	e.POST("/api/invoices", state.handleCreateInvoice)
-	e.PUT("/api/invoices/:id/status", state.handleUpdateInvoiceStatus)
-	e.POST("/api/invoices/:id/send-email", state.handleSendInvoiceEmail)
-	e.DELETE("/api/invoices/:id", state.handleDeleteInvoice)
-
-	// Packages Component
-	e.GET("/api/packages", state.handleListPackages)
-	e.POST("/api/packages", state.handleCreatePackage)
-	e.DELETE("/api/packages/:id", state.handleDeletePackage)
-
-	e.GET("/api/services", state.handleListServices)
-	e.POST("/api/services", state.handleCreateService)
-	e.PUT("/api/services/:id", state.handleUpdateService)
-	e.DELETE("/api/services/:id", state.handleDeleteService)
-
-	e.GET("/api/analytics/top-talkers", state.handleGetTopTalkers)
-	e.GET("/api/analytics/top-protocols", state.handleGetProtocolBreakdown)
-	e.GET("/api/analytics/flow-logs", state.handleGetFlowLogs)
-	e.GET("/api/analytics/top-apps", state.handleGetApplicationBreakdown)
-	e.GET("/api/analytics/active-devices", state.handleGetActiveAnalyticsDevices)
-	e.GET("/api/monitoring/sla-stats", state.handleGetSLAStats)
-
-	// IP Management Component
-	e.GET("/api/ip-pools", state.handleListIPPools)
-	e.POST("/api/ip-pools", state.handleCreateIPPool)
-	e.PUT("/api/ip-pools/:id", state.handleUpdateIPPool)
-	e.DELETE("/api/ip-pools/:id", state.handleDeleteIPPool)
-	e.GET("/api/ipam/ips", state.handleListIPAddresses)
-	e.POST("/api/ipam/ips", state.handleCreateIPAddress)
-	e.PUT("/api/ipam/ips/:id", state.handleUpdateIPAddress)
-	e.DELETE("/api/ipam/ips/:id", state.handleDeleteIPAddress)
-	e.POST("/api/ipam/networks/:id/generate", state.handleGenerateIPs)
-
-	// System Info
-	e.GET("/api/system/metrics", state.handleSystemMetrics)
-
+	// Background Workers
 	go startPingWorker(state)
 	go startServicePingWorker(state)
 	go startSnmpWorker(state)

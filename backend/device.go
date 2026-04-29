@@ -78,3 +78,10 @@ type deviceAlert struct {
 	CreatedAt  time.Time `json:"createdAt"`
 }
 
+// TrafficData digunakan oleh monitoring handlers untuk data grafik interface/queue.
+type TrafficData struct {
+	Time string  `json:"time"`
+	RX   float64 `json:"rx"` // Mbps
+	TX   float64 `json:"tx"` // Mbps
+}
+
