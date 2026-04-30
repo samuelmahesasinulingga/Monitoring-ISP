@@ -11,5 +11,7 @@ type customer struct {
 	DeviceID     *int      `json:"deviceId,omitempty"`
 	QueueName    *string   `json:"queueName,omitempty"`
 	MonthlyPrice float64   `json:"monthlyPrice"`
+	Username     *string   `json:"username,omitempty"`
+	Password     *string   `json:"password,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 }

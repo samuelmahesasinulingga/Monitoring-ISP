@@ -8,6 +8,7 @@ type LoginPageProps = {
     workspaceId?: number | null;
     workspaceName?: string | null;
     workspaceAddress?: string | null;
+    id?: number;
   }) => void;
 };
 
@@ -42,11 +43,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
       const data = await res.json();
       onLoginSuccess({
-        email: data.email,
+        email: data.email || data.username || "",
         role: data.role,
         workspaceId: data.workspaceId ?? null,
         workspaceName: data.workspaceName ?? null,
         workspaceAddress: data.workspaceAddress ?? null,
+        id: data.id,
       });
     } catch (err) {
       console.error("login error", err);
@@ -126,11 +128,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               htmlFor="email"
               className="block text-[11px] mb-1.5 font-medium text-[var(--text-main-secondary)]"
             >
-              Email
+              Email / Username
             </label>
             <input
               id="email"
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Masukkan email anda"

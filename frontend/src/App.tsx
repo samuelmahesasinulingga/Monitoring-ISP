@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import AdminWorkspaceDashboard from "./components/admin-workspace/AdminWorkspaceDashboard";
 import LoginPage from "./components/LoginPage";
+import CustomerPortal from "./components/CustomerPortal";
 
 type Workspace = {
   id: number;
@@ -9,7 +10,7 @@ type Workspace = {
   iconUrl?: string;
 };
 
-type ViewMode = "login" | "workspace";
+type ViewMode = "login" | "workspace" | "customer";
 
 type AuthInfo = {
   email: string;
@@ -17,6 +18,7 @@ type AuthInfo = {
   workspaceId?: number | null;
   workspaceName?: string | null;
   workspaceAddress?: string | null;
+  id?: number; // Added for customer ID
 };
 
 function App() {
@@ -87,14 +89,25 @@ function App() {
       <LoginPage
         onLoginSuccess={(payload) => {
           setAuthInfo(payload);
-          setActiveWorkspace({
-            id: payload.workspaceId || 1,
-            name: payload.workspaceName || "Main Workspace",
-            address: payload.workspaceAddress || "",
-            iconUrl: undefined,
-          });
-          setViewMode("workspace");
+          if (payload.role === "customer") {
+            setViewMode("customer");
+          } else {
+            setActiveWorkspace({
+              id: payload.workspaceId || 1,
+              name: payload.workspaceName || "Main Workspace",
+              address: payload.workspaceAddress || "",
+              iconUrl: undefined,
+            });
+            setViewMode("workspace");
+          }
         }}
+      />
+    );
+  } else if (viewMode === "customer") {
+    content = (
+      <CustomerPortal
+        customerId={authInfo?.id || 0}
+        onLogout={() => setShowLogoutConfirm(true)}
       />
     );
   } else {

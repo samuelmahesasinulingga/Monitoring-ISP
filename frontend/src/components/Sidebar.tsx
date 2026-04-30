@@ -101,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     .charAt(0)
     .toUpperCase();
 
-  const menuItems = [
+  const allMenuItems = [
     { key: "dashboard", label: "Dashboard", icon: Icons.Dashboard, color: "#3b82f6", group: "OPERATIONS" },
     { 
       key: "monitoring", 
@@ -126,6 +126,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     { key: "billing", label: "Tagihan", icon: Icons.Billing, color: "#eab308", group: "SYSTEM" },
     { key: "settings", label: "Pengaturan", icon: Icons.Settings, color: "#94a3b8", group: "SYSTEM" },
   ];
+
+  const menuItems = allMenuItems.filter(item => {
+    if (currentUserRole === "customer") {
+      return ["dashboard", "monitoring", "billing"].includes(item.key);
+    }
+    return true;
+  });
 
   const groupedItems = menuItems.reduce((acc, item) => {
     if (!acc[item.group]) acc[item.group] = [];

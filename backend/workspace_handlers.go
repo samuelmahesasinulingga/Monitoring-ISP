@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labstack/echo/v4"
 	"gopkg.in/gomail.v2"
@@ -32,7 +33,22 @@ func (a *appState) handleCreateWorkspace(c echo.Context) error {
 	query := `
 		INSERT INTO workspaces (name, address, icon_url)
 		VALUES ($1, $2, $3)
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at, netflow_monitoring_mode, netflow_snapshot_interval, auto_report_enabled, auto_report_period, auto_report_time, sla_report_template, last_auto_report_sent
+		RETURNING 
+			id, name, address, icon_url, telegram_bot_token, telegram_chat_id, 
+			COALESCE(alert_enabled, FALSE), 
+			COALESCE(auto_billing_enabled, FALSE), 
+			COALESCE(billing_issue_day, 1), 
+			COALESCE(billing_issue_hour, 0), 
+			COALESCE(billing_issue_minute, 0), 
+			COALESCE(last_billing_run_month, 0), 
+			smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, 
+			COALESCE(created_at, NOW()), 
+			COALESCE(netflow_monitoring_mode, 'continuous'), 
+			COALESCE(netflow_snapshot_interval, 0), 
+			COALESCE(auto_report_enabled, FALSE), 
+			COALESCE(auto_report_period, 'weekly'), 
+			COALESCE(auto_report_time, '08:00'), 
+			sla_report_template, last_auto_report_sent
 	`
 	if err := a.db.QueryRow(ctx, query, req.Name, req.Address, req.IconURL).
 		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt, &ws.NetFlowMonitoringMode, &ws.NetFlowSnapshotInterval, &ws.AutoReportEnabled, &ws.AutoReportPeriod, &ws.AutoReportTime, &ws.SlaReportTemplate, &ws.LastAutoReportSent); err != nil {
@@ -45,18 +61,36 @@ func (a *appState) handleCreateWorkspace(c echo.Context) error {
 
 func (a *appState) handleListWorkspaces(c echo.Context) error {
 	ctx := c.Request().Context()
-	rows, err := a.db.Query(ctx, `SELECT id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at, netflow_monitoring_mode, netflow_snapshot_interval, auto_report_enabled, auto_report_period, auto_report_time, sla_report_template, last_auto_report_sent FROM workspaces ORDER BY id`)
+	rows, err := a.db.Query(ctx, `
+		SELECT 
+			id, name, address, icon_url, telegram_bot_token, telegram_chat_id, 
+			COALESCE(alert_enabled, FALSE), 
+			COALESCE(auto_billing_enabled, FALSE), 
+			COALESCE(billing_issue_day, 1), 
+			COALESCE(billing_issue_hour, 0), 
+			COALESCE(billing_issue_minute, 0), 
+			COALESCE(last_billing_run_month, 0), 
+			smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, 
+			COALESCE(created_at, NOW()), 
+			COALESCE(netflow_monitoring_mode, 'continuous'), 
+			COALESCE(netflow_snapshot_interval, 0), 
+			COALESCE(auto_report_enabled, FALSE), 
+			COALESCE(auto_report_period, 'weekly'), 
+			COALESCE(auto_report_time, '08:00'), 
+			sla_report_template, last_auto_report_sent 
+		FROM workspaces 
+		ORDER BY id`)
 	if err != nil {
 		log.Printf("list workspaces query error: %v", err)
 		return c.String(http.StatusInternalServerError, "failed to query workspaces")
 	}
 	defer rows.Close()
 
-	var workspaces []workspace
+	workspaces := []workspace{}
 	for rows.Next() {
 		var ws workspace
 		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt, &ws.NetFlowMonitoringMode, &ws.NetFlowSnapshotInterval, &ws.AutoReportEnabled, &ws.AutoReportPeriod, &ws.AutoReportTime, &ws.SlaReportTemplate, &ws.LastAutoReportSent); err != nil {
-			log.Printf("scan workspace error: %v", err)
+			log.Printf("scan workspace error (id=%d?): %v", ws.ID, err)
 			continue
 		}
 		workspaces = append(workspaces, ws)
@@ -88,7 +122,22 @@ func (a *appState) handleUpdateWorkspace(c echo.Context) error {
 		UPDATE workspaces
 		SET name = $1, address = $2, icon_url = $3
 		WHERE id = $4
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at, netflow_monitoring_mode, netflow_snapshot_interval, auto_report_enabled, auto_report_period, auto_report_time, sla_report_template, last_auto_report_sent
+		RETURNING 
+			id, name, address, icon_url, telegram_bot_token, telegram_chat_id, 
+			COALESCE(alert_enabled, FALSE), 
+			COALESCE(auto_billing_enabled, FALSE), 
+			COALESCE(billing_issue_day, 1), 
+			COALESCE(billing_issue_hour, 0), 
+			COALESCE(billing_issue_minute, 0), 
+			COALESCE(last_billing_run_month, 0), 
+			smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, 
+			COALESCE(created_at, NOW()), 
+			COALESCE(netflow_monitoring_mode, 'continuous'), 
+			COALESCE(netflow_snapshot_interval, 0), 
+			COALESCE(auto_report_enabled, FALSE), 
+			COALESCE(auto_report_period, 'weekly'), 
+			COALESCE(auto_report_time, '08:00'), 
+			sla_report_template, last_auto_report_sent
 	`
 	if err := a.db.QueryRow(ctx, query, req.Name, req.Address, req.IconURL, id).
 		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt, &ws.NetFlowMonitoringMode, &ws.NetFlowSnapshotInterval, &ws.AutoReportEnabled, &ws.AutoReportPeriod, &ws.AutoReportTime, &ws.SlaReportTemplate, &ws.LastAutoReportSent); err != nil {
@@ -155,10 +204,29 @@ func (a *appState) handleUpdateWorkspaceSettings(c echo.Context) error {
 			auto_report_time = COALESCE($12, auto_report_time),
 			sla_report_template = COALESCE($13, sla_report_template)
 		WHERE id = $14
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at, netflow_monitoring_mode, netflow_snapshot_interval, auto_report_enabled, auto_report_period, auto_report_time, sla_report_template, last_auto_report_sent
+		RETURNING 
+			id, name, address, icon_url, telegram_bot_token, telegram_chat_id, 
+			COALESCE(alert_enabled, FALSE), 
+			COALESCE(auto_billing_enabled, FALSE), 
+			COALESCE(billing_issue_day, 1), 
+			COALESCE(billing_issue_hour, 0), 
+			COALESCE(billing_issue_minute, 0), 
+			COALESCE(last_billing_run_month, 0), 
+			smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, 
+			COALESCE(created_at, NOW()), 
+			COALESCE(netflow_monitoring_mode, 'continuous'), 
+			COALESCE(netflow_snapshot_interval, 0), 
+			COALESCE(auto_report_enabled, FALSE), 
+			COALESCE(auto_report_period, 'weekly'), 
+			COALESCE(auto_report_time, '08:00'), 
+			sla_report_template, last_auto_report_sent
 	`
 	if err := a.db.QueryRow(ctx, query, req.TelegramBotToken, req.TelegramChatID, req.AlertEnabled, req.AutoBillingEnabled, req.BillingIssueDay, req.BillingIssueHour, req.BillingIssueMinute, req.NetFlowMonitoringMode, req.NetFlowSnapshotInterval, req.AutoReportEnabled, req.AutoReportPeriod, req.AutoReportTime, req.SlaReportTemplate, id).
 		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt, &ws.NetFlowMonitoringMode, &ws.NetFlowSnapshotInterval, &ws.AutoReportEnabled, &ws.AutoReportPeriod, &ws.AutoReportTime, &ws.SlaReportTemplate, &ws.LastAutoReportSent); err != nil {
+		if err == pgx.ErrNoRows {
+			log.Printf("update workspace settings: workspace %d not found", id)
+			return c.String(http.StatusNotFound, "workspace not found")
+		}
 		log.Printf("update workspace settings error (id=%d): %v", id, err)
 		return c.String(http.StatusInternalServerError, "failed to update workspace settings")
 	}
@@ -185,10 +253,29 @@ func (a *appState) handleUpdateWorkspaceSmtpSettings(c echo.Context) error {
 		UPDATE workspaces
 		SET smtp_provider = $1, smtp_host = $2, smtp_port = $3, smtp_use_tls = $4, smtp_user = $5, smtp_pass = $6, smtp_from_name = $7, smtp_from_email = $8, invoice_subject_template = $9, invoice_body_template = $10
 		WHERE id = $11
-		RETURNING id, name, address, icon_url, telegram_bot_token, telegram_chat_id, alert_enabled, auto_billing_enabled, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month, smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, created_at, netflow_monitoring_mode, netflow_snapshot_interval, auto_report_enabled, auto_report_period, auto_report_time, sla_report_template, last_auto_report_sent
+		RETURNING 
+			id, name, address, icon_url, telegram_bot_token, telegram_chat_id, 
+			COALESCE(alert_enabled, FALSE), 
+			COALESCE(auto_billing_enabled, FALSE), 
+			COALESCE(billing_issue_day, 1), 
+			COALESCE(billing_issue_hour, 0), 
+			COALESCE(billing_issue_minute, 0), 
+			COALESCE(last_billing_run_month, 0), 
+			smtp_provider, smtp_host, smtp_port, smtp_use_tls, smtp_user, smtp_pass, smtp_from_name, smtp_from_email, invoice_subject_template, invoice_body_template, 
+			COALESCE(created_at, NOW()), 
+			COALESCE(netflow_monitoring_mode, 'continuous'), 
+			COALESCE(netflow_snapshot_interval, 0), 
+			COALESCE(auto_report_enabled, FALSE), 
+			COALESCE(auto_report_period, 'weekly'), 
+			COALESCE(auto_report_time, '08:00'), 
+			sla_report_template, last_auto_report_sent
 	`
 	if err := a.db.QueryRow(ctx, query, req.SmtpProvider, req.SmtpHost, req.SmtpPort, req.SmtpUseTls, req.SmtpUser, req.SmtpPass, req.SmtpFromName, req.SmtpFromEmail, req.InvoiceSubjectTemplate, req.InvoiceBodyTemplate, id).
 		Scan(&ws.ID, &ws.Name, &ws.Address, &ws.IconURL, &ws.TelegramBotToken, &ws.TelegramChatID, &ws.AlertEnabled, &ws.AutoBillingEnabled, &ws.BillingIssueDay, &ws.BillingIssueHour, &ws.BillingIssueMinute, &ws.LastBillingRunMonth, &ws.SmtpProvider, &ws.SmtpHost, &ws.SmtpPort, &ws.SmtpUseTls, &ws.SmtpUser, &ws.SmtpPass, &ws.SmtpFromName, &ws.SmtpFromEmail, &ws.InvoiceSubjectTemplate, &ws.InvoiceBodyTemplate, &ws.CreatedAt, &ws.NetFlowMonitoringMode, &ws.NetFlowSnapshotInterval, &ws.AutoReportEnabled, &ws.AutoReportPeriod, &ws.AutoReportTime, &ws.SlaReportTemplate, &ws.LastAutoReportSent); err != nil {
+		if err == pgx.ErrNoRows {
+			log.Printf("update workspace smtp: workspace %d not found", id)
+			return c.String(http.StatusNotFound, "workspace not found")
+		}
 		log.Printf("update workspace smtp error (id=%d): %v", id, err)
 		return c.String(http.StatusInternalServerError, "failed to update workspace smtp settings")
 	}

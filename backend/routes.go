@@ -58,6 +58,11 @@ func (a *appState) registerRoutes(e *echo.Echo) {
 	e.PUT("/api/customers/:id", a.handleUpdateCustomer)
 	e.DELETE("/api/customers/:id", a.handleDeleteCustomer)
 
+	// Customer Portal
+	e.GET("/api/customer/:id/dashboard", a.handleCustomerGetDashboard)
+	e.GET("/api/customer/:id/usage", a.handleCustomerGetUsage)
+	e.GET("/api/customer/:id/invoices", a.handleCustomerGetInvoices)
+
 	// Invoices
 	e.GET("/api/invoices", a.handleListInvoices)
 	e.POST("/api/invoices", a.handleCreateInvoice)

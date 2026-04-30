@@ -21,7 +21,7 @@ func startBillingAutomationWorker(a *appState) {
 func checkAndProcessAutoBilling(ctx context.Context, a *appState) {
 	// 1. Cari workspace yang mengaktifkan auto-billing
 	query := `
-		SELECT id, name, billing_issue_day, billing_issue_hour, billing_issue_minute, last_billing_run_month
+		SELECT id, name, COALESCE(billing_issue_day, 1), COALESCE(billing_issue_hour, 0), COALESCE(billing_issue_minute, 0), COALESCE(last_billing_run_month, 0)
 		FROM workspaces
 		WHERE auto_billing_enabled = TRUE
 	`

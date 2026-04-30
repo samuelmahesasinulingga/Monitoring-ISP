@@ -42,8 +42,8 @@ func startSLAReportWorker(a *appState) {
 			name               string
 			telegramBotToken   *string
 			telegramChatID     *string
-			autoReportPeriod   string
-			autoReportTime     string
+			autoReportPeriod   *string
+			autoReportTime     *string
 			slaReportTemplate  *string
 			lastAutoReportSent *time.Time
 		}
@@ -64,13 +64,17 @@ func startSLAReportWorker(a *appState) {
 
 			// Check time (format HH:MM)
 			currentTimeStr := now.Format("15:04")
-			if t.autoReportTime != currentTimeStr {
+			if t.autoReportTime == nil || *t.autoReportTime != currentTimeStr {
 				continue
 			}
 
 			// Check period
 			shouldRun := false
-			switch t.autoReportPeriod {
+			period := ""
+			if t.autoReportPeriod != nil {
+				period = *t.autoReportPeriod
+			}
+			switch period {
 			case "daily":
 				shouldRun = true
 			case "weekly":
@@ -98,7 +102,7 @@ func startSLAReportWorker(a *appState) {
 			}
 
 			// Execute SLA logic
-			go processSLAReport(a, t.id, t.name, *t.telegramBotToken, *t.telegramChatID, t.autoReportPeriod, t.slaReportTemplate, loc)
+			go processSLAReport(a, t.id, t.name, *t.telegramBotToken, *t.telegramChatID, period, t.slaReportTemplate, loc)
 		}
 	}
 }

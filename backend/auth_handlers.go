@@ -64,21 +64,50 @@ func (a *appState) handleLogin(c echo.Context) error {
 	if err != nil {
 		if err != pgx.ErrNoRows {
 			log.Printf("login user query error for %s: %v", req.Email, err)
+			return c.String(http.StatusUnauthorized, "email atau password salah")
 		}
-		return c.String(http.StatusUnauthorized, "email atau password salah")
+		// Jika tidak ditemukan di tabel users, lanjut ke tabel customers (step 3)
+	} else {
+		// Jika ditemukan di tabel users, cek password
+		if req.Password != userPassword {
+			log.Printf("login failed for user email=%s: wrong password", req.Email)
+			return c.String(http.StatusUnauthorized, "email atau password salah")
+		}
+
+		log.Printf("login success as user: %s (role=%s, workspaceID=%v)", userEmail, userRole, userWorkspaceID)
+		return c.JSON(http.StatusOK, loginResponse{
+			Email:            userEmail,
+			Role:             userRole,
+			WorkspaceID:      userWorkspaceID,
+			WorkspaceName:    wsName,
+			WorkspaceAddress: wsAddress,
+		})
 	}
 
-	if req.Password != userPassword {
-		log.Printf("login failed for user email=%s: wrong password", req.Email)
-		return c.String(http.StatusUnauthorized, "email atau password salah")
+	// 3) Jika bukan admin maupun user, coba autentikasi sebagai customer (tabel customers)
+	// Kita gunakan field 'email' di request untuk mencocokkan 'username' atau 'email' di tabel customer
+	var custID int
+	var custName, custUser, custPass string
+	var custWorkspaceID int
+	err = a.db.QueryRow(
+		ctx,
+		`SELECT id, name, username, password, workspace_id FROM customers WHERE username = $1 OR email = $1`,
+		req.Email,
+	).Scan(&custID, &custName, &custUser, &custPass, &custWorkspaceID)
+
+	if err == nil {
+		if req.Password != custPass {
+			return c.String(http.StatusUnauthorized, "email atau password salah")
+		}
+		log.Printf("login success as customer: %s (ID: %d)", custName, custID)
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"id":          custID,
+			"name":        custName,
+			"username":    custUser,
+			"role":        "customer",
+			"workspaceId": custWorkspaceID,
+		})
 	}
 
-	log.Printf("login success as user: %s (role=%s, workspaceID=%v)", userEmail, userRole, userWorkspaceID)
-	return c.JSON(http.StatusOK, loginResponse{
-		Email:            userEmail,
-		Role:             userRole,
-		WorkspaceID:      userWorkspaceID,
-		WorkspaceName:    wsName,
-		WorkspaceAddress: wsAddress,
-	})
+	return c.String(http.StatusUnauthorized, "email atau password salah")
 }

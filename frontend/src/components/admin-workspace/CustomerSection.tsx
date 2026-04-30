@@ -11,6 +11,8 @@ export type Customer = {
   deviceId?: number;
   queueName?: string;
   monthlyPrice: number;
+  username?: string;
+  password?: string;
   created_at: string;
 };
 
@@ -57,6 +59,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
   const [deviceId, setDeviceId] = useState<number | "">("");
   const [queueName, setQueueName] = useState("");
   const [monthlyPrice, setMonthlyPrice] = useState<number>(0);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [queues, setQueues] = useState<string[]>([]);
@@ -149,6 +153,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         deviceId: deviceId ? Number(deviceId) : null,
         queueName: queueName || undefined,
         monthlyPrice: Number(monthlyPrice) || 0,
+        username: username.trim() || undefined,
+        password: password.trim() || undefined,
       };
 
       const res = await fetch(`/api/customers`, {
@@ -167,6 +173,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         setDeviceId("");
         setQueueName("");
         setMonthlyPrice(0);
+        setUsername("");
+        setPassword("");
         notify("Berhasil menambahkan pelanggan baru!", "success");
       } else {
         const errText = await res.text();
@@ -186,6 +194,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
     setDeviceId(cust.deviceId || "");
     setQueueName(cust.queueName || "");
     setMonthlyPrice(cust.monthlyPrice || 0);
+    setUsername(cust.username || "");
+    setPassword(cust.password || "");
     setIsEditModalOpen(true);
   };
 
@@ -202,6 +212,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         deviceId: deviceId ? Number(deviceId) : null,
         queueName: queueName || undefined,
         monthlyPrice: Number(monthlyPrice) || 0,
+        username: username.trim() || undefined,
+        password: password.trim() || undefined,
       };
 
       const res = await fetch(`/api/customers/${editingCustomer.id}`, {
@@ -221,6 +233,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
         setDeviceId("");
         setQueueName("");
         setMonthlyPrice(0);
+        setUsername("");
+        setPassword("");
         notify("Data pelanggan berhasil diperbarui!", "success");
       } else {
         const errText = await res.text();
@@ -300,6 +314,7 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                 <tr className="bg-[var(--bg-main)] text-[var(--text-main-secondary)] border-b border-[var(--border-main)]">
                   <th className="px-2.5 py-2 text-left font-semibold">Nama Instansi / Pelanggan</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Email</th>
+                  <th className="px-2.5 py-2 text-left font-semibold">Username</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Alamat Lokasi</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Tagihan Bulanan</th>
                   <th className="px-2.5 py-2 text-left font-semibold">Tgl Daftar</th>
@@ -323,6 +338,9 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                       </td>
                       <td className="px-2.5 py-2 align-top text-[var(--text-main-secondary)]">
                         {c.email || <span className="text-[var(--text-main-secondary)] italic">Belum diset</span>}
+                      </td>
+                      <td className="px-2.5 py-2 align-top text-[var(--text-main-secondary)] font-mono">
+                        {c.username || <span className="text-[var(--text-main-secondary)] italic">Belum diset</span>}
                       </td>
                       <td className="px-2.5 py-2 align-top text-[var(--text-main-secondary)]">
                         <div className="max-w-[180px] truncate" title={c.address}>
@@ -402,6 +420,27 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--text-main-secondary)]">Username Akun</label>
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Username untuk login pelanggan"
+                      className="h-9 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-3 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--text-main-secondary)]">Password Akun</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={isEditModalOpen ? "Kosongkan jika tidak diubah" : "Password untuk login pelanggan"}
+                      className="h-9 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-main)] text-[var(--text-main-primary)] px-3 outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-1">
                   <label className="block text-[11px] font-medium text-[var(--text-main-secondary)] mb-1">Pilih Perangkat MikroTik (Opsional)</label>
                   <select
@@ -447,6 +486,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({ workspaceName, worksp
                   setName("");
                   setEmail("");
                   setAddress("");
+                  setUsername("");
+                  setPassword("");
                 }}
                 className="px-4 py-2 rounded-full border border-[var(--border-main)] bg-transparent text-[12px] font-semibold text-[var(--text-main-secondary)] hover:opacity-80 transition-colors cursor-pointer"
               >
