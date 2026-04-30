@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -19,7 +20,7 @@ type securityAlert struct {
 	Description   string   `json:"description"`
 	MetricValue   float64  `json:"metricValue"`
 	IsResolved    bool     `json:"isResolved"`
-	CreatedAt     string   `json:"createdAt"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 func (a *appState) handleListSecurityAlerts(c echo.Context) error {
@@ -50,6 +51,7 @@ func (a *appState) handleListSecurityAlerts(c echo.Context) error {
 		var al securityAlert
 		err := rows.Scan(&al.ID, &al.WorkspaceID, &al.DeviceID, &al.AlertType, &al.SourceIP, &al.DestinationIP, &al.Severity, &al.Description, &al.MetricValue, &al.IsResolved, &al.CreatedAt)
 		if err != nil {
+			log.Printf("Security Alerts: scan error: %v", err)
 			continue
 		}
 		alerts = append(alerts, al)
